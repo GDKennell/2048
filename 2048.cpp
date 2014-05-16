@@ -44,6 +44,8 @@ void print_board(const board_t& board) {
 }
 
 Move_Result up_move(const board_t& in_board);
+Move_Result down_move(const board_t& in_board);
+Move_Result left_move(const board_t& in_board);
 
 int main() {
   board_t board;
@@ -72,13 +74,25 @@ int main() {
 //  while(1) {
     // Up move
     Move_Result up_result = up_move(board);
-
     cout<<"Up Move: "<<endl;
     print_board(up_result.board);
     cout<<up_result.num_combos<<" combos worth ";
-    cout<<up_result.combos_value<<endl;
+    cout<<up_result.combos_value<<endl<<endl;
+
     // Down move
+    Move_Result down_result = down_move(board);
+    cout<<"Down Move: "<<endl;
+    print_board(down_result.board);
+    cout<<down_result.num_combos<<" combos worth ";
+    cout<<down_result.combos_value<<endl<<endl;
+
     // Left move
+    Move_Result left_result = left_move(board);
+    cout<<"Left Move: "<<endl;
+    print_board(left_result.board);
+    cout<<left_result.num_combos<<" combos worth ";
+    cout<<left_result.combos_value<<endl<<endl;
+
     // Right move
 //  }
 
@@ -133,8 +147,6 @@ Move_Result up_move(const board_t& in_board) {
       if(board[x][y].val == board[x][y-1].val) {
         board[x][y].val *= 2;
         result.num_combos++;
-        cout<<"("<<x<<','<<y<<") matches ";
-        cout<<"("<<x<<','<<y-1<<"), num_combos++"<<endl;
         result.combos_value += board[x][y].val;
         // Shift all blocks from y-2 down to 0 up
         for(int i = y-2; i >= 0; i--) {
@@ -147,6 +159,83 @@ Move_Result up_move(const board_t& in_board) {
   copy_board(result.board, board);
   return result;
 }
+
+Move_Result down_move(const board_t& in_board) {
+  Move_Result result;
+  board_t board;
+  copy_board(board, in_board);
+  for (int x = 0; x < 4; x++) {
+    // Shift everthing down 
+    for (int y = 1; y <= 3; y++) {
+      if (board[x][y].empty) continue;
+      int lowest_empty_y = y;
+      for(int i = y - 1; i >= 0; i--) {
+        if(board[x][i].empty)
+          lowest_empty_y = i;
+      }
+      if(lowest_empty_y != y) {
+        board[x][lowest_empty_y] = board[x][y];
+        board[x][y].empty = true;
+      }
+    }
+    
+    // Look for combinations
+    for(int y = 0; y < 3; y++) {
+      if(board[x][y].empty || board[x][y+1].empty) continue; 
+      if(board[x][y].val == board[x][y+1].val) {
+        board[x][y].val *= 2;
+        result.num_combos++;
+        result.combos_value += board[x][y].val;
+        // Shift all blocks from y+2 up to 3 down
+        for(int i = y+2; i <= 3; i++) {
+          board[x][i-1] = board[x][i];
+        }
+        board[x][3].empty = true;
+      }
+    }
+  }
+  copy_board(result.board, board);
+  return result;
+}
+
+Move_Result left_move(const board_t& in_board) {
+  Move_Result result;
+  board_t board;
+  copy_board(board, in_board);
+  for (int y = 0; y < 4; y++) {
+    // Shift everthing left 
+    for (int x = 1; x <= 3; x++) {
+      if (board[x][y].empty) continue;
+      int leftest_empty_x = x;
+      for(int i = x - 1; i >= 0; i--) {
+        if(board[i][y].empty)
+          leftest_empty_x = i;
+      }
+      if(leftest_empty_x != x) {
+        board[leftest_empty_x][y] = board[x][y];
+        board[x][y].empty = true;
+      }
+    }
+    
+    // Look for combinations
+    for(int x = 0; x < 3; x++) {
+      if(board[x][y].empty || board[x+1][y].empty) continue; 
+      if(board[x][y].val == board[x+1][y].val) {
+        board[x][y].val *= 2;
+        result.num_combos++;
+        result.combos_value += board[x][y].val;
+        // Shift all blocks from x+2 up to 3 down
+        for(int i = x+2; i <= 3; i++) {
+          board[i-1][y] = board[i][y];
+        }
+        board[3][y].empty = true;
+      }
+    }
+  }
+  copy_board(result.board, board);
+  return result;
+}
+
 
 /*
    _______________
