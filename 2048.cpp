@@ -1,12 +1,18 @@
 #include <iostream>
 #include <cassert>
 #include <deque>
+#include <string>
+#include <time.h>
 
 using namespace std;
 
 struct Block;
 
 typedef deque<deque<Block> > board_t;
+
+enum Direction {UP, DOWN, LEFT, RIGHT};
+
+const char* direction_names[] = {"up", "down", "left", "right"};
 
 struct Block {
   int val;
@@ -48,7 +54,21 @@ Move_Result down_move(const board_t& in_board);
 Move_Result left_move(const board_t& in_board);
 Move_Result right_move(const board_t& in_board);
 
+// Returns number of same, adjacent tiles (that can be combined)
+int num_adjacent(const board_t& board);
+
+void copy_board(board_t& dest, const board_t& source);
+
+Direction advice(Move_Result up_result,
+                 Move_Result down_result,
+                 Move_Result left_result,
+                 Move_Result right_result);
+
+void add_new_tile(board_t& board);
+
 int main() {
+  srand(time(NULL));
+
   board_t board;
   board.resize(4);
   for(int i = 0; i < 4; i++){ board[i].resize(4); }
@@ -59,7 +79,7 @@ int main() {
   Block init_block2 = input_block();
   board[init_block2.x - 1][init_block2.y - 1] = init_block2;
   cout<<endl;*/
-  int num_tiles = 6;
+  int num_tiles = 2;
   cout<<"Input "<<num_tiles<<" tiles"<<endl;
   for(int i = 0; i < num_tiles; i++){
     Block new_block = input_block();
@@ -72,7 +92,10 @@ int main() {
   cout<<"Initial board:"<<endl;
   print_board(board);
 
-//  while(1) {
+  while(1) {
+    cout<<"Ready for me to do the next move?"<<endl;
+    string dontcare;
+    cin >>dontcare;
     // Up move
     Move_Result up_result = up_move(board);
     cout<<"Up Move: "<<endl;
@@ -101,8 +124,142 @@ int main() {
     cout<<right_result.num_combos<<" combos worth ";
     cout<<right_result.combos_value<<endl<<endl;
 
-//  }
+    Direction choice = advice(up_result, down_result, left_result, right_result);
+    cout<<"I choose to move "<<direction_names[choice]<<endl;
 
+    switch(choice) {
+      case UP:
+        copy_board(board, up_result.board);
+        break;
+      case DOWN:
+        copy_board(board, down_result.board);
+        break;
+      case LEFT:
+        copy_board(board, left_result.board);
+        break;
+      case RIGHT:
+        copy_board(board, right_result.board);
+        break;
+    }
+    try {
+      add_new_tile(board);
+      cout<<"Added new tile, current board: "<<endl;
+      print_board(board);
+      cout<<endl;
+    }
+    catch(...) {
+      cout<<"Game over!"<<endl;
+      return 0;
+    }
+  }
+
+}
+
+Direction advice(Move_Result up_result,
+                 Move_Result down_result,
+                 Move_Result left_result,
+                 Move_Result right_result) {
+  //Precalculate num adjacent after move for all 4
+  int up_adj = num_adjacent(up_result.board);
+  int down_adj = num_adjacent(down_result.board);
+  int left_adj = num_adjacent(left_result.board);
+  int right_adj = num_adjacent(right_result.board);
+
+  // First pick left-right or up-down based on num combos
+
+  // up/down beats left/right
+  if (up_result.num_combos > left_result.num_combos) {
+    // pick up/down based on num adjacent after move
+    if (up_adj >= down_adj) {
+      return UP;
+    }
+    else {
+      return DOWN;
+    }
+  }
+  // left/right beats up/down
+  else if(left_result.num_combos > up_result.num_combos) {
+    // pick left/right based on num adjacent after move
+    if (left_adj >= right_adj) {
+      return LEFT;
+    }
+    else {
+      return RIGHT;
+    }
+  }
+  // same num combos for every direction, use num_adjacent after move
+  else {
+    // Pick up-down or right-left based on combos_value
+    if(up_result.combos_value >= left_result.combos_value) {
+      // Pick up/down based on num adjacent
+      if(up_adj >= down_adj) {
+        return UP; 
+      }
+      else {
+        return DOWN;
+      }
+    }
+    else {
+      // Pick left/right based on num adjacent
+      if(left_adj >= right_adj) {
+        return LEFT;
+      }
+      else {
+        return RIGHT;
+      }
+    }
+  }
+}
+
+// Returns number of same, adjacent tiles (that can be combined)
+int num_adjacent(const board_t& board) {
+  int result = 0;
+  for(int x = 0; x < 3; x++) {
+    for(int y = 0; y < 3; y++) {
+      if(board[x][y].empty) continue;
+      //scan right for next non-empty tile
+      for(int xi = x + 1; xi < 4; xi++) {
+        if(board[xi][y].empty) continue;
+        if(board[x][y].val == board[xi][y].val) {
+          result++;
+        }
+        break;
+      }
+      //scan up for next non-empty tile
+      for(int yi = y + 1; yi < 4; yi++) {
+        if(board[x][yi].empty) continue;
+        if(board[x][y].val == board[x][yi].val) {
+          result++;
+        }
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+void add_new_tile(board_t& board) {
+  deque<Block> empty_blocks;
+  for(int x = 0; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
+      if(board[x][y].empty) {
+        board[x][y].x = x + 1;
+        board[x][y].y = y + 1;
+        empty_blocks.push_back(board[x][y]);
+      }
+    } 
+  }
+  if(empty_blocks.empty()) {
+    throw "Board full";
+  }
+  cout<<"Adding new tile. choosing from "<<empty_blocks.size();
+  cout<<" empty tiles"<<endl;
+  Block block_to_fill = empty_blocks[rand() % empty_blocks.size()];
+  block_to_fill.val = (rand() % 100 <= 15) ? 4 : 2;
+  block_to_fill.empty = false;
+  cout<<"Chose block at ("<<block_to_fill.x<<',';
+  cout<<block_to_fill.y<<") with value "<<block_to_fill.val<<endl;
+  board[block_to_fill.x-1][block_to_fill.y-1] = block_to_fill;
 }
 
 Block input_block() {
