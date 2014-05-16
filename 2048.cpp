@@ -46,6 +46,7 @@ void print_board(const board_t& board) {
 Move_Result up_move(const board_t& in_board);
 Move_Result down_move(const board_t& in_board);
 Move_Result left_move(const board_t& in_board);
+Move_Result right_move(const board_t& in_board);
 
 int main() {
   board_t board;
@@ -94,6 +95,12 @@ int main() {
     cout<<left_result.combos_value<<endl<<endl;
 
     // Right move
+    Move_Result right_result = right_move(board);
+    cout<<"Right Move: "<<endl;
+    print_board(right_result.board);
+    cout<<right_result.num_combos<<" combos worth ";
+    cout<<right_result.combos_value<<endl<<endl;
+
 //  }
 
 }
@@ -224,7 +231,7 @@ Move_Result left_move(const board_t& in_board) {
         board[x][y].val *= 2;
         result.num_combos++;
         result.combos_value += board[x][y].val;
-        // Shift all blocks from x+2 up to 3 down
+        // Shift all blocks from x+2 up to 3 left
         for(int i = x+2; i <= 3; i++) {
           board[i-1][y] = board[i][y];
         }
@@ -235,6 +242,45 @@ Move_Result left_move(const board_t& in_board) {
   copy_board(result.board, board);
   return result;
 }
+
+Move_Result right_move(const board_t& in_board) {
+  Move_Result result;
+  board_t board;
+  copy_board(board, in_board);
+  for (int y = 0; y < 4; y++) {
+    // Shift everthing right 
+    for (int x = 2; x >= 0; x--) {
+      if (board[x][y].empty) continue;
+      int rightest_empty_x = x;
+      for(int i = x + 1; i <= 3; i++) {
+        if(board[i][y].empty)
+          rightest_empty_x = i;
+      }
+      if(rightest_empty_x != x) {
+        board[rightest_empty_x][y] = board[x][y];
+        board[x][y].empty = true;
+      }
+    }
+    
+    // Look for combinations
+    for(int x = 3; x > 0; x--) {
+      if(board[x][y].empty || board[x-1][y].empty) continue; 
+      if(board[x][y].val == board[x-1][y].val) {
+        board[x][y].val *= 2;
+        result.num_combos++;
+        result.combos_value += board[x][y].val;
+        // Shift all blocks from x-2 down to 0 right
+        for(int i = x-2; i >= 0; i--) {
+          board[i+1][y] = board[i][y];
+        }
+        board[0][y].empty = true;
+      }
+    }
+  }
+  copy_board(result.board, board);
+  return result;
+}
+
 
 
 /*
