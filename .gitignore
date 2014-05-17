@@ -1,3 +1,5 @@
 2048
 *.dSYM
 Play2048
+BestRuns
+*out.txt

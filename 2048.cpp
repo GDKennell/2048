@@ -1,6 +1,7 @@
-#include <iostream>
+#include <algorithm>
 #include <cassert>
 #include <deque>
+#include <iostream>
 #include <string>
 #include <time.h>
 
@@ -23,6 +24,7 @@ struct Block {
     if(empty) cout<<"    ";
     else if(val < 10) cout<<" "<<val<<"  ";
     else if(val < 100) cout<<" "<<val<<" ";
+    else if(val < 1000) cout<<val<<' ';
     else cout<<val;
   }
 };
@@ -57,16 +59,25 @@ Move_Result right_move(const board_t& in_board);
 // Returns number of same, adjacent tiles (that can be combined)
 int num_adjacent(const board_t& board);
 
-void copy_board(board_t& dest, const board_t& source);
+// Returns value corresponding to 2's and 4's next to open spaces
+// weighted as 6 for each 2 and 1 for each 4
+int num_open24(const board_t& board);
 
-Direction advice(Move_Result up_result,
-                 Move_Result down_result,
-                 Move_Result left_result,
-                 Move_Result right_result);
+bool board_full(const board_t& board);
+
+void copy_board(board_t& dest, const board_t& source);
+bool boards_same(const board_t& b1, const board_t& b2);
+
+Direction advice(const board_t& board,
+                 const Move_Result& up_result,
+                 const Move_Result& down_result,
+                 const Move_Result& left_result,
+                 const Move_Result& right_result);
 
 void add_new_tile(board_t& board);
 
 int main() {
+  int score = 0;
   srand(time(NULL));
 
   board_t board;
@@ -93,9 +104,13 @@ int main() {
   print_board(board);
 
   while(1) {
-    cout<<"Ready for me to do the next move?"<<endl;
+    if(board_full(board)) {
+      cout<<"Game Over"<<endl;
+      return 0;
+    }
+/*    cout<<"Ready for me to do the next move?"<<endl;
     string dontcare;
-    cin >>dontcare;
+    cin >>dontcare;*/
     // Up move
     Move_Result up_result = up_move(board);
     cout<<"Up Move: "<<endl;
@@ -124,89 +139,179 @@ int main() {
     cout<<right_result.num_combos<<" combos worth ";
     cout<<right_result.combos_value<<endl<<endl;
 
-    Direction choice = advice(up_result, down_result, left_result, right_result);
-    cout<<"I choose to move "<<direction_names[choice]<<endl;
+    Direction choice = advice(board,
+                              up_result,
+                              down_result, 
+                              left_result,
+                              right_result);
+    cout<<"\n********Move "<<direction_names[choice];
+    cout<<"********"<<endl;
 
     switch(choice) {
       case UP:
         copy_board(board, up_result.board);
+        score += up_result.combos_value;
         break;
       case DOWN:
         copy_board(board, down_result.board);
+        score += down_result.combos_value;
         break;
       case LEFT:
         copy_board(board, left_result.board);
+        score += left_result.combos_value;
         break;
       case RIGHT:
         copy_board(board, right_result.board);
+        score += right_result.combos_value;
         break;
     }
-    try {
-      add_new_tile(board);
-      cout<<"Added new tile, current board: "<<endl;
-      print_board(board);
-      cout<<endl;
-    }
-    catch(...) {
-      cout<<"Game over!"<<endl;
-      return 0;
-    }
+    cout<<"********Score: "<<score<<"********\n"<<endl;
+    cout<<"Input new tile"<<endl;
+
+//    Block new_block = input_block();
+//    board[new_block.x-1][new_block.y-1] = new_block;
+
+//      cout<<"Added new tile, current board: "<<endl;
+//      print_board(board);
+
+    add_new_tile(board);
+    cout<<"Added new tile, current board: "<<endl;
+    print_board(board);
+    cout<<endl;
+    
   }
 
 }
 
-Direction advice(Move_Result up_result,
-                 Move_Result down_result,
-                 Move_Result left_result,
-                 Move_Result right_result) {
-  //Precalculate num adjacent after move for all 4
-  int up_adj = num_adjacent(up_result.board);
-  int down_adj = num_adjacent(down_result.board);
-  int left_adj = num_adjacent(left_result.board);
-  int right_adj = num_adjacent(right_result.board);
+Direction advice(const board_t& board,
+                 const Move_Result& up_result,
+                 const Move_Result& down_result,
+                 const Move_Result& left_result,
+                 const Move_Result& right_result) {
+  //Count empty spaces to leave 2's and 4's free if little space
+  int num_empty = 0;
+  for(int x = 0; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
+      if(board[x][y].empty)
+        num_empty++;
+    }
+  }
 
+  bool up_valid = !boards_same(board, up_result.board);
+  bool down_valid = !boards_same(board, down_result.board);
+  bool left_valid = !boards_same(board, left_result.board);
+  bool right_valid = !boards_same(board, right_result.board);
+
+  //Precalculate num adjacent after move for all 4
+  int up_adj = up_valid ? num_adjacent(up_result.board) : -1;
+  int down_adj = down_valid ? num_adjacent(down_result.board) : -1;
+  int left_adj = left_valid ? num_adjacent(left_result.board) : -1;
+  int right_adj = right_valid ? num_adjacent(right_result.board) : -1;
+  int max_adj = max(up_adj, max(down_adj, max(left_adj, right_adj) ) );
+
+  // Number of 2's and 4's left next to open spaces
+  int up_open24 = up_valid ? num_open24(up_result.board) : -1;
+  int down_open24 = down_valid ? num_open24(down_result.board) : -1;
+  int left_open24 = left_valid ? num_open24(left_result.board) : -1;
+  int right_open24 = right_valid ? num_open24(right_result.board) : -1;
+  int max_open24 = max(up_open24, max(down_open24, max(left_open24, right_open24) ) );
+  
   // First pick left-right or up-down based on num combos
+
+  // If only one space left, prioritize open24 unless >2 adjacent
+  if(num_empty == 1 && max_adj < 2) {
+    cout<<"\topen24 decision.   up: "<<up_open24<<endl;
+    cout<<"\t                 down: "<<down_open24<<endl;
+    cout<<"\t                 left: "<<left_open24<<endl;
+    cout<<"\t                right: "<<right_open24<<endl;
+    if(max_open24 == up_open24 && up_valid)
+      return UP;
+    else if(max_open24 == down_open24 && down_valid)
+      return DOWN;
+    else if((max_open24 == left_open24 && left_valid) || !right_valid) 
+      return LEFT;
+    else
+      return RIGHT;
+  }
 
   // up/down beats left/right
   if (up_result.num_combos > left_result.num_combos) {
+    if(!up_valid) return DOWN;
+    if(!down_valid) return UP;
     // pick up/down based on num adjacent after move
-    if (up_adj >= down_adj) {
+    if (up_adj > down_adj) {
       return UP;
     }
-    else {
+    else if (down_adj > up_adj) {
       return DOWN;
+    }
+    else {
+      cout<<"\topen24 tie breaker. up: "<<up_open24;
+      cout<<", down: "<<down_open24<<endl;
+      return (up_open24 > down_open24) ? UP : DOWN;
     }
   }
   // left/right beats up/down
   else if(left_result.num_combos > up_result.num_combos) {
+    if(!left_valid) return RIGHT;
+    if(!right_valid) return LEFT;
     // pick left/right based on num adjacent after move
-    if (left_adj >= right_adj) {
+    if (left_adj > right_adj) {
       return LEFT;
     }
-    else {
+    else if(right_adj > left_adj) {
       return RIGHT;
     }
+    else {
+      cout<<"\topen24 tie breaker. left: "<<left_open24;
+      cout<<", right: "<<right_open24<<endl;
+      return (left_open24 > right_open24) ? LEFT : RIGHT;
+    }
   }
-  // same num combos for every direction, use num_adjacent after move
+ // same num combos for every direction, use num_adjacent after move
+ // break ties with open24
   else {
-    // Pick up-down or right-left based on combos_value
-    if(up_result.combos_value >= left_result.combos_value) {
-      // Pick up/down based on num adjacent
-      if(up_adj >= down_adj) {
-        return UP; 
-      }
-      else {
-        return DOWN;
-      }
+    deque<Direction> best_adjs;
+    if(up_adj == max_adj && up_valid) best_adjs.push_back(UP);
+    if(down_adj == max_adj && down_valid) best_adjs.push_back(DOWN);
+    if(left_adj == max_adj && left_valid) best_adjs.push_back(LEFT);
+    if(right_adj == max_adj && right_valid) best_adjs.push_back(RIGHT);
+    cout<<"adjs: "<<up_adj<<' '<<down_adj<<' '<<left_adj<<' '<<right_adj<<endl;
+    cout<<"max_adj: "<<max_adj<<endl;
+    assert(!best_adjs.empty());
+    if(best_adjs.size() == 1) {
+      cout<<"\treturning single best adjacent move"<<endl;
+      return best_adjs.front();
+    }
+    deque<Direction> best_open24s;
+    if(up_open24 == max_open24 && up_valid) best_open24s.push_back(UP);
+    if(down_open24 == max_open24 && down_valid) best_open24s.push_back(DOWN);
+    if(left_open24 == max_open24 && left_valid) best_open24s.push_back(LEFT);
+    if(right_open24 == max_open24 && right_valid) best_open24s.push_back(RIGHT);
+    assert(!best_open24s.empty());
+
+    deque<Direction> intersection(4);
+    deque<Direction>::iterator it = set_intersection(best_adjs.begin(), best_adjs.end(),
+                                                     best_open24s.begin(), best_open24s.end(),
+                                                     intersection.begin());
+    cout<<"\tmultiple best adjacents, took intersection.";
+    cout<<"best_adjs: ";
+    for(int i = 0 ; i < best_adjs.size(); i++) {
+      cout<<direction_names[best_adjs[i]]<<' ';
+    }
+    cout<<endl;
+    cout<<"best_open24s: ";
+    for(int i = 0 ; i < best_open24s.size(); i++) {
+      cout<<direction_names[best_open24s[i]]<<' ';
+    }
+    cout<<endl;
+    if(it == intersection.begin()) {
+      cout<<" It's empty, returning a best adj"<<endl;
+      return best_adjs.front();
     }
     else {
-      // Pick left/right based on num adjacent
-      if(left_adj >= right_adj) {
-        return LEFT;
-      }
-      else {
-        return RIGHT;
-      }
+      cout<<" Returning first of intersection."<<endl;
+      return intersection.front();
     }
   }
 }
@@ -214,8 +319,8 @@ Direction advice(Move_Result up_result,
 // Returns number of same, adjacent tiles (that can be combined)
 int num_adjacent(const board_t& board) {
   int result = 0;
-  for(int x = 0; x < 3; x++) {
-    for(int y = 0; y < 3; y++) {
+  for(int x = 0; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
       if(board[x][y].empty) continue;
       //scan right for next non-empty tile
       for(int xi = x + 1; xi < 4; xi++) {
@@ -238,6 +343,35 @@ int num_adjacent(const board_t& board) {
   return result;
 }
 
+int num_open24(const board_t& board) {
+  int result = 0;
+  for(int x = 0; x < 4; x++) {
+    for (int y = 0; y < 4; y++) {
+      if(board[x][y].empty) continue;
+      for(int xi = x-1; xi <= x+1; xi++) {
+        if(xi < 0 || xi >= 4) continue;
+        for(int yi = y-1; yi <= y+1; yi++) {
+          if(yi < 0 || yi >= 4) continue;
+          if(board[xi][yi].empty && board[x][y].val == 2)
+            result += 6;
+          else if(board[xi][yi].empty && board[x][y].val == 4)
+            result += 1;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+bool board_full(const board_t& board) {
+  for(int x = 0; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
+      if(board[x][y].empty) return false;
+    }
+  }
+  return true;
+}
+
 void add_new_tile(board_t& board) {
   deque<Block> empty_blocks;
   for(int x = 0; x < 4; x++) {
@@ -252,12 +386,10 @@ void add_new_tile(board_t& board) {
   if(empty_blocks.empty()) {
     throw "Board full";
   }
-  cout<<"Adding new tile. choosing from "<<empty_blocks.size();
-  cout<<" empty tiles"<<endl;
   Block block_to_fill = empty_blocks[rand() % empty_blocks.size()];
   block_to_fill.val = (rand() % 100 <= 15) ? 4 : 2;
   block_to_fill.empty = false;
-  cout<<"Chose block at ("<<block_to_fill.x<<',';
+  cout<<"New block at ("<<block_to_fill.x<<',';
   cout<<block_to_fill.y<<") with value "<<block_to_fill.val<<endl;
   board[block_to_fill.x-1][block_to_fill.y-1] = block_to_fill;
 }
@@ -284,6 +416,19 @@ void copy_board(board_t& dest, const board_t& source) {
       dest[x][y] = source[x][y];
     }
   }
+}
+
+bool boards_same(const board_t& b1, const board_t& b2) {
+  for(int x = 0; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
+      if((b1[x][y].empty && !b2[x][y].empty) ||
+         (!b1[x][y].empty && b2[x][y].empty) ||
+         (!b1[x][y].empty && !b2[x][y].empty && b1[x][y].val != b2[x][y].val)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 Move_Result up_move(const board_t& in_board) {
