@@ -104,10 +104,6 @@ int main() {
   print_board(board);
 
   while(1) {
-    if(board_full(board)) {
-      cout<<"Game Over"<<endl;
-      return 0;
-    }
 /*    cout<<"Ready for me to do the next move?"<<endl;
     string dontcare;
     cin >>dontcare;*/
@@ -120,6 +116,14 @@ int main() {
     Move_Result left_result = left_move(board);
     // Right move
     Move_Result right_result = right_move(board);
+
+    if(board_full(up_result.board) &&
+        board_full(down_result.board) &&
+        board_full(left_result.board) &&
+        board_full(right_result.board)) {
+      cout<<"Game Over"<<endl;
+      return 0;
+    }
 
 /*    cout<<"Up Move: "<<endl;
     print_board(up_result.board);
