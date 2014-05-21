@@ -111,33 +111,35 @@ int main() {
 /*    cout<<"Ready for me to do the next move?"<<endl;
     string dontcare;
     cin >>dontcare;*/
+    
     // Up move
     Move_Result up_result = up_move(board);
-    cout<<"Up Move: "<<endl;
+    // Down move
+    Move_Result down_result = down_move(board);
+    // Left move
+    Move_Result left_result = left_move(board);
+    // Right move
+    Move_Result right_result = right_move(board);
+
+/*    cout<<"Up Move: "<<endl;
     print_board(up_result.board);
     cout<<up_result.num_combos<<" combos worth ";
     cout<<up_result.combos_value<<endl<<endl;
 
-    // Down move
-    Move_Result down_result = down_move(board);
     cout<<"Down Move: "<<endl;
     print_board(down_result.board);
     cout<<down_result.num_combos<<" combos worth ";
     cout<<down_result.combos_value<<endl<<endl;
 
-    // Left move
-    Move_Result left_result = left_move(board);
     cout<<"Left Move: "<<endl;
     print_board(left_result.board);
     cout<<left_result.num_combos<<" combos worth ";
     cout<<left_result.combos_value<<endl<<endl;
 
-    // Right move
-    Move_Result right_result = right_move(board);
     cout<<"Right Move: "<<endl;
     print_board(right_result.board);
     cout<<right_result.num_combos<<" combos worth ";
-    cout<<right_result.combos_value<<endl<<endl;
+    cout<<right_result.combos_value<<endl<<endl;*/
 
     Direction choice = advice(board,
                               up_result,
