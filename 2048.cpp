@@ -349,15 +349,28 @@ int num_open24(const board_t& board) {
   int result = 0;
   for(int x = 0; x < 4; x++) {
     for (int y = 0; y < 4; y++) {
-      if(board[x][y].empty) continue;
-      for(int xi = x-1; xi <= x+1; xi++) {
-        if(xi < 0 || xi >= 4) continue;
-        for(int yi = y-1; yi <= y+1; yi++) {
-          if(yi < 0 || yi >= 4) continue;
-          if(board[xi][yi].empty && board[x][y].val == 2)
-            result += 6;
-          else if(board[xi][yi].empty && board[x][y].val == 4)
-            result += 1;
+      bool has2 = false;
+      bool has4 = false;
+      if(board[x][y].empty) {
+        for(int xi = x-1; xi <= x+1; xi++) {
+          if(xi < 0 || xi >= 4) continue;
+          for(int yi = y-1; yi <= y+1; yi++) {
+            if(yi < 0 || yi >= 4) continue;
+            //disallow diagonals
+            if(xi != x && yi != y) continue;
+            //disallow same one
+            if(xi == x && yi == y) continue;
+            if(!board[xi][yi].empty && board[xi][yi].val == 2)
+              has2 = true;
+            else if(!board[xi][yi].empty && board[xi][yi].val == 4)
+              has4 = true;
+          }
+        }
+        if(has2) {
+          result += 6;
+        }
+        if(has4) {
+          result += 1;
         }
       }
     }
