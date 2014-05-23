@@ -56,6 +56,14 @@ Move_Result down_move(const board_t& in_board);
 Move_Result left_move(const board_t& in_board);
 Move_Result right_move(const board_t& in_board);
 
+int min(int x1, int x2, int x3, int x4) {
+  return min(x1, min(x2, min(x3, x4) ) );
+}
+
+int max(int x1, int x2, int x3, int x4) {
+  return max(x1, max(x2, max(x3, x4) ) );
+}
+
 // Returns number of same, adjacent tiles (that can be combined)
 int num_adjacent(const board_t& board);
 
@@ -180,7 +188,12 @@ int main() {
 //      cout<<"Added new tile, current board: "<<endl;
 //      print_board(board);
 
-    add_new_tile(board);
+    try {
+      add_new_tile(board);
+    } catch(...) {
+      cout<<"Game OOOver!!!"<<endl;
+      return 0;
+    }
     cout<<"Added new tile, current board: "<<endl;
     print_board(board);
     cout<<endl;
@@ -189,136 +202,117 @@ int main() {
 
 }
 
+//returns some evaluation of this board based on number of tiles,
+//    number of combos available, highest tile value
+int heuristic(const board_t& board) {
+  int num_tiles = 0;
+  int num_combos = 0;
+
+  for(int x = 0; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
+      if (!board[x][y].empty) {
+        num_tiles++;
+        if (x-1 > 0 && !board[x-1][y].empty && 
+            board[x-1][y].val == board[x][y].val) {
+          num_combos++;
+        }
+        if (x+1 < 4 && !board[x+1][y].empty && 
+            board[x+1][y].val == board[x][y].val) {
+          num_combos++;
+        }
+        if (y-1 > 0 && !board[x][y-1].empty && 
+            board[x][y-1].val == board[x][y].val) {
+          num_combos++;
+        }
+        if (y+1 < 4 && !board[x][y+1].empty && 
+            board[x][y+1].val == board[x][y].val) {
+          num_combos++;
+        }
+      }
+    }
+  }
+  int max_tiles = 4 * 4;
+  return (max_tiles - num_tiles) + num_combos;
+}
+
+const int MAX_DEPTH = 2;
+ 
+// Returns estimated worst case heuristic evaluation of a board
+// recursing MAX_DEPTH moves
+int eval_board(const board_t& board) {
+  static int depth = 0;
+//  cout<<"eval_board Depth "<<depth<<endl;
+  if (depth >= MAX_DEPTH) {
+//    cout<<"\teval_board end_case, depth-- = "<<depth<<endl;
+    deque<board_t> possible_outcomes;
+    for(int x = 0; x < 4; x++) {
+      for(int y = 0; y < 4; y++) {
+        if (board[x][y].empty) {
+          board_t board_2 = board;
+          board_2[x][y].empty = false;
+          board_2[x][y].val = 2;
+          possible_outcomes.push_back(board_2);
+
+          board_t board_4 = board;
+          board_4[x][y].empty = false;
+          board_4[x][y].val = 4;
+          possible_outcomes.push_back(board_4);
+        }
+      }
+    }
+    int min_val = INT_MAX;
+    for(int i = 0; i < possible_outcomes.size(); i++) {
+      const board_t& outcome = possible_outcomes[i];
+      int outcome_val = heuristic(outcome);
+      if (outcome_val < min_val)
+        min_val = outcome_val;
+    }
+//    cout<<"\teval_board end_case looked at "<<possible_outcomes.size()<<" outcomes, returning "<<min_val<<endl;
+   return min_val;
+  }
+  depth++;
+//  cout<<"\teval_board non-end_case, depth++ = "<<depth<<endl;
+//  cout<<"\t\trecursive call to up_move(board)"<<endl;
+  int up_eval = eval_board(up_move(board).board);
+//  cout<<"\t\trecursive call to down_move(board)"<<endl;
+  int down_eval = eval_board(down_move(board).board);
+//  cout<<"\t\trecursive call to left_move(board)"<<endl;
+  int left_eval = eval_board(left_move(board).board);
+//  cout<<"\t\trecursive call to right_move(board)"<<endl;
+  int right_eval = eval_board(right_move(board).board);
+//  cout<<"\tfinished recursive calls, returning minimum result, ";
+//  cout<<min(up_eval, down_eval, left_eval, right_eval)<<endl;
+  depth--;
+  return min(up_eval, down_eval, left_eval, right_eval);
+}
+
 Direction advice(const board_t& board,
                  const Move_Result& up_result,
                  const Move_Result& down_result,
                  const Move_Result& left_result,
                  const Move_Result& right_result) {
-  //Count empty spaces to leave 2's and 4's free if little space
-  int num_empty = 0;
-  for(int x = 0; x < 4; x++) {
-    for(int y = 0; y < 4; y++) {
-      if(board[x][y].empty)
-        num_empty++;
-    }
+  int up_val;
+  int down_val;
+  int left_val;
+  int right_val;
+
+  up_val = eval_board(up_move(board).board);
+  down_val = eval_board(down_move(board).board);
+  left_val = eval_board(left_move(board).board);
+  right_val = eval_board(right_move(board).board);
+  int max_val = max(up_val, down_val, left_val, right_val);
+  cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
+  if(max_val == up_val) {
+    return UP;
   }
-
-  bool up_valid = !boards_same(board, up_result.board);
-  bool down_valid = !boards_same(board, down_result.board);
-  bool left_valid = !boards_same(board, left_result.board);
-  bool right_valid = !boards_same(board, right_result.board);
-
-  //Precalculate num adjacent after move for all 4
-  int up_adj = up_valid ? num_adjacent(up_result.board) : -1;
-  int down_adj = down_valid ? num_adjacent(down_result.board) : -1;
-  int left_adj = left_valid ? num_adjacent(left_result.board) : -1;
-  int right_adj = right_valid ? num_adjacent(right_result.board) : -1;
-  int max_adj = max(up_adj, max(down_adj, max(left_adj, right_adj) ) );
-
-  // Number of 2's and 4's left next to open spaces
-  int up_open24 = up_valid ? num_open24(up_result.board) : -1;
-  int down_open24 = down_valid ? num_open24(down_result.board) : -1;
-  int left_open24 = left_valid ? num_open24(left_result.board) : -1;
-  int right_open24 = right_valid ? num_open24(right_result.board) : -1;
-  int max_open24 = max(up_open24, max(down_open24, max(left_open24, right_open24) ) );
-  
-  // First pick left-right or up-down based on num combos
-
-  // If only one space left, prioritize open24 unless >2 adjacent
-  if(num_empty == 1 && max_adj < 2) {
-    cout<<"\topen24 decision.   up: "<<up_open24<<endl;
-    cout<<"\t                 down: "<<down_open24<<endl;
-    cout<<"\t                 left: "<<left_open24<<endl;
-    cout<<"\t                right: "<<right_open24<<endl;
-    if(max_open24 == up_open24 && up_valid)
-      return UP;
-    else if(max_open24 == down_open24 && down_valid)
-      return DOWN;
-    else if((max_open24 == left_open24 && left_valid) || !right_valid) 
-      return LEFT;
-    else
-      return RIGHT;
+  else if (max_val == down_val) {
+    return DOWN;
   }
-
-  // up/down beats left/right
-  if (up_result.num_combos > left_result.num_combos) {
-    if(!up_valid) return DOWN;
-    if(!down_valid) return UP;
-    // pick up/down based on num adjacent after move
-    if (up_adj > down_adj) {
-      return UP;
-    }
-    else if (down_adj > up_adj) {
-      return DOWN;
-    }
-    else {
-      cout<<"\topen24 tie breaker. up: "<<up_open24;
-      cout<<", down: "<<down_open24<<endl;
-      return (up_open24 > down_open24) ? UP : DOWN;
-    }
+  else if(max_val == left_val) {
+    return LEFT;
   }
-  // left/right beats up/down
-  else if(left_result.num_combos > up_result.num_combos) {
-    if(!left_valid) return RIGHT;
-    if(!right_valid) return LEFT;
-    // pick left/right based on num adjacent after move
-    if (left_adj > right_adj) {
-      return LEFT;
-    }
-    else if(right_adj > left_adj) {
-      return RIGHT;
-    }
-    else {
-      cout<<"\topen24 tie breaker. left: "<<left_open24;
-      cout<<", right: "<<right_open24<<endl;
-      return (left_open24 > right_open24) ? LEFT : RIGHT;
-    }
-  }
- // same num combos for every direction, use num_adjacent after move
- // break ties with open24
   else {
-    deque<Direction> best_adjs;
-    if(up_adj == max_adj && up_valid) best_adjs.push_back(UP);
-    if(down_adj == max_adj && down_valid) best_adjs.push_back(DOWN);
-    if(left_adj == max_adj && left_valid) best_adjs.push_back(LEFT);
-    if(right_adj == max_adj && right_valid) best_adjs.push_back(RIGHT);
-    cout<<"adjs: "<<up_adj<<' '<<down_adj<<' '<<left_adj<<' '<<right_adj<<endl;
-    cout<<"max_adj: "<<max_adj<<endl;
-    assert(!best_adjs.empty());
-    if(best_adjs.size() == 1) {
-      cout<<"\treturning single best adjacent move"<<endl;
-      return best_adjs.front();
-    }
-    deque<Direction> best_open24s;
-    if(up_open24 == max_open24 && up_valid) best_open24s.push_back(UP);
-    if(down_open24 == max_open24 && down_valid) best_open24s.push_back(DOWN);
-    if(left_open24 == max_open24 && left_valid) best_open24s.push_back(LEFT);
-    if(right_open24 == max_open24 && right_valid) best_open24s.push_back(RIGHT);
-    assert(!best_open24s.empty());
-
-    deque<Direction> intersection(4);
-    deque<Direction>::iterator it = set_intersection(best_adjs.begin(), best_adjs.end(),
-                                                     best_open24s.begin(), best_open24s.end(),
-                                                     intersection.begin());
-    cout<<"\tmultiple best adjacents, took intersection.";
-    cout<<"best_adjs: ";
-    for(int i = 0 ; i < best_adjs.size(); i++) {
-      cout<<direction_names[best_adjs[i]]<<' ';
-    }
-    cout<<endl;
-    cout<<"best_open24s: ";
-    for(int i = 0 ; i < best_open24s.size(); i++) {
-      cout<<direction_names[best_open24s[i]]<<' ';
-    }
-    cout<<endl;
-    if(it == intersection.begin()) {
-      cout<<" It's empty, returning a best adj"<<endl;
-      return best_adjs.front();
-    }
-    else {
-      cout<<" Returning first of intersection."<<endl;
-      return intersection.front();
-    }
+    return RIGHT;
   }
 }
 

@@ -47,7 +47,7 @@ Farther future:
           if (depth >= MAX_DEPTH) {
             depth--;
             deque<board_t> possible_outcomes;
-            for(all empty board positions in up_move(board)) {
+            for(all empty board positions in board) {
               possible_outcomes.push_back(board + 2 in spot);
               possible_outcomes.push_back(board + 4 in spot);
             }
