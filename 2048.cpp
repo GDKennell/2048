@@ -235,8 +235,8 @@ int heuristic(const board_t& board) {
   return (max_tiles - num_tiles) + num_combos;
 }
 
-const int MAX_DEPTH = 2;
- 
+const int MAX_DEPTH = 3;
+
 // Returns estimated worst case heuristic evaluation of a board
 // recursing MAX_DEPTH moves
 int eval_board(const board_t& board) {
@@ -251,12 +251,12 @@ int eval_board(const board_t& board) {
           board_t board_2 = board;
           board_2[x][y].empty = false;
           board_2[x][y].val = 2;
-          possible_outcomes.push_back(board_2);
+          possible_outcomes.push_back(move(board_2));
 
           board_t board_4 = board;
           board_4[x][y].empty = false;
           board_4[x][y].val = 4;
-          possible_outcomes.push_back(board_4);
+          possible_outcomes.push_back(move(board_4));
         }
       }
     }
@@ -283,7 +283,7 @@ int eval_board(const board_t& board) {
 //  cout<<"\tfinished recursive calls, returning minimum result, ";
 //  cout<<min(up_eval, down_eval, left_eval, right_eval)<<endl;
   depth--;
-  return min(up_eval, down_eval, left_eval, right_eval);
+  return max(up_eval, down_eval, left_eval, right_eval);
 }
 
 Direction advice(const board_t& board,
