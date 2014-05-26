@@ -1,0 +1,31 @@
+##############MiniMax Prune Test############
+New block value (2|4): New block coords(x,y): New block value (2|4): New block coords(x,y): New block value (2|4): New block coords(x,y): New block value (2|4): New block coords(x,y): New block value (2|4): New block coords(x,y): New block value (2|4): New block coords(x,y): New block value (2|4): New block coords(x,y): New block value (2|4): New block coords(x,y): Test board: 
+   ___________________
+  |    |256 |    | 16 |
+   ___________________
+  |    | 2  | 4  | 2  |
+   ___________________
+  |    |    |128 | 4  |
+   ___________________
+  |    |    |    |256 |
+   ___________________
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+	up_val: 7
+	down_val: 8
+	left_val:8
+	right_val:0
+naive analysis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 6
+	  right_eval: 6
+opt analysis:
+	Direction: down
+	  up_eval: 7
+	  down_eval: 8
+	  left_eval: 8
+	  right_eval: 0

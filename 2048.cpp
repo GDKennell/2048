@@ -11,7 +11,7 @@ using namespace std;
 
 struct Block;
 
-const bool DETAIL = false;
+const bool DETAIL = true;
 
 typedef deque<deque<Block> > board_t;
 
@@ -139,8 +139,47 @@ board_t rand_board() {
 }
 
 int main() {
+  detail_out.open("game_detail.txt");
+  if(!detail_out.good()) {
+    cerr<<"Failed to open detail out file"<<endl;
+    return 1;
+  }
   srand(time(NULL));
   cout<<"##############MiniMax Prune Test############"<<endl;
+  int test_size = 8;
+  board_t b;
+  b.resize(4);
+  for(int i = 0 ; i < 4; i++) {b[i].resize(4);}
+  for(int i = 0; i < test_size; i++) {
+    Block new_block = input_block();
+    assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
+    assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
+    b[new_block.x-1][new_block.y-1] = new_block;
+  }
+  cout<<"Test board: "<<endl;
+  print_board(b, false);
+  // Up move
+  Move_Result up_result = up_move(b);
+  // Down move
+  Move_Result down_result = down_move(b);
+  // Left move
+  Move_Result left_result = left_move(b);
+  // Right move
+  Move_Result right_result = right_move(b);
+
+  if(DETAIL)
+    detail_out<<"################# naive #########"<<endl;
+  Analysis_t analysis_naive = advice(b, up_result, down_result, left_result, right_result, false);
+  if(DETAIL)
+    detail_out<<"\n\n################# optimized #########"<<endl;
+  Analysis_t analysis_opt = advice(b, up_result, down_result, left_result, right_result, true);
+
+  cout<<"naive analysis:"<<endl;
+  analysis_naive.print();
+  cout<<"opt analysis:"<<endl;
+  analysis_opt.print();
+
+  return 0;
 
   int num_tests = 100;
   for(int i = 0; i < 100; i++) {
@@ -206,7 +245,6 @@ int main() {
   }
 
   return 0;
-  detail_out.open("game_detail.txt");
   if(!detail_out.good()) {
     cout<<"Couldn't open detail file"<<endl;
     return 1;
@@ -596,7 +634,7 @@ Block input_block() {
   return_block.empty = false;
   cout<<"New block value (2|4): ";
   cin >> return_block.val;
-  assert(return_block.val == 2 || return_block.val == 4);
+  assert(return_block.val % 2 == 0);
 
   cout<<"New block coords(x,y): ";
   cin >> return_block.x >> return_block.y;
