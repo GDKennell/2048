@@ -93,6 +93,8 @@ Direction advice(const board_t& board,
 
 void add_new_tile(board_t& board);
 
+int max_seen_depth = 0;
+
 int main() {
   detail_out.open("game_detail.txt");
   if(!detail_out.good()) {
@@ -128,6 +130,8 @@ int main() {
   int round_num = 0;
   while(1) {
     cout<<"###############Round "<<++round_num<<endl;
+    cerr<<"###############Round "<<++round_num<<endl;
+    cerr<<"Score: "<<score<<endl;
     if(DETAIL)
       detail_out<<"###############Round "<<round_num<<endl;
     print_board(board, false);
@@ -150,6 +154,7 @@ int main() {
         board_full(right_result.board)) {
       cout<<"Game Over"<<endl;
       cerr<<"Score: "<<score<<endl;
+      cerr<<"Max depth: "<<max_seen_depth<<endl;
       return 0;
     }
 
@@ -193,6 +198,7 @@ int main() {
     } catch(...) {
       cout<<"Game OOOver!!!"<<endl;
       cerr<<"Score: "<<score<<endl;
+      cerr<<"Max depth: "<<max_seen_depth<<endl;
       return 0;
     }
     cout<<endl;
@@ -223,14 +229,18 @@ int heuristic(const board_t& board) {
   return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 20;
+const int MAX_DEPTH = 6;
 
 int depth = 0;
 
 int eval_board_outcomes(const board_t& board, int best_seen);
 
-int eval_board_moves(const board_t& board) {
+int eval_board_moves(const board_t& board, int worst_seen) {
   depth++;
+  if(depth > max_seen_depth) {
+    max_seen_depth = depth;
+    cerr<<"New deepest seen, depth = "<<depth<<endl;
+  }
   Move_Result up_result = up_move(board);
   Move_Result down_result = down_move(board);
   Move_Result left_result = left_move(board);
@@ -251,21 +261,37 @@ int eval_board_moves(const board_t& board) {
         detail_out<<"\t\trecursive call to eval_board_outcomes(up_move(board))"<<endl;
     }
     up_eval = up_valid ? eval_board_outcomes(up_result.board, 0) : -1;
+    if (up_eval > worst_seen) {
+      depth--;
+      return INT_MAX;
+    }
     if(down_valid) {
       if(DETAIL)
         detail_out<<"\t\trecursive call to eval_board_outcomes(down_move(board))"<<endl;
     }
     down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval) : -1;
+    if (down_eval > worst_seen) {
+      depth--;
+      return INT_MAX;
+    }
     if(left_valid) {
       if(DETAIL)
         detail_out<<"\t\trecursive call to eval_board_outcomes(left_move(board))"<<endl;
     }
     left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval)) : -1;
+    if (left_eval > worst_seen) {
+      depth--;
+      return INT_MAX;
+    }
     if(right_valid) {
       if(DETAIL)
         detail_out<<"\t\trecursive call to eval_board_outcomes(right_move(board))"<<endl;
     }
     right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval))) : -1;
+    if (right_eval > worst_seen) {
+      depth--;
+      return INT_MAX;
+    }
     if(DETAIL)
       detail_out<<"\tfinished recursive calls for each move, returning best move result, ";
     if(DETAIL)
@@ -284,6 +310,11 @@ int eval_board_moves(const board_t& board) {
 }
 
 int eval_board_outcomes(const board_t& board, int best_seen) {
+/*  static int watchdog = 0;
+  if(++watchdog > 10000) {
+    watchdog = 0;
+    cerr<<"I'm alive..."<<endl;
+  }*/
   depth++;
   if(DETAIL)
     detail_out<<"eval_board_outcomes Depth "<<depth<<endl;
@@ -309,10 +340,11 @@ int eval_board_outcomes(const board_t& board, int best_seen) {
    for(int i = 0; i < possible_outcomes.size(); i++) {
      if(DETAIL)
        detail_out<<"\t\t outcome_d["<<depth<<"] eval-ing outcome #"<<i<<" of "<<possible_outcomes.size()<<endl;
-     int outcome_val = eval_board_moves(possible_outcomes[i]);
+     int outcome_val = eval_board_moves(possible_outcomes[i], worst_case);
      if (outcome_val < worst_case) {
        worst_case = outcome_val;
        if (worst_case < best_seen) {
+         depth--;
          return 0;
        }
      }
