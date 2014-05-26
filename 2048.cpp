@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <time.h>
+#include <math.h>
 
 using namespace std;
 
@@ -85,22 +86,132 @@ bool board_full(const board_t& board);
 void copy_board(board_t& dest, const board_t& source);
 bool boards_same(const board_t& b1, const board_t& b2);
 
-Direction advice(const board_t& board,
-                 const Move_Result& up_result,
-                 const Move_Result& down_result,
-                 const Move_Result& left_result,
-                 const Move_Result& right_result);
+struct Analysis_t {
+  Direction direction;
+  int up_eval, down_eval, left_eval, right_eval;
+  void print() const {
+    cout<<"\tDirection: "<<direction_names[direction]<<endl;
+    cout<<"\t  up_eval: "<<up_eval<<endl;
+    cout<<"\t  down_eval: "<<down_eval<<endl;
+    cout<<"\t  left_eval: "<<left_eval<<endl;
+    cout<<"\t  right_eval: "<<right_eval<<endl;
+  }
+  bool operator!=(const Analysis_t& a2) {
+    return direction != a2.direction ||
+           up_eval != a2.up_eval ||
+           down_eval != a2.down_eval ||
+           left_eval != a2.left_eval ||
+           right_eval != a2.right_eval;
+  }
+};
+
+Analysis_t advice(const board_t& board,
+                  const Move_Result& up_result,
+                  const Move_Result& down_result,
+                  const Move_Result& left_result,
+                  const Move_Result& right_result,
+                  bool opt);
 
 void add_new_tile(board_t& board);
 
+board_t rand_board() {
+  board_t b;
+  b.resize(4);
+  for(int i = 0 ; i < 4; i++){ b[i].resize(4);}
+
+  for(int x = 0 ; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
+      b[x][y].empty = (rand() % 2 == 0);
+      if(!b[x][y].empty) {
+        if(rand() % 4 == 0) {
+          b[x][y].val = 2;
+        }
+        else if (rand() % 6 == 0) {
+          b[x][y].val = 4;
+        }
+        else {
+          b[x][y].val = pow(2,(rand() % 8) + 3);
+        }
+      }
+    }
+  }
+  return b;
+}
+
 int main() {
+  srand(time(NULL));
+  cout<<"##############MiniMax Prune Test############"<<endl;
+
+  int num_tests = 100;
+  for(int i = 0; i < 100; i++) {
+    board_t test_board = rand_board();
+     
+    // Up move
+    Move_Result up_result = up_move(test_board);
+    // Down move
+    Move_Result down_result = down_move(test_board);
+    // Left move
+    Move_Result left_result = left_move(test_board);
+    // Right move
+    Move_Result right_result = right_move(test_board);
+
+   Analysis_t analysis_naive = advice(test_board, up_result, down_result, left_result, right_result, false);
+    Analysis_t analysis_opt = advice(test_board, up_result, down_result, left_result, right_result, true);
+
+    cout<<"Round "<<i+1<<endl;
+    print_board(test_board, false);
+    if(analysis_naive != analysis_opt) {
+      if(analysis_naive.direction != analysis_opt.direction) {
+        cout<<"found serious mismatch"<<endl;
+      }
+      else {
+        Direction d = analysis_naive.direction;
+        int neval, oeval;
+        switch(d) {
+          case UP:
+            neval = analysis_naive.up_eval;
+            oeval = analysis_opt.up_eval;
+            break;
+          case DOWN:
+            neval = analysis_naive.down_eval;
+            oeval = analysis_opt.down_eval;
+            break;
+          case LEFT:
+            neval = analysis_naive.left_eval;
+            oeval = analysis_opt.left_eval;
+            break;
+          case RIGHT:
+            neval = analysis_naive.right_eval;
+            oeval = analysis_opt.right_eval;
+            break;
+        }
+        if(neval == oeval) {
+          cout<<"found trivial mismatch"<<endl;
+        }
+        else {
+          cout<<"found nontrivial mismatch"<<endl;
+        }
+      }
+      cout<<"found mismatch:"<<endl;
+      cout<<"naive analyisis:"<<endl;
+      analysis_naive.print();
+      cout<<"optimized analyisis:"<<endl;
+      analysis_opt.print();
+      cout<<endl<<endl;
+    }
+    else {
+      cout<<"decisions matched"<<endl;
+    }
+    cout<<endl;
+  }
+
+  return 0;
   detail_out.open("game_detail.txt");
   if(!detail_out.good()) {
     cout<<"Couldn't open detail file"<<endl;
     return 1;
   }
   int score = 0;
-  srand(time(NULL));
 
   board_t board;
   board.resize(4);
@@ -153,11 +264,17 @@ int main() {
       return 0;
     }
 
-     Direction choice = advice(board,
+    Analysis_t analysis = advice(board,
                               up_result,
                               down_result, 
                               left_result,
-                              right_result);
+                              right_result, true);
+    Direction choice = analysis.direction;
+ /*    Direction choice = advice(board,
+                              up_result,
+                              down_result, 
+                              left_result,
+                              right_result);*/
     cout<<"\n********Move "<<direction_names[choice];
     cout<<"********"<<endl;
 
@@ -223,13 +340,13 @@ int heuristic(const board_t& board) {
   return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 20;
+const int MAX_DEPTH = 6;
 
 int depth = 0;
 
-int eval_board_outcomes(const board_t& board, int best_seen);
+int eval_board_outcomes(const board_t& board, int best_seen, bool opt);
 
-int eval_board_moves(const board_t& board) {
+int eval_board_moves(const board_t& board, bool opt) {
   depth++;
   Move_Result up_result = up_move(board);
   Move_Result down_result = down_move(board);
@@ -250,22 +367,22 @@ int eval_board_moves(const board_t& board) {
       if(DETAIL)
         detail_out<<"\t\trecursive call to eval_board_outcomes(up_move(board))"<<endl;
     }
-    up_eval = up_valid ? eval_board_outcomes(up_result.board, 0) : -1;
+    up_eval = up_valid ? eval_board_outcomes(up_result.board, 0, opt) : -1;
     if(down_valid) {
       if(DETAIL)
         detail_out<<"\t\trecursive call to eval_board_outcomes(down_move(board))"<<endl;
     }
-    down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval) : -1;
+    down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval, opt) : -1;
     if(left_valid) {
       if(DETAIL)
         detail_out<<"\t\trecursive call to eval_board_outcomes(left_move(board))"<<endl;
     }
-    left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval)) : -1;
+    left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval), opt) : -1;
     if(right_valid) {
       if(DETAIL)
         detail_out<<"\t\trecursive call to eval_board_outcomes(right_move(board))"<<endl;
     }
-    right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval))) : -1;
+    right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval)), opt) : -1;
     if(DETAIL)
       detail_out<<"\tfinished recursive calls for each move, returning best move result, ";
     if(DETAIL)
@@ -283,7 +400,7 @@ int eval_board_moves(const board_t& board) {
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
-int eval_board_outcomes(const board_t& board, int best_seen) {
+int eval_board_outcomes(const board_t& board, int best_seen, bool opt) {
   depth++;
   if(DETAIL)
     detail_out<<"eval_board_outcomes Depth "<<depth<<endl;
@@ -309,10 +426,10 @@ int eval_board_outcomes(const board_t& board, int best_seen) {
    for(int i = 0; i < possible_outcomes.size(); i++) {
      if(DETAIL)
        detail_out<<"\t\t outcome_d["<<depth<<"] eval-ing outcome #"<<i<<" of "<<possible_outcomes.size()<<endl;
-     int outcome_val = eval_board_moves(possible_outcomes[i]);
+     int outcome_val = eval_board_moves(possible_outcomes[i], opt);
      if (outcome_val < worst_case) {
        worst_case = outcome_val;
-       if (worst_case < best_seen) {
+       if (opt && worst_case < best_seen) {
          return 0;
        }
      }
@@ -321,11 +438,11 @@ int eval_board_outcomes(const board_t& board, int best_seen) {
    return worst_case;
 }
 
-Direction advice(const board_t& board,
+Analysis_t advice(const board_t& board,
                  const Move_Result& up_result,
                  const Move_Result& down_result,
                  const Move_Result& left_result,
-                 const Move_Result& right_result) {
+                 const Move_Result& right_result, bool opt) {
   if(DETAIL)
     detail_out<<"Getting advice for this board:"<<endl;
   print_board(board, true);
@@ -344,36 +461,43 @@ Direction advice(const board_t& board,
     if(DETAIL)
       detail_out<<"advice evaluating up move"<<endl;
   }
-  up_val = up_valid ? eval_board_outcomes(up_move(board).board, 0) : -1;
+  up_val = up_valid ? eval_board_outcomes(up_move(board).board, 0, opt) : -1;
   if(down_valid) {
     if(DETAIL)
       detail_out<<"advice evaluating down move"<<endl;
   }
-  down_val = down_valid ? eval_board_outcomes(down_move(board).board, up_val) : -1;
+  down_val = down_valid ? eval_board_outcomes(down_move(board).board, up_val, opt) : -1;
   if(left_valid) {
     if(DETAIL)
       detail_out<<"advice evaluating left mvoe"<<endl;
   }
-  left_val = left_valid ? eval_board_outcomes(left_move(board).board, max(up_val, down_val)) : -1;
+  left_val = left_valid ? eval_board_outcomes(left_move(board).board, max(up_val, down_val), opt) : -1;
   if(right_valid) {
     if(DETAIL)
       detail_out<<"advice evaluting right move"<<endl;
   }
-  right_val = right_valid ? eval_board_outcomes(right_move(board).board, max(up_val, max(down_val, left_val))) : -1;
+  right_val = right_valid ? eval_board_outcomes(right_move(board).board, max(up_val, max(down_val, left_val)), opt) : -1;
   int max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
+  Analysis_t a;
+  a.up_eval = up_val;
+  a.down_eval = down_val;
+  a.left_eval = left_val;
+  a.right_eval = right_val;
+
   if(max_val == up_val && up_valid) {
-    return UP;
+    a.direction = UP;
   }
   else if (max_val == down_val || (max_val == up_val && !up_valid)) {
-    return DOWN;
+    a.direction = DOWN;
   }
   else if(max_val == left_val && left_valid) {
-    return LEFT;
+    a.direction = LEFT;
   }
   else {
-    return RIGHT;
+    a.direction = RIGHT;
   }
+  return a;
 }
 
 // Returns number of same, adjacent tiles (that can be combined)

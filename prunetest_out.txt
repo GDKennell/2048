@@ -1,0 +1,2736 @@
+##############MiniMax Prune Test############
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+	up_val: 7
+	down_val: 8
+	left_val:8
+	right_val:0
+Round 1
+   ___________________
+  |    |256 |    | 16 |
+   ___________________
+  |    | 2  | 4  | 2  |
+   ___________________
+  |    |    |128 | 4  |
+   ___________________
+  |    |    |    |256 |
+   ___________________
+found serious mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 6
+	  right_eval: 6
+optimized analyisis:
+	Direction: down
+	  up_eval: 7
+	  down_eval: 8
+	  left_eval: 8
+	  right_eval: 0
+
+
+
+	up_val: 11
+	down_val: 11
+	left_val:10
+	right_val:10
+	up_val: 11
+	down_val: 11
+	left_val:0
+	right_val:0
+Round 2
+   ___________________
+  | 16 | 64 |    |    |
+   ___________________
+  | 8  |    |    |    |
+   ___________________
+  |    | 64 |    | 32 |
+   ___________________
+  |    |    |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 11
+	  down_eval: 11
+	  left_eval: 10
+	  right_eval: 10
+optimized analyisis:
+	Direction: up
+	  up_eval: 11
+	  down_eval: 11
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:9
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:9
+Round 3
+   ___________________
+  |    | 32 |    |    |
+   ___________________
+  |256 |    |    |128 |
+   ___________________
+  |    |    |    | 16 |
+   ___________________
+  | 8  |    |    | 32 |
+   ___________________
+decisions matched
+
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+Round 4
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    |    | 8  |    |
+   ___________________
+  |256 |    |    | 2  |
+   ___________________
+  |    |    |    |1024|
+   ___________________
+decisions matched
+
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+Round 5
+   ___________________
+  |    |    |    | 16 |
+   ___________________
+  | 2  | 32 |    |    |
+   ___________________
+  | 8  |128 |512 |1024|
+   ___________________
+  | 2  |    |    |256 |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:10
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:10
+Round 6
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |1024|    |    | 64 |
+   ___________________
+  |    |256 |    |    |
+   ___________________
+  | 16 | 64 |    |256 |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 6
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 0
+	left_val:8
+	right_val:8
+Round 7
+   ___________________
+  | 4  | 2  | 2  |1024|
+   ___________________
+  |    |    | 8  |    |
+   ___________________
+  |256 |1024| 16 |    |
+   ___________________
+  |    |    |    | 8  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 6
+	  left_eval: 8
+	  right_eval: 8
+optimized analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 0
+	  left_eval: 8
+	  right_eval: 8
+
+
+
+	up_val: 6
+	down_val: 6
+	left_val:5
+	right_val:5
+	up_val: 6
+	down_val: 6
+	left_val:0
+	right_val:0
+Round 8
+   ___________________
+  |    |512 |    |128 |
+   ___________________
+  | 8  |256 | 2  |256 |
+   ___________________
+  |    |    |256 | 2  |
+   ___________________
+  | 4  |    |1024|    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 5
+	  right_eval: 5
+optimized analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 7
+	down_val: 7
+	left_val:7
+	right_val:7
+	up_val: 7
+	down_val: 7
+	left_val:7
+	right_val:7
+Round 9
+   ___________________
+  | 4  | 2  |    |    |
+   ___________________
+  |    | 32 |    | 8  |
+   ___________________
+  |128 | 16 |    |    |
+   ___________________
+  |    | 4  |1024|    |
+   ___________________
+decisions matched
+
+	up_val: 4
+	down_val: 4
+	left_val:4
+	right_val:4
+	up_val: 4
+	down_val: 4
+	left_val:4
+	right_val:4
+Round 10
+   ___________________
+  | 8  | 2  | 32 | 2  |
+   ___________________
+  | 32 |    | 2  | 2  |
+   ___________________
+  |512 | 4  |512 |    |
+   ___________________
+  | 2  |512 | 16 |    |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 9
+	left_val:8
+	right_val:9
+	up_val: 8
+	down_val: 9
+	left_val:0
+	right_val:9
+Round 11
+   ___________________
+  |    | 2  | 64 | 16 |
+   ___________________
+  |128 |    |    |    |
+   ___________________
+  | 2  | 64 |    | 4  |
+   ___________________
+  |    |    |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 8
+	  down_eval: 9
+	  left_eval: 8
+	  right_eval: 9
+optimized analyisis:
+	Direction: down
+	  up_eval: 8
+	  down_eval: 9
+	  left_eval: 0
+	  right_eval: 9
+
+
+
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+Round 12
+   ___________________
+  |    | 64 |    | 2  |
+   ___________________
+  |    |256 |    |    |
+   ___________________
+  |    |    |1024|    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+decisions matched
+
+	up_val: 7
+	down_val: 7
+	left_val:7
+	right_val:8
+	up_val: 7
+	down_val: 7
+	left_val:7
+	right_val:8
+Round 13
+   ___________________
+  | 2  |    |    | 8  |
+   ___________________
+  |256 |    |512 |    |
+   ___________________
+  | 2  |256 |    | 2  |
+   ___________________
+  | 8  |    |    |    |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 9
+	left_val:8
+	right_val:8
+	up_val: 9
+	down_val: 9
+	left_val:0
+	right_val:0
+Round 14
+   ___________________
+  | 64 |    |    |    |
+   ___________________
+  |    |    |    |1024|
+   ___________________
+  |    |    | 32 |128 |
+   ___________________
+  | 64 |    | 2  | 64 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 8
+	  right_eval: 8
+optimized analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 15
+   ___________________
+  |    | 2  |1024|256 |
+   ___________________
+  |    |    | 16 |    |
+   ___________________
+  |    |    |256 |    |
+   ___________________
+  |1024|    |    | 2  |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:9
+	right_val:9
+	up_val: 8
+	down_val: 8
+	left_val:9
+	right_val:9
+Round 16
+   ___________________
+  |    |    |    |    |
+   ___________________
+  | 16 | 64 |    | 64 |
+   ___________________
+  | 2  | 2  |    |    |
+   ___________________
+  | 2  |256 |    |1024|
+   ___________________
+decisions matched
+
+	up_val: 5
+	down_val: 6
+	left_val:5
+	right_val:5
+	up_val: 5
+	down_val: 6
+	left_val:0
+	right_val:0
+Round 17
+   ___________________
+  | 32 |    |    | 64 |
+   ___________________
+  | 2  |128 | 16 | 2  |
+   ___________________
+  | 8  | 64 | 4  | 2  |
+   ___________________
+  | 16 | 16 |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 5
+	  down_eval: 6
+	  left_eval: 5
+	  right_eval: 5
+optimized analyisis:
+	Direction: down
+	  up_eval: 5
+	  down_eval: 6
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 6
+	down_val: 5
+	left_val:6
+	right_val:5
+	up_val: 6
+	down_val: 0
+	left_val:6
+	right_val:0
+Round 18
+   ___________________
+  | 2  |    | 64 | 2  |
+   ___________________
+  |    |    | 2  | 16 |
+   ___________________
+  |    | 8  | 64 |    |
+   ___________________
+  | 4  | 2  |    | 32 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 5
+	  left_eval: 6
+	  right_eval: 5
+optimized analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 0
+	  left_eval: 6
+	  right_eval: 0
+
+
+
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+Round 19
+   ___________________
+  |128 | 16 |    |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    | 2  |1024|    |
+   ___________________
+  |    |    | 64 |    |
+   ___________________
+decisions matched
+
+	up_val: 5
+	down_val: 5
+	left_val:5
+	right_val:5
+	up_val: 5
+	down_val: 5
+	left_val:5
+	right_val:5
+Round 20
+   ___________________
+  |512 | 8  |1024| 4  |
+   ___________________
+  | 2  |    |256 |    |
+   ___________________
+  |1024| 32 |512 |    |
+   ___________________
+  |    |    |    | 32 |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 7
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 0
+	left_val:8
+	right_val:8
+Round 21
+   ___________________
+  |1024|    |    |    |
+   ___________________
+  | 64 | 2  | 2  |    |
+   ___________________
+  | 2  |    |    |1024|
+   ___________________
+  |1024|    |128 |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 7
+	  left_eval: 8
+	  right_eval: 8
+optimized analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 0
+	  left_eval: 8
+	  right_eval: 8
+
+
+
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+Round 22
+   ___________________
+  |    | 2  |    |    |
+   ___________________
+  |    |    | 32 |    |
+   ___________________
+  |    | 4  | 4  |512 |
+   ___________________
+  |    |    |    | 2  |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 7
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 0
+	left_val:8
+	right_val:8
+Round 23
+   ___________________
+  | 4  | 4  |1024|    |
+   ___________________
+  |256 | 2  |    | 8  |
+   ___________________
+  |128 |    |    | 2  |
+   ___________________
+  |128 |    | 2  |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 7
+	  left_eval: 8
+	  right_eval: 8
+optimized analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 0
+	  left_eval: 8
+	  right_eval: 8
+
+
+
+	up_val: 9
+	down_val: 9
+	left_val:10
+	right_val:9
+	up_val: 9
+	down_val: 9
+	left_val:10
+	right_val:0
+Round 24
+   ___________________
+  |    |    |256 | 2  |
+   ___________________
+  |    | 8  |    |1024|
+   ___________________
+  |    |    |    | 8  |
+   ___________________
+  | 64 |    |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 10
+	  right_eval: 9
+optimized analyisis:
+	Direction: left
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 10
+	  right_eval: 0
+
+
+
+	up_val: 5
+	down_val: 5
+	left_val:5
+	right_val:6
+	up_val: 5
+	down_val: 5
+	left_val:5
+	right_val:6
+Round 25
+   ___________________
+  | 4  | 2  | 4  |    |
+   ___________________
+  | 2  |1024|    |    |
+   ___________________
+  |    | 32 |128 |512 |
+   ___________________
+  |    | 8  |    | 16 |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:9
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:9
+Round 26
+   ___________________
+  |1024| 2  | 16 |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    |    |    | 2  |
+   ___________________
+  |    |    |256 | 16 |
+   ___________________
+decisions matched
+
+	up_val: 12
+	down_val: 12
+	left_val:12
+	right_val:12
+	up_val: 12
+	down_val: 12
+	left_val:12
+	right_val:12
+Round 27
+   ___________________
+  |    |512 |    |    |
+   ___________________
+  | 32 |    |    |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    |    | 64 |    |
+   ___________________
+decisions matched
+
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+Round 28
+   ___________________
+  |    | 8  |256 |    |
+   ___________________
+  |256 |    |    |    |
+   ___________________
+  |256 |    |    | 2  |
+   ___________________
+  |    |    |    |    |
+   ___________________
+decisions matched
+
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+Round 29
+   ___________________
+  |    |    |    |    |
+   ___________________
+  | 32 | 4  |    |    |
+   ___________________
+  |    |1024|    |    |
+   ___________________
+  |    | 2  |    |    |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 30
+   ___________________
+  | 64 |    |1024|    |
+   ___________________
+  | 2  |128 | 4  |    |
+   ___________________
+  |    |    | 16 |    |
+   ___________________
+  |    |    |1024|    |
+   ___________________
+decisions matched
+
+	up_val: 6
+	down_val: 6
+	left_val:7
+	right_val:6
+	up_val: 6
+	down_val: 6
+	left_val:7
+	right_val:0
+Round 31
+   ___________________
+  |    | 16 | 4  |    |
+   ___________________
+  |    | 32 |    |128 |
+   ___________________
+  | 8  | 2  |    | 32 |
+   ___________________
+  |    |    |128 | 2  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 7
+	  right_eval: 6
+optimized analyisis:
+	Direction: left
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 7
+	  right_eval: 0
+
+
+
+	up_val: 11
+	down_val: 11
+	left_val:10
+	right_val:10
+	up_val: 11
+	down_val: 11
+	left_val:0
+	right_val:0
+Round 32
+   ___________________
+  | 8  |128 |    |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    |128 |    |1024|
+   ___________________
+  |    |    | 32 |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 11
+	  down_eval: 11
+	  left_eval: 10
+	  right_eval: 10
+optimized analyisis:
+	Direction: up
+	  up_eval: 11
+	  down_eval: 11
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 12
+	down_val: 12
+	left_val:12
+	right_val:12
+	up_val: 12
+	down_val: 12
+	left_val:12
+	right_val:12
+Round 33
+   ___________________
+  |    |    |    | 2  |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    | 16 |    |    |
+   ___________________
+  |    | 4  |    |    |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 34
+   ___________________
+  | 64 | 16 |    |    |
+   ___________________
+  | 4  |    | 32 |    |
+   ___________________
+  |    |    | 2  | 8  |
+   ___________________
+  |    | 2  | 2  | 4  |
+   ___________________
+decisions matched
+
+	up_val: 12
+	down_val: 12
+	left_val:12
+	right_val:-1
+	up_val: 12
+	down_val: 12
+	left_val:12
+	right_val:-1
+Round 35
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    |    |512 | 2  |
+   ___________________
+  |    |    |    |128 |
+   ___________________
+  |    |    |    |    |
+   ___________________
+decisions matched
+
+	up_val: 11
+	down_val: 10
+	left_val:9
+	right_val:9
+	up_val: 11
+	down_val: 0
+	left_val:0
+	right_val:0
+Round 36
+   ___________________
+  | 2  | 4  | 16 | 32 |
+   ___________________
+  | 2  |    |    | 32 |
+   ___________________
+  |    |256 |    |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 11
+	  down_eval: 10
+	  left_eval: 9
+	  right_eval: 9
+optimized analyisis:
+	Direction: up
+	  up_eval: 11
+	  down_eval: 0
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 6
+	down_val: 6
+	left_val:5
+	right_val:5
+	up_val: 6
+	down_val: 6
+	left_val:0
+	right_val:0
+Round 37
+   ___________________
+  |512 |    |    |    |
+   ___________________
+  | 16 | 2  |    | 16 |
+   ___________________
+  |    |128 |    | 64 |
+   ___________________
+  | 2  |128 |1024| 32 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 5
+	  right_eval: 5
+optimized analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 8
+	down_val: 7
+	left_val:9
+	right_val:9
+	up_val: 8
+	down_val: 0
+	left_val:9
+	right_val:9
+Round 38
+   ___________________
+  |256 |    |512 |    |
+   ___________________
+  |    | 32 |    | 32 |
+   ___________________
+  | 4  | 16 | 16 |    |
+   ___________________
+  |    |    |128 |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 8
+	  down_eval: 7
+	  left_eval: 9
+	  right_eval: 9
+optimized analyisis:
+	Direction: left
+	  up_eval: 8
+	  down_eval: 0
+	  left_eval: 9
+	  right_eval: 9
+
+
+
+	up_val: 8
+	down_val: 8
+	left_val:7
+	right_val:7
+	up_val: 8
+	down_val: 8
+	left_val:0
+	right_val:0
+Round 39
+   ___________________
+  |    | 8  |128 | 32 |
+   ___________________
+  |    |    |    | 2  |
+   ___________________
+  | 4  |    |    | 8  |
+   ___________________
+  | 2  |    |128 |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 8
+	  left_eval: 7
+	  right_eval: 7
+optimized analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 8
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 6
+	down_val: 7
+	left_val:7
+	right_val:6
+	up_val: 6
+	down_val: 7
+	left_val:7
+	right_val:0
+Round 40
+   ___________________
+  |256 | 64 | 2  |    |
+   ___________________
+  |1024|    | 8  |    |
+   ___________________
+  | 2  |    | 64 |128 |
+   ___________________
+  |    |    |    | 2  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 6
+	  down_eval: 7
+	  left_eval: 7
+	  right_eval: 6
+optimized analyisis:
+	Direction: down
+	  up_eval: 6
+	  down_eval: 7
+	  left_eval: 7
+	  right_eval: 0
+
+
+
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+Round 41
+   ___________________
+  | 2  |    | 8  |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |1024|    |    | 2  |
+   ___________________
+  | 8  |    |    |    |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 8
+	left_val:9
+	right_val:9
+	up_val: 9
+	down_val: 0
+	left_val:9
+	right_val:9
+Round 42
+   ___________________
+  | 2  |    | 4  | 4  |
+   ___________________
+  |    |    | 32 |    |
+   ___________________
+  |    | 8  |512 |    |
+   ___________________
+  |    |256 |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 8
+	  left_eval: 9
+	  right_eval: 9
+optimized analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 0
+	  left_eval: 9
+	  right_eval: 9
+
+
+
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+Round 43
+   ___________________
+  |    | 64 |    | 2  |
+   ___________________
+  |    |    |    |512 |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    | 4  |    | 2  |
+   ___________________
+decisions matched
+
+	up_val: 6
+	down_val: 6
+	left_val:4
+	right_val:4
+	up_val: 6
+	down_val: 6
+	left_val:0
+	right_val:0
+Round 44
+   ___________________
+  | 2  |    | 16 | 64 |
+   ___________________
+  |    |    |1024| 32 |
+   ___________________
+  |512 | 2  |    | 16 |
+   ___________________
+  | 64 |    |1024| 2  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 4
+	  right_eval: 4
+optimized analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+	up_val: 11
+	down_val: 11
+	left_val:11
+	right_val:11
+Round 45
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    |    | 2  | 2  |
+   ___________________
+  | 2  |512 |    |    |
+   ___________________
+  |1024|    |    |    |
+   ___________________
+decisions matched
+
+	up_val: 7
+	down_val: 7
+	left_val:8
+	right_val:8
+	up_val: 7
+	down_val: 7
+	left_val:8
+	right_val:8
+Round 46
+   ___________________
+  | 16 |    |    |    |
+   ___________________
+  |128 | 64 |1024|    |
+   ___________________
+  |    | 4  |    |    |
+   ___________________
+  | 16 |    | 16 | 64 |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 47
+   ___________________
+  | 8  |    |    |512 |
+   ___________________
+  |256 |    | 2  |    |
+   ___________________
+  |512 |    |    |    |
+   ___________________
+  | 8  |    | 16 |    |
+   ___________________
+decisions matched
+
+	up_val: 7
+	down_val: 7
+	left_val:9
+	right_val:8
+	up_val: 7
+	down_val: 7
+	left_val:9
+	right_val:0
+Round 48
+   ___________________
+  |    | 2  |    | 32 |
+   ___________________
+  |    | 16 |    |    |
+   ___________________
+  | 16 | 2  |128 |128 |
+   ___________________
+  |    |    | 4  |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 7
+	  down_eval: 7
+	  left_eval: 9
+	  right_eval: 8
+optimized analyisis:
+	Direction: left
+	  up_eval: 7
+	  down_eval: 7
+	  left_eval: 9
+	  right_eval: 0
+
+
+
+	up_val: 5
+	down_val: 5
+	left_val:4
+	right_val:3
+	up_val: 5
+	down_val: 5
+	left_val:0
+	right_val:0
+Round 49
+   ___________________
+  |    | 16 |    |    |
+   ___________________
+  | 4  |512 |128 | 2  |
+   ___________________
+  | 2  | 64 |1024|    |
+   ___________________
+  | 2  |256 |512 | 4  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 5
+	  down_eval: 5
+	  left_eval: 4
+	  right_eval: 3
+optimized analyisis:
+	Direction: up
+	  up_eval: 5
+	  down_eval: 5
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:9
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:9
+Round 50
+   ___________________
+  | 2  | 64 |128 |256 |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |128 |    | 4  |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+decisions matched
+
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:11
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:11
+Round 51
+   ___________________
+  | 2  |    |    | 2  |
+   ___________________
+  |    |    |    | 16 |
+   ___________________
+  | 64 |    |    | 2  |
+   ___________________
+  |    |    |    | 2  |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 52
+   ___________________
+  |    |    |    | 32 |
+   ___________________
+  |1024|    | 2  |    |
+   ___________________
+  |256 |    | 2  |    |
+   ___________________
+  |512 |    | 32 | 8  |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 9
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 9
+	left_val:0
+	right_val:0
+Round 53
+   ___________________
+  | 2  |    |    | 16 |
+   ___________________
+  |    | 2  |1024|    |
+   ___________________
+  | 2  |    |    | 8  |
+   ___________________
+  |    | 4  |512 |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 8
+	  down_eval: 9
+	  left_eval: 8
+	  right_eval: 8
+optimized analyisis:
+	Direction: down
+	  up_eval: 8
+	  down_eval: 9
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 7
+	down_val: 7
+	left_val:7
+	right_val:7
+	up_val: 7
+	down_val: 7
+	left_val:7
+	right_val:7
+Round 54
+   ___________________
+  |512 | 32 |    |    |
+   ___________________
+  |    |    |    | 2  |
+   ___________________
+  |    |128 |256 |    |
+   ___________________
+  | 16 |    | 32 |1024|
+   ___________________
+decisions matched
+
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+Round 55
+   ___________________
+  |    |    |    | 4  |
+   ___________________
+  |512 |    | 16 | 32 |
+   ___________________
+  | 4  | 8  |    |256 |
+   ___________________
+  |128 | 8  | 2  | 2  |
+   ___________________
+decisions matched
+
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+Round 56
+   ___________________
+  |    |256 | 64 |    |
+   ___________________
+  |1024| 2  |    |1024|
+   ___________________
+  | 64 |    | 2  |128 |
+   ___________________
+  |    | 2  | 8  |    |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 7
+	left_val:8
+	right_val:7
+	up_val: 8
+	down_val: 0
+	left_val:8
+	right_val:0
+Round 57
+   ___________________
+  |128 |    |1024|    |
+   ___________________
+  |    |    | 4  |    |
+   ___________________
+  | 2  | 2  |128 | 8  |
+   ___________________
+  | 2  |    |    | 32 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 7
+	  left_eval: 8
+	  right_eval: 7
+optimized analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 0
+	  left_eval: 8
+	  right_eval: 0
+
+
+
+	up_val: 5
+	down_val: 5
+	left_val:4
+	right_val:4
+	up_val: 5
+	down_val: 5
+	left_val:0
+	right_val:0
+Round 58
+   ___________________
+  | 64 |    | 2  |256 |
+   ___________________
+  |    |    | 16 |128 |
+   ___________________
+  | 64 |    | 4  |    |
+   ___________________
+  | 2  | 16 | 2  |256 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 5
+	  down_eval: 5
+	  left_eval: 4
+	  right_eval: 4
+optimized analyisis:
+	Direction: up
+	  up_eval: 5
+	  down_eval: 5
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 9
+	down_val: 10
+	left_val:10
+	right_val:9
+	up_val: 9
+	down_val: 10
+	left_val:10
+	right_val:0
+Round 59
+   ___________________
+  |    |    |128 |    |
+   ___________________
+  | 2  |    |1024|    |
+   ___________________
+  |    |    | 16 | 2  |
+   ___________________
+  |    | 16 |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 9
+	  down_eval: 10
+	  left_eval: 10
+	  right_eval: 9
+optimized analyisis:
+	Direction: down
+	  up_eval: 9
+	  down_eval: 10
+	  left_eval: 10
+	  right_eval: 0
+
+
+
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:6
+Round 60
+   ___________________
+  | 8  |1024|    | 32 |
+   ___________________
+  |256 |    |    | 2  |
+   ___________________
+  | 4  |512 |    |    |
+   ___________________
+  | 16 |    |128 |    |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 61
+   ___________________
+  | 16 |    | 16 | 4  |
+   ___________________
+  |    |    | 64 |128 |
+   ___________________
+  |    |    |    | 8  |
+   ___________________
+  |    | 16 |    | 32 |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 10
+	left_val:9
+	right_val:8
+	up_val: 9
+	down_val: 10
+	left_val:0
+	right_val:0
+Round 62
+   ___________________
+  | 4  | 2  | 8  | 8  |
+   ___________________
+  | 4  |    |512 |512 |
+   ___________________
+  | 2  |    | 2  | 2  |
+   ___________________
+  |    |    |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 9
+	  down_eval: 10
+	  left_eval: 9
+	  right_eval: 8
+optimized analyisis:
+	Direction: down
+	  up_eval: 9
+	  down_eval: 10
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 10
+	down_val: 10
+	left_val:11
+	right_val:11
+	up_val: 10
+	down_val: 10
+	left_val:11
+	right_val:11
+Round 63
+   ___________________
+  |    |    |128 | 4  |
+   ___________________
+  | 64 |    |    |    |
+   ___________________
+  |    |    |    | 4  |
+   ___________________
+  | 2  |    | 2  |    |
+   ___________________
+decisions matched
+
+	up_val: 6
+	down_val: 6
+	left_val:7
+	right_val:7
+	up_val: 6
+	down_val: 6
+	left_val:7
+	right_val:7
+Round 64
+   ___________________
+  |    | 32 |256 | 64 |
+   ___________________
+  |512 |    | 8  |    |
+   ___________________
+  | 32 |1024|    |    |
+   ___________________
+  |    | 2  |    |1024|
+   ___________________
+decisions matched
+
+	up_val: 12
+	down_val: 12
+	left_val:12
+	right_val:11
+	up_val: 12
+	down_val: 12
+	left_val:12
+	right_val:0
+Round 65
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    | 8  |    |    |
+   ___________________
+  | 8  |    | 64 |512 |
+   ___________________
+  |    |    |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 12
+	  down_eval: 12
+	  left_eval: 12
+	  right_eval: 11
+optimized analyisis:
+	Direction: up
+	  up_eval: 12
+	  down_eval: 12
+	  left_eval: 12
+	  right_eval: 0
+
+
+
+	up_val: 11
+	down_val: 9
+	left_val:9
+	right_val:9
+	up_val: 11
+	down_val: 0
+	left_val:0
+	right_val:0
+Round 66
+   ___________________
+  |    | 2  |128 |    |
+   ___________________
+  |    |128 | 2  |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  | 2  |    |    |128 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 11
+	  down_eval: 9
+	  left_eval: 9
+	  right_eval: 9
+optimized analyisis:
+	Direction: up
+	  up_eval: 11
+	  down_eval: 0
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 9
+	down_val: 8
+	left_val:7
+	right_val:8
+	up_val: 9
+	down_val: 0
+	left_val:0
+	right_val:0
+Round 67
+   ___________________
+  |    | 2  | 2  | 2  |
+   ___________________
+  | 2  |    |    |    |
+   ___________________
+  |    |256 | 2  | 2  |
+   ___________________
+  | 4  | 32 | 2  | 2  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 8
+	  left_eval: 7
+	  right_eval: 8
+optimized analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 0
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 9
+	down_val: 8
+	left_val:8
+	right_val:9
+	up_val: 9
+	down_val: 0
+	left_val:0
+	right_val:9
+Round 68
+   ___________________
+  | 2  |    |    |    |
+   ___________________
+  |    | 8  |    | 2  |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |128 | 16 | 2  | 4  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 8
+	  left_eval: 8
+	  right_eval: 9
+optimized analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 0
+	  left_eval: 0
+	  right_eval: 9
+
+
+
+	up_val: 10
+	down_val: 9
+	left_val:10
+	right_val:10
+	up_val: 10
+	down_val: 0
+	left_val:10
+	right_val:10
+Round 69
+   ___________________
+  | 8  |    | 2  |    |
+   ___________________
+  |    |128 |    | 2  |
+   ___________________
+  |    |    | 16 |    |
+   ___________________
+  |    | 2  |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 10
+	  down_eval: 9
+	  left_eval: 10
+	  right_eval: 10
+optimized analyisis:
+	Direction: up
+	  up_eval: 10
+	  down_eval: 0
+	  left_eval: 10
+	  right_eval: 10
+
+
+
+	up_val: 12
+	down_val: 12
+	left_val:13
+	right_val:12
+	up_val: 12
+	down_val: 12
+	left_val:13
+	right_val:0
+Round 70
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    | 4  | 16 | 16 |
+   ___________________
+  |    |    | 4  |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 12
+	  down_eval: 12
+	  left_eval: 13
+	  right_eval: 12
+optimized analyisis:
+	Direction: left
+	  up_eval: 12
+	  down_eval: 12
+	  left_eval: 13
+	  right_eval: 0
+
+
+
+	up_val: 6
+	down_val: 7
+	left_val:6
+	right_val:6
+	up_val: 6
+	down_val: 7
+	left_val:0
+	right_val:0
+Round 71
+   ___________________
+  |    | 4  |    |    |
+   ___________________
+  |    |    | 64 |1024|
+   ___________________
+  | 2  | 32 |1024|512 |
+   ___________________
+  | 16 |    | 4  |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 6
+	  down_eval: 7
+	  left_eval: 6
+	  right_eval: 6
+optimized analyisis:
+	Direction: down
+	  up_eval: 6
+	  down_eval: 7
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 4
+	down_val: 7
+	left_val:5
+	right_val:3
+	up_val: 4
+	down_val: 7
+	left_val:0
+	right_val:0
+Round 72
+   ___________________
+  |    |256 | 32 |128 |
+   ___________________
+  | 4  | 32 |256 | 32 |
+   ___________________
+  | 64 | 4  |    | 2  |
+   ___________________
+  |    | 64 |256 |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 4
+	  down_eval: 7
+	  left_eval: 5
+	  right_eval: 3
+optimized analyisis:
+	Direction: down
+	  up_eval: 4
+	  down_eval: 7
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 7
+	down_val: 6
+	left_val:6
+	right_val:6
+	up_val: 7
+	down_val: 0
+	left_val:0
+	right_val:0
+Round 73
+   ___________________
+  |    |    | 8  | 16 |
+   ___________________
+  |512 | 2  |512 |    |
+   ___________________
+  |    | 2  |1024|512 |
+   ___________________
+  |    |    |256 | 4  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 7
+	  down_eval: 6
+	  left_eval: 6
+	  right_eval: 6
+optimized analyisis:
+	Direction: up
+	  up_eval: 7
+	  down_eval: 0
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+	up_val: 10
+	down_val: 10
+	left_val:10
+	right_val:10
+Round 74
+   ___________________
+  |    | 32 |    |    |
+   ___________________
+  |128 |    |    |    |
+   ___________________
+  |    | 2  |    |    |
+   ___________________
+  |    | 16 |128 |    |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:10
+	right_val:9
+	up_val: 8
+	down_val: 8
+	left_val:10
+	right_val:0
+Round 75
+   ___________________
+  |1024|    |1024|    |
+   ___________________
+  |    |    |    | 2  |
+   ___________________
+  | 2  |    |512 |    |
+   ___________________
+  |    | 64 |256 |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 8
+	  down_eval: 8
+	  left_eval: 10
+	  right_eval: 9
+optimized analyisis:
+	Direction: left
+	  up_eval: 8
+	  down_eval: 8
+	  left_eval: 10
+	  right_eval: 0
+
+
+
+	up_val: 7
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 7
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 76
+   ___________________
+  |    |    |    | 4  |
+   ___________________
+  | 32 | 64 |    | 2  |
+   ___________________
+  |    | 16 |    | 32 |
+   ___________________
+  |    |    | 2  | 2  |
+   ___________________
+decisions matched
+
+	up_val: 7
+	down_val: 8
+	left_val:6
+	right_val:6
+	up_val: 7
+	down_val: 8
+	left_val:0
+	right_val:0
+Round 77
+   ___________________
+  | 2  |    |    | 2  |
+   ___________________
+  |    | 2  | 64 |    |
+   ___________________
+  | 8  | 32 |    | 2  |
+   ___________________
+  |1024| 64 | 4  |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 7
+	  down_eval: 8
+	  left_eval: 6
+	  right_eval: 6
+optimized analyisis:
+	Direction: down
+	  up_eval: 7
+	  down_eval: 8
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 8
+	down_val: 8
+	left_val:10
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:10
+	right_val:0
+Round 78
+   ___________________
+  |    | 2  |    |    |
+   ___________________
+  | 2  | 32 |    | 64 |
+   ___________________
+  |    | 4  |    | 2  |
+   ___________________
+  | 2  | 2  |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 8
+	  down_eval: 8
+	  left_eval: 10
+	  right_eval: 8
+optimized analyisis:
+	Direction: left
+	  up_eval: 8
+	  down_eval: 8
+	  left_eval: 10
+	  right_eval: 0
+
+
+
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:5
+	up_val: 6
+	down_val: 6
+	left_val:6
+	right_val:0
+Round 79
+   ___________________
+  | 16 |    | 2  |1024|
+   ___________________
+  | 2  |    |1024| 2  |
+   ___________________
+  | 2  |    |    | 4  |
+   ___________________
+  |    |128 |    | 16 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 6
+	  right_eval: 5
+optimized analyisis:
+	Direction: up
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 6
+	  right_eval: 0
+
+
+
+	up_val: 13
+	down_val: 13
+	left_val:13
+	right_val:13
+	up_val: 13
+	down_val: 13
+	left_val:13
+	right_val:13
+Round 80
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    | 4  |    |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    |    |    |256 |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 9
+	left_val:10
+	right_val:9
+	up_val: 9
+	down_val: 9
+	left_val:10
+	right_val:0
+Round 81
+   ___________________
+  |    |    | 2  |    |
+   ___________________
+  |    |    |    | 4  |
+   ___________________
+  |    |    | 4  | 32 |
+   ___________________
+  | 64 |    |    | 16 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 10
+	  right_eval: 9
+optimized analyisis:
+	Direction: left
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 10
+	  right_eval: 0
+
+
+
+	up_val: 9
+	down_val: 10
+	left_val:11
+	right_val:11
+	up_val: 9
+	down_val: 10
+	left_val:11
+	right_val:11
+Round 82
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    |    |    | 64 |
+   ___________________
+  | 2  |1024|    |    |
+   ___________________
+  | 4  | 2  | 2  |    |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 8
+	left_val:9
+	right_val:9
+	up_val: 9
+	down_val: 0
+	left_val:9
+	right_val:9
+Round 83
+   ___________________
+  |    |    |    |    |
+   ___________________
+  |    | 4  |    | 8  |
+   ___________________
+  |    |    | 32 | 2  |
+   ___________________
+  | 4  | 8  |    | 8  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 8
+	  left_eval: 9
+	  right_eval: 9
+optimized analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 0
+	  left_eval: 9
+	  right_eval: 9
+
+
+
+	up_val: 9
+	down_val: 9
+	left_val:8
+	right_val:9
+	up_val: 9
+	down_val: 9
+	left_val:0
+	right_val:9
+Round 84
+   ___________________
+  |    |    |    | 4  |
+   ___________________
+  |1024| 64 | 4  |    |
+   ___________________
+  |    |    | 32 | 4  |
+   ___________________
+  |    | 8  |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 8
+	  right_eval: 9
+optimized analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 0
+	  right_eval: 9
+
+
+
+	up_val: 7
+	down_val: 7
+	left_val:7
+	right_val:7
+	up_val: 7
+	down_val: 7
+	left_val:7
+	right_val:7
+Round 85
+   ___________________
+  |    |512 |    | 4  |
+   ___________________
+  | 16 |    | 8  |    |
+   ___________________
+  |1024|    |128 |128 |
+   ___________________
+  |    |    | 2  | 64 |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 10
+	left_val:8
+	right_val:8
+	up_val: 9
+	down_val: 10
+	left_val:0
+	right_val:0
+Round 86
+   ___________________
+  |    |512 |    |128 |
+   ___________________
+  |    |    | 16 |    |
+   ___________________
+  | 8  |    |    |    |
+   ___________________
+  |    | 4  | 16 | 32 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: down
+	  up_eval: 9
+	  down_eval: 10
+	  left_eval: 8
+	  right_eval: 8
+optimized analyisis:
+	Direction: down
+	  up_eval: 9
+	  down_eval: 10
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 5
+	down_val: 5
+	left_val:5
+	right_val:5
+	up_val: 5
+	down_val: 5
+	left_val:5
+	right_val:5
+Round 87
+   ___________________
+  | 64 | 8  |    |    |
+   ___________________
+  | 4  | 16 |    | 2  |
+   ___________________
+  |    |512 | 32 | 8  |
+   ___________________
+  |1024|256 |    |    |
+   ___________________
+decisions matched
+
+	up_val: 6
+	down_val: 6
+	left_val:7
+	right_val:7
+	up_val: 6
+	down_val: 6
+	left_val:7
+	right_val:7
+Round 88
+   ___________________
+  |    |256 |256 |512 |
+   ___________________
+  |    | 2  |    |    |
+   ___________________
+  | 2  | 4  | 64 | 2  |
+   ___________________
+  |    |    | 8  |256 |
+   ___________________
+decisions matched
+
+	up_val: 12
+	down_val: 11
+	left_val:11
+	right_val:11
+	up_val: 12
+	down_val: 0
+	left_val:0
+	right_val:0
+Round 89
+   ___________________
+  |    |    |256 |256 |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  | 2  |    |128 |    |
+   ___________________
+  | 2  | 4  |    |    |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 12
+	  down_eval: 11
+	  left_eval: 11
+	  right_eval: 11
+optimized analyisis:
+	Direction: up
+	  up_eval: 12
+	  down_eval: 0
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 8
+	down_val: 8
+	left_val:6
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:0
+	right_val:8
+Round 90
+   ___________________
+  | 2  |    |256 | 4  |
+   ___________________
+  | 2  |    |    | 2  |
+   ___________________
+  | 2  |256 |    |    |
+   ___________________
+  |    | 4  | 2  |512 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 8
+	  left_eval: 6
+	  right_eval: 8
+optimized analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 8
+	  left_eval: 0
+	  right_eval: 8
+
+
+
+	up_val: 6
+	down_val: 6
+	left_val:7
+	right_val:6
+	up_val: 6
+	down_val: 6
+	left_val:7
+	right_val:0
+Round 91
+   ___________________
+  |    |1024|    | 2  |
+   ___________________
+  |128 |    | 8  |    |
+   ___________________
+  | 4  |    | 2  | 32 |
+   ___________________
+  |    |    | 16 | 2  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: left
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 7
+	  right_eval: 6
+optimized analyisis:
+	Direction: left
+	  up_eval: 6
+	  down_eval: 6
+	  left_eval: 7
+	  right_eval: 0
+
+
+
+	up_val: 5
+	down_val: 5
+	left_val:5
+	right_val:5
+	up_val: 5
+	down_val: 5
+	left_val:5
+	right_val:5
+Round 92
+   ___________________
+  | 64 | 2  |    | 64 |
+   ___________________
+  | 8  | 2  |    |256 |
+   ___________________
+  |    |    |1024|128 |
+   ___________________
+  | 2  | 4  |512 |512 |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:9
+	up_val: 9
+	down_val: 9
+	left_val:9
+	right_val:9
+Round 93
+   ___________________
+  | 2  |512 | 4  |    |
+   ___________________
+  | 16 |    |    |    |
+   ___________________
+  |    | 2  |    |    |
+   ___________________
+  |    |    |    | 16 |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 94
+   ___________________
+  |    |    | 8  | 2  |
+   ___________________
+  |    |    | 4  | 2  |
+   ___________________
+  |    |    | 64 |    |
+   ___________________
+  |    | 32 | 16 | 2  |
+   ___________________
+decisions matched
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 95
+   ___________________
+  | 8  |    |128 | 64 |
+   ___________________
+  | 2  |    |    |    |
+   ___________________
+  | 64 |    | 8  |    |
+   ___________________
+  |    |    |512 |    |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 9
+	left_val:6
+	right_val:7
+	up_val: 9
+	down_val: 9
+	left_val:0
+	right_val:0
+Round 96
+   ___________________
+  | 2  |    |    | 8  |
+   ___________________
+  |256 | 2  |128 | 2  |
+   ___________________
+  |    |    |128 |    |
+   ___________________
+  |    |256 |    |128 |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 6
+	  right_eval: 7
+optimized analyisis:
+	Direction: up
+	  up_eval: 9
+	  down_eval: 9
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 8
+	down_val: 6
+	left_val:7
+	right_val:7
+	up_val: 8
+	down_val: 0
+	left_val:0
+	right_val:0
+Round 97
+   ___________________
+  | 2  |    | 32 | 16 |
+   ___________________
+  | 64 |    |    |128 |
+   ___________________
+  |128 |    |128 |    |
+   ___________________
+  |    | 2  |    | 4  |
+   ___________________
+found trivial mismatch
+found mismatch:
+naive analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 6
+	  left_eval: 7
+	  right_eval: 7
+optimized analyisis:
+	Direction: up
+	  up_eval: 8
+	  down_eval: 0
+	  left_eval: 0
+	  right_eval: 0
+
+
+
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+	up_val: 8
+	down_val: 8
+	left_val:8
+	right_val:8
+Round 98
+   ___________________
+  | 4  |    | 2  | 2  |
+   ___________________
+  | 4  |    | 2  |256 |
+   ___________________
+  |    |    |    |    |
+   ___________________
+  | 16 |256 |1024|    |
+   ___________________
+decisions matched
+
+	up_val: 7
+	down_val: 8
+	left_val:9
+	right_val:9
+	up_val: 7
+	down_val: 8
+	left_val:9
+	right_val:9
+Round 99
+   ___________________
+  | 64 |    | 16 |    |
+   ___________________
+  |    |    |256 |    |
+   ___________________
+  | 2  | 2  |    |128 |
+   ___________________
+  | 32 |    |128 |    |
+   ___________________
+decisions matched
+
+	up_val: 9
+	down_val: 10
+	left_val:10
+	right_val:10
+	up_val: 9
+	down_val: 10
+	left_val:10
+	right_val:10
+Round 100
+   ___________________
+  | 16 | 2  |    |    |
+   ___________________
+  |    | 16 |128 |    |
+   ___________________
+  | 32 |1024|    |    |
+   ___________________
+  |    |    |    |    |
+   ___________________
+decisions matched
+
