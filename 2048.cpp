@@ -2,6 +2,7 @@
 #include <cassert>
 #include <deque>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <time.h>
 
@@ -9,23 +10,29 @@ using namespace std;
 
 struct Block;
 
+const bool DETAIL = false;
+
 typedef deque<deque<Block> > board_t;
 
 enum Direction {UP, DOWN, LEFT, RIGHT};
 
 const char* direction_names[] = {"up", "down", "left", "right"};
 
+ofstream detail_out;
+
 struct Block {
   int val;
   int x,y;
   bool empty;
   Block() : val(0), x(0), y(0), empty(true){ }
-  void print() const {
-    if(empty) cout<<"    ";
-    else if(val < 10) cout<<" "<<val<<"  ";
-    else if(val < 100) cout<<" "<<val<<" ";
-    else if(val < 1000) cout<<val<<' ';
-    else cout<<val;
+  void print(bool detail) const {
+    if(!DETAIL && detail) return;
+    ostream& output = detail ? detail_out : cout;
+    if(empty) output<<"    ";
+    else if(val < 10) output<<" "<<val<<"  ";
+    else if(val < 100) output<<" "<<val<<" ";
+    else if(val < 1000) output<<val<<' ';
+    else output<<val;
   }
 };
 
@@ -38,17 +45,19 @@ struct Move_Result {
 
 Block input_block();
 
-void print_board(const board_t& board) {
+void print_board(const board_t& board, bool detail) {
+  if(detail && !DETAIL)return;
+  ostream& output = detail ? detail_out : cout;
   for(int y = 3; y >= 0; y--) {
-    cout<<"   ___________________"<<endl;
-    cout<<"  ";
+    output<<"   ___________________"<<endl;
+    output<<"  ";
     for(int x = 0; x <= 3; x++) {
-      cout<<'|';
-      board[x][y].print();
+      output<<'|';
+      board[x][y].print(detail);
     }
-    cout<<'|'<<endl;
+    output<<'|'<<endl;
   }
-  cout<<"   ___________________"<<endl;
+  output<<"   ___________________"<<endl;
 }
 
 Move_Result up_move(const board_t& in_board);
@@ -85,6 +94,11 @@ Direction advice(const board_t& board,
 void add_new_tile(board_t& board);
 
 int main() {
+  detail_out.open("game_detail.txt");
+  if(!detail_out.good()) {
+    cout<<"Couldn't open detail file"<<endl;
+    return 1;
+  }
   int score = 0;
   srand(time(NULL));
 
@@ -109,9 +123,14 @@ int main() {
   }
 
   cout<<"Initial board:"<<endl;
-  print_board(board);
+  print_board(board, false);
 
+  int round_num = 0;
   while(1) {
+    cout<<"###############Round "<<++round_num<<endl;
+    if(DETAIL)
+      detail_out<<"###############Round "<<round_num<<endl;
+    print_board(board, false);
 /*    cout<<"Ready for me to do the next move?"<<endl;
     string dontcare;
     cin >>dontcare;*/
@@ -130,30 +149,11 @@ int main() {
         board_full(left_result.board) &&
         board_full(right_result.board)) {
       cout<<"Game Over"<<endl;
+      cerr<<"Score: "<<score<<endl;
       return 0;
     }
 
-/*    cout<<"Up Move: "<<endl;
-    print_board(up_result.board);
-    cout<<up_result.num_combos<<" combos worth ";
-    cout<<up_result.combos_value<<endl<<endl;
-
-    cout<<"Down Move: "<<endl;
-    print_board(down_result.board);
-    cout<<down_result.num_combos<<" combos worth ";
-    cout<<down_result.combos_value<<endl<<endl;
-
-    cout<<"Left Move: "<<endl;
-    print_board(left_result.board);
-    cout<<left_result.num_combos<<" combos worth ";
-    cout<<left_result.combos_value<<endl<<endl;
-
-    cout<<"Right Move: "<<endl;
-    print_board(right_result.board);
-    cout<<right_result.num_combos<<" combos worth ";
-    cout<<right_result.combos_value<<endl<<endl;*/
-
-    Direction choice = advice(board,
+     Direction choice = advice(board,
                               up_result,
                               down_result, 
                               left_result,
@@ -192,10 +192,9 @@ int main() {
       add_new_tile(board);
     } catch(...) {
       cout<<"Game OOOver!!!"<<endl;
+      cerr<<"Score: "<<score<<endl;
       return 0;
     }
-    cout<<"Added new tile, current board: "<<endl;
-    print_board(board);
     cout<<endl;
     
   }
@@ -206,84 +205,120 @@ int main() {
 //    number of combos available, highest tile value
 int heuristic(const board_t& board) {
   int num_tiles = 0;
-  int num_combos = 0;
 
   for(int x = 0; x < 4; x++) {
     for(int y = 0; y < 4; y++) {
       if (!board[x][y].empty) {
         num_tiles++;
-        if (x-1 > 0 && !board[x-1][y].empty && 
-            board[x-1][y].val == board[x][y].val) {
-          num_combos++;
-        }
-        if (x+1 < 4 && !board[x+1][y].empty && 
-            board[x+1][y].val == board[x][y].val) {
-          num_combos++;
-        }
-        if (y-1 > 0 && !board[x][y-1].empty && 
-            board[x][y-1].val == board[x][y].val) {
-          num_combos++;
-        }
-        if (y+1 < 4 && !board[x][y+1].empty && 
-            board[x][y+1].val == board[x][y].val) {
-          num_combos++;
-        }
       }
     }
   }
   int max_tiles = 4 * 4;
-  return (max_tiles - num_tiles) + num_combos;
+  if(DETAIL)
+    detail_out<<"\thhhhhhhhhhhhhheuristic: given:"<<endl;
+  print_board(board, true);
+//  int num_adj = num_adjacent(board);
+  if(DETAIL)
+    detail_out<<"\thhhhhhhhhhhheuristic value: "<<(max_tiles - num_tiles)<<endl<<endl;
+  return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 3;
+const int MAX_DEPTH = 20;
 
-// Returns estimated worst case heuristic evaluation of a board
-// recursing MAX_DEPTH moves
-int eval_board(const board_t& board) {
-  static int depth = 0;
-//  cout<<"eval_board Depth "<<depth<<endl;
-  if (depth >= MAX_DEPTH) {
-//    cout<<"\teval_board end_case, depth-- = "<<depth<<endl;
-    deque<board_t> possible_outcomes;
-    for(int x = 0; x < 4; x++) {
-      for(int y = 0; y < 4; y++) {
-        if (board[x][y].empty) {
-          board_t board_2 = board;
-          board_2[x][y].empty = false;
-          board_2[x][y].val = 2;
-          possible_outcomes.push_back(move(board_2));
+int depth = 0;
 
-          board_t board_4 = board;
-          board_4[x][y].empty = false;
-          board_4[x][y].val = 4;
-          possible_outcomes.push_back(move(board_4));
-        }
-      }
-    }
-    int min_val = INT_MAX;
-    for(int i = 0; i < possible_outcomes.size(); i++) {
-      const board_t& outcome = possible_outcomes[i];
-      int outcome_val = heuristic(outcome);
-      if (outcome_val < min_val)
-        min_val = outcome_val;
-    }
-//    cout<<"\teval_board end_case looked at "<<possible_outcomes.size()<<" outcomes, returning "<<min_val<<endl;
-   return min_val;
-  }
+int eval_board_outcomes(const board_t& board, int best_seen);
+
+int eval_board_moves(const board_t& board) {
   depth++;
-//  cout<<"\teval_board non-end_case, depth++ = "<<depth<<endl;
-//  cout<<"\t\trecursive call to up_move(board)"<<endl;
-  int up_eval = eval_board(up_move(board).board);
-//  cout<<"\t\trecursive call to down_move(board)"<<endl;
-  int down_eval = eval_board(down_move(board).board);
-//  cout<<"\t\trecursive call to left_move(board)"<<endl;
-  int left_eval = eval_board(left_move(board).board);
-//  cout<<"\t\trecursive call to right_move(board)"<<endl;
-  int right_eval = eval_board(right_move(board).board);
-//  cout<<"\tfinished recursive calls, returning minimum result, ";
-//  cout<<min(up_eval, down_eval, left_eval, right_eval)<<endl;
+  Move_Result up_result = up_move(board);
+  Move_Result down_result = down_move(board);
+  Move_Result left_result = left_move(board);
+  Move_Result right_result = right_move(board);
+
+  bool up_valid = !boards_same(board, up_result.board);
+  bool down_valid = !boards_same(board, down_result.board);
+  bool left_valid = !boards_same(board, left_result.board);
+  bool right_valid = !boards_same(board, right_result.board);
+
+  int up_eval, down_eval, left_eval, right_eval;
+
+  if (depth < MAX_DEPTH) {
+    if(DETAIL)
+      detail_out<<"\teval_board_moves non-end_case, depth++ = "<<depth<<endl;
+    if(up_valid) {
+      if(DETAIL)
+        detail_out<<"\t\trecursive call to eval_board_outcomes(up_move(board))"<<endl;
+    }
+    up_eval = up_valid ? eval_board_outcomes(up_result.board, 0) : -1;
+    if(down_valid) {
+      if(DETAIL)
+        detail_out<<"\t\trecursive call to eval_board_outcomes(down_move(board))"<<endl;
+    }
+    down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval) : -1;
+    if(left_valid) {
+      if(DETAIL)
+        detail_out<<"\t\trecursive call to eval_board_outcomes(left_move(board))"<<endl;
+    }
+    left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval)) : -1;
+    if(right_valid) {
+      if(DETAIL)
+        detail_out<<"\t\trecursive call to eval_board_outcomes(right_move(board))"<<endl;
+    }
+    right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval))) : -1;
+    if(DETAIL)
+      detail_out<<"\tfinished recursive calls for each move, returning best move result, ";
+    if(DETAIL)
+      detail_out<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+  }
+  else {
+    if(DETAIL)
+      detail_out<<"\teval_board_moves() end case, returning best heuristic val of each valid move"<<endl;
+    up_eval = up_valid ? heuristic(up_result.board) : -1;
+    down_eval = down_valid ? heuristic(down_result.board) : -1;
+    left_eval = left_valid ? heuristic(left_result.board) : -1;
+    right_eval = right_valid ? heuristic(right_result.board) : -1;
+  }
   depth--;
   return max(up_eval, down_eval, left_eval, right_eval);
+}
+
+int eval_board_outcomes(const board_t& board, int best_seen) {
+  depth++;
+  if(DETAIL)
+    detail_out<<"eval_board_outcomes Depth "<<depth<<endl;
+  deque<board_t> possible_outcomes;
+
+  for(int x = 0; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
+      if (board[x][y].empty) {
+        board_t board_2 = board;
+        board_2[x][y].empty = false;
+        board_2[x][y].val = 2;
+        possible_outcomes.push_back(move(board_2));
+
+        board_t board_4 = board;
+        board_4[x][y].empty = false;
+        board_4[x][y].val = 4;
+        possible_outcomes.push_back(move(board_4));
+      }
+    }
+  }
+ 
+   int worst_case = INT_MAX; 
+   for(int i = 0; i < possible_outcomes.size(); i++) {
+     if(DETAIL)
+       detail_out<<"\t\t outcome_d["<<depth<<"] eval-ing outcome #"<<i<<" of "<<possible_outcomes.size()<<endl;
+     int outcome_val = eval_board_moves(possible_outcomes[i]);
+     if (outcome_val < worst_case) {
+       worst_case = outcome_val;
+       if (worst_case < best_seen) {
+         return 0;
+       }
+     }
+   }
+   depth--;
+   return worst_case;
 }
 
 Direction advice(const board_t& board,
@@ -291,15 +326,40 @@ Direction advice(const board_t& board,
                  const Move_Result& down_result,
                  const Move_Result& left_result,
                  const Move_Result& right_result) {
+  if(DETAIL)
+    detail_out<<"Getting advice for this board:"<<endl;
+  print_board(board, true);
   int up_val;
   int down_val;
   int left_val;
   int right_val;
 
-  up_val = eval_board(up_move(board).board);
-  down_val = eval_board(down_move(board).board);
-  left_val = eval_board(left_move(board).board);
-  right_val = eval_board(right_move(board).board);
+  bool up_valid = !boards_same(board, up_result.board);
+  bool down_valid = !boards_same(board, down_result.board);
+  bool left_valid = !boards_same(board, left_result.board);
+  bool right_valid = !boards_same(board, right_result.board);
+
+
+  if(up_valid){
+    if(DETAIL)
+      detail_out<<"advice evaluating up move"<<endl;
+  }
+  up_val = up_valid ? eval_board_outcomes(up_move(board).board, 0) : -1;
+  if(down_valid) {
+    if(DETAIL)
+      detail_out<<"advice evaluating down move"<<endl;
+  }
+  down_val = down_valid ? eval_board_outcomes(down_move(board).board, up_val) : -1;
+  if(left_valid) {
+    if(DETAIL)
+      detail_out<<"advice evaluating left mvoe"<<endl;
+  }
+  left_val = left_valid ? eval_board_outcomes(left_move(board).board, max(up_val, down_val)) : -1;
+  if(right_valid) {
+    if(DETAIL)
+      detail_out<<"advice evaluting right move"<<endl;
+  }
+  right_val = right_valid ? eval_board_outcomes(right_move(board).board, max(up_val, max(down_val, left_val))) : -1;
   int max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
   if(max_val == up_val) {
