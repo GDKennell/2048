@@ -362,13 +362,13 @@ Direction advice(const board_t& board,
   right_val = right_valid ? eval_board_outcomes(right_move(board).board, max(up_val, max(down_val, left_val))) : -1;
   int max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
-  if(max_val == up_val) {
+  if(max_val == up_val && up_valid) {
     return UP;
   }
-  else if (max_val == down_val) {
+  else if (max_val == down_val || (max_val == up_val && !up_valid)) {
     return DOWN;
   }
-  else if(max_val == left_val) {
+  else if(max_val == left_val && left_valid) {
     return LEFT;
   }
   else {
