@@ -481,6 +481,7 @@ int eval_board_outcomes(const board_t& board, int best_seen, bool opt) {
            for(int i = 0; i < depth; i++) {detail_out<<"  ";}
            detail_out<<"eval_outcomes found worst case "<<worst_case<<" worse than best seen "<<best_seen<<", branching and bounding"<<endl;
          }
+         depth--;
          return 0;
        }
      }
