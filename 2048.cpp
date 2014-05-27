@@ -369,12 +369,7 @@ int heuristic(const board_t& board) {
     }
   }
   int max_tiles = 4 * 4;
-  if(DETAIL)
-    detail_out<<"\thhhhhhhhhhhhhheuristic: given:"<<endl;
-  print_board(board, true);
 //  int num_adj = num_adjacent(board);
-  if(DETAIL)
-    detail_out<<"\thhhhhhhhhhhheuristic value: "<<(max_tiles - num_tiles)<<endl<<endl;
   return (max_tiles - num_tiles);
 }
 
@@ -399,40 +394,54 @@ int eval_board_moves(const board_t& board, bool opt) {
   int up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
-    if(DETAIL)
-      detail_out<<"\teval_board_moves non-end_case, depth++ = "<<depth<<endl;
     if(up_valid) {
-      if(DETAIL)
-        detail_out<<"\t\trecursive call to eval_board_outcomes(up_move(board))"<<endl;
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves calling eval_outcomes of up result"<<endl;
+      }
     }
     up_eval = up_valid ? eval_board_outcomes(up_result.board, 0, opt) : -1;
     if(down_valid) {
-      if(DETAIL)
-        detail_out<<"\t\trecursive call to eval_board_outcomes(down_move(board))"<<endl;
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves calling eval_outcomes of down result"<<endl;
+      }
     }
     down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval, opt) : -1;
     if(left_valid) {
-      if(DETAIL)
-        detail_out<<"\t\trecursive call to eval_board_outcomes(left_move(board))"<<endl;
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves calling eval_outcomes of left result"<<endl;
+      }
     }
     left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval), opt) : -1;
     if(right_valid) {
-      if(DETAIL)
-        detail_out<<"\t\trecursive call to eval_board_outcomes(right_move(board))"<<endl;
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves calling eval_outcomes of right result"<<endl;
+      }
     }
     right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval)), opt) : -1;
-    if(DETAIL)
-      detail_out<<"\tfinished recursive calls for each move, returning best move result, ";
-    if(DETAIL)
-      detail_out<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+    if(DETAIL){
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves finished with eval of all 4 moves, returning best : ";
+        detail_out<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+    }
   }
   else {
-    if(DETAIL)
-      detail_out<<"\teval_board_moves() end case, returning best heuristic val of each valid move"<<endl;
+    if(DETAIL) {
+      for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+      detail_out<<"eval_moves end case, getting best heuristic val of each valid move"<<endl;
+    }
     up_eval = up_valid ? heuristic(up_result.board) : -1;
     down_eval = down_valid ? heuristic(down_result.board) : -1;
     left_eval = left_valid ? heuristic(left_result.board) : -1;
     right_eval = right_valid ? heuristic(right_result.board) : -1;
+    if(DETAIL) {
+      for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+      detail_out<<"eval_moves end case returning best : ";
+      detail_out<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+    }
   }
   depth--;
   return max(up_eval, down_eval, left_eval, right_eval);
@@ -440,8 +449,6 @@ int eval_board_moves(const board_t& board, bool opt) {
 
 int eval_board_outcomes(const board_t& board, int best_seen, bool opt) {
   depth++;
-  if(DETAIL)
-    detail_out<<"eval_board_outcomes Depth "<<depth<<endl;
   deque<board_t> possible_outcomes;
 
   for(int x = 0; x < 4; x++) {
@@ -462,15 +469,26 @@ int eval_board_outcomes(const board_t& board, int best_seen, bool opt) {
  
    int worst_case = INT_MAX; 
    for(int i = 0; i < possible_outcomes.size(); i++) {
-     if(DETAIL)
-       detail_out<<"\t\t outcome_d["<<depth<<"] eval-ing outcome #"<<i<<" of "<<possible_outcomes.size()<<endl;
+     if(DETAIL) {
+       for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+       detail_out<<"eval_outcomes calling eval_moves for outcome #"<<i<<" of "<<possible_outcomes.size()<<endl;
+     }
      int outcome_val = eval_board_moves(possible_outcomes[i], opt);
      if (outcome_val < worst_case) {
        worst_case = outcome_val;
        if (opt && worst_case < best_seen) {
+         if(DETAIL) {
+           for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+           detail_out<<"eval_outcomes found worst case "<<worst_case<<" worse than best seen "<<best_seen<<", branching and bounding"<<endl;
+         }
          return 0;
        }
      }
+   }
+
+   if(DETAIL) {
+     for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+     detail_out<<"eval_outcomes finished, returning worst case, "<<worst_case<<endl;
    }
    depth--;
    return worst_case;
