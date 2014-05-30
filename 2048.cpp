@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <time.h>
+#include <math.h>
 
 using namespace std;
 
@@ -85,24 +86,63 @@ bool board_full(const board_t& board);
 void copy_board(board_t& dest, const board_t& source);
 bool boards_same(const board_t& b1, const board_t& b2);
 
-Direction advice(const board_t& board,
-                 const Move_Result& up_result,
-                 const Move_Result& down_result,
-                 const Move_Result& left_result,
-                 const Move_Result& right_result);
+struct Analysis_t {
+  Direction direction;
+  int up_eval, down_eval, left_eval, right_eval;
+  void print() const {
+    cout<<"\tDirection: "<<direction_names[direction]<<endl;
+    cout<<"\t  up_eval: "<<up_eval<<endl;
+    cout<<"\t  down_eval: "<<down_eval<<endl;
+    cout<<"\t  left_eval: "<<left_eval<<endl;
+    cout<<"\t  right_eval: "<<right_eval<<endl;
+  }
+  bool operator!=(const Analysis_t& a2) {
+    return direction != a2.direction ||
+           up_eval != a2.up_eval ||
+           down_eval != a2.down_eval ||
+           left_eval != a2.left_eval ||
+           right_eval != a2.right_eval;
+  }
+};
+
+Analysis_t advice(const board_t& board,
+                  const Move_Result& up_result,
+                  const Move_Result& down_result,
+                  const Move_Result& left_result,
+                  const Move_Result& right_result,
+                  bool opt);
 
 void add_new_tile(board_t& board);
 
 int max_seen_depth = 0;
+board_t rand_board() {
+  board_t b;
+  b.resize(4);
+  for(int i = 0 ; i < 4; i++){ b[i].resize(4);}
+
+  for(int x = 0 ; x < 4; x++) {
+    for(int y = 0; y < 4; y++) {
+      b[x][y].empty = (rand() % 2 == 0);
+      if(!b[x][y].empty) {
+        if(rand() % 4 == 0) {
+          b[x][y].val = 2;
+        }
+        else if (rand() % 6 == 0) {
+          b[x][y].val = 4;
+        }
+        else {
+          b[x][y].val = pow(2,(rand() % 8) + 3);
+        }
+      }
+    }
+  }
+  return b;
+}
 
 int main() {
-  detail_out.open("game_detail.txt");
-  if(!detail_out.good()) {
-    cout<<"Couldn't open detail file"<<endl;
-    return 1;
-  }
-  int score = 0;
   srand(time(NULL));
+  detail_out.open("game_detail.txt");
+  int score = 0;
 
   board_t board;
   board.resize(4);
@@ -158,11 +198,17 @@ int main() {
       return 0;
     }
 
-     Direction choice = advice(board,
+    Analysis_t analysis = advice(board,
                               up_result,
                               down_result, 
                               left_result,
-                              right_result);
+                              right_result, true);
+    Direction choice = analysis.direction;
+ /*    Direction choice = advice(board,
+                              up_result,
+                              down_result, 
+                              left_result,
+                              right_result);*/
     cout<<"\n********Move "<<direction_names[choice];
     cout<<"********"<<endl;
 
@@ -220,22 +266,17 @@ int heuristic(const board_t& board) {
     }
   }
   int max_tiles = 4 * 4;
-  if(DETAIL)
-    detail_out<<"\thhhhhhhhhhhhhheuristic: given:"<<endl;
-  print_board(board, true);
 //  int num_adj = num_adjacent(board);
-  if(DETAIL)
-    detail_out<<"\thhhhhhhhhhhheuristic value: "<<(max_tiles - num_tiles)<<endl<<endl;
   return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 6;
+const int MAX_DEPTH = 8;
 
 int depth = 0;
 
-int eval_board_outcomes(const board_t& board, int best_seen);
+int eval_board_outcomes(const board_t& board, int best_seen, bool opt);
 
-int eval_board_moves(const board_t& board, int worst_seen) {
+int eval_board_moves(const board_t& board, int worst_seen, bool opt) {
   depth++;
   if(depth > max_seen_depth) {
     max_seen_depth = depth;
@@ -254,70 +295,95 @@ int eval_board_moves(const board_t& board, int worst_seen) {
   int up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
-    if(DETAIL)
-      detail_out<<"\teval_board_moves non-end_case, depth++ = "<<depth<<endl;
     if(up_valid) {
-      if(DETAIL)
-        detail_out<<"\t\trecursive call to eval_board_outcomes(up_move(board))"<<endl;
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves calling eval_outcomes of up result"<<endl;
+      }
     }
-    up_eval = up_valid ? eval_board_outcomes(up_result.board, 0) : -1;
-    if (up_eval > worst_seen) {
+    up_eval = up_valid ? eval_board_outcomes(up_result.board, 0, opt) : -1;
+    if (opt && up_eval >= worst_seen) {
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves branching and bounding, up_eval("<<up_eval<<") > worst_seen("<<worst_seen<<')'<<endl;
+      }
       depth--;
       return INT_MAX;
     }
+
     if(down_valid) {
-      if(DETAIL)
-        detail_out<<"\t\trecursive call to eval_board_outcomes(down_move(board))"<<endl;
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves calling eval_outcomes of down result"<<endl;
+      }
     }
-    down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval) : -1;
-    if (down_eval > worst_seen) {
+    down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval, opt) : -1;
+    if (opt && down_eval >= worst_seen) {
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves branching and bounding, down_eval("<<down_eval<<") > worst_seen("<<worst_seen<<')'<<endl;
+      }
       depth--;
       return INT_MAX;
     }
+
     if(left_valid) {
-      if(DETAIL)
-        detail_out<<"\t\trecursive call to eval_board_outcomes(left_move(board))"<<endl;
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves calling eval_outcomes of left result"<<endl;
+      }
     }
-    left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval)) : -1;
-    if (left_eval > worst_seen) {
+    left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval), opt) : -1;
+    if (opt && left_eval >= worst_seen) {
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves branching and bounding, left_eval("<<left_eval<<") > worst_seen("<<worst_seen<<')'<<endl;
+      }
       depth--;
       return INT_MAX;
     }
     if(right_valid) {
-      if(DETAIL)
-        detail_out<<"\t\trecursive call to eval_board_outcomes(right_move(board))"<<endl;
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves calling eval_outcomes of right result"<<endl;
+      }
     }
-    right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval))) : -1;
-    if (right_eval > worst_seen) {
+    right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval)), opt) : -1;
+    if (opt && right_eval >= worst_seen) {
+      if(DETAIL) {
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves branching and bounding, right_eval("<<right_eval<<") > worst_seen("<<worst_seen<<')'<<endl;
+      }
       depth--;
       return INT_MAX;
     }
-    if(DETAIL)
-      detail_out<<"\tfinished recursive calls for each move, returning best move result, ";
-    if(DETAIL)
-      detail_out<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+    if(DETAIL){
+        for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+        detail_out<<"eval_moves finished with eval of all 4 moves, returning best : ";
+        detail_out<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+    }
   }
   else {
-    if(DETAIL)
-      detail_out<<"\teval_board_moves() end case, returning best heuristic val of each valid move"<<endl;
+    if(DETAIL) {
+      for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+      detail_out<<"eval_moves end case, getting best heuristic val of each valid move"<<endl;
+    }
     up_eval = up_valid ? heuristic(up_result.board) : -1;
     down_eval = down_valid ? heuristic(down_result.board) : -1;
     left_eval = left_valid ? heuristic(left_result.board) : -1;
     right_eval = right_valid ? heuristic(right_result.board) : -1;
+    if(DETAIL) {
+      for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+      detail_out<<"eval_moves end case returning best : ";
+      detail_out<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+    }
   }
   depth--;
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
-int eval_board_outcomes(const board_t& board, int best_seen) {
-/*  static int watchdog = 0;
-  if(++watchdog > 10000) {
-    watchdog = 0;
-    cerr<<"I'm alive..."<<endl;
-  }*/
+int eval_board_outcomes(const board_t& board, int best_seen, bool opt) {
   depth++;
-  if(DETAIL)
-    detail_out<<"eval_board_outcomes Depth "<<depth<<endl;
   deque<board_t> possible_outcomes;
 
   for(int x = 0; x < 4; x++) {
@@ -338,26 +404,41 @@ int eval_board_outcomes(const board_t& board, int best_seen) {
  
    int worst_case = INT_MAX; 
    for(int i = 0; i < possible_outcomes.size(); i++) {
-     if(DETAIL)
-       detail_out<<"\t\t outcome_d["<<depth<<"] eval-ing outcome #"<<i<<" of "<<possible_outcomes.size()<<endl;
-     int outcome_val = eval_board_moves(possible_outcomes[i], worst_case);
+     if(DETAIL) {
+       for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+       detail_out<<"eval_outcomes calling eval_moves for outcome #"<<i<<" of "<<possible_outcomes.size()<<endl;
+     }
+     int outcome_val = eval_board_moves(possible_outcomes[i], worst_case, opt);
      if (outcome_val < worst_case) {
+       if(DETAIL) {
+         for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+         detail_out<<"eval_outcomes found worst yet, outcome of "<<outcome_val<<endl;
+       }
        worst_case = outcome_val;
-       if (worst_case < best_seen) {
+       if (opt && worst_case <= best_seen) {
+         if(DETAIL) {
+           for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+           detail_out<<"eval_outcomes found worst case "<<worst_case<<" worse than best seen "<<best_seen<<", branching and bounding"<<endl;
+         }
          depth--;
          return 0;
        }
      }
    }
+
+   if(DETAIL) {
+     for(int i = 0; i < depth; i++) {detail_out<<"  ";}
+     detail_out<<"eval_outcomes finished, returning worst case, "<<worst_case<<endl;
+   }
    depth--;
    return worst_case;
 }
 
-Direction advice(const board_t& board,
+Analysis_t advice(const board_t& board,
                  const Move_Result& up_result,
                  const Move_Result& down_result,
                  const Move_Result& left_result,
-                 const Move_Result& right_result) {
+                 const Move_Result& right_result, bool opt) {
   if(DETAIL)
     detail_out<<"Getting advice for this board:"<<endl;
   print_board(board, true);
@@ -376,36 +457,58 @@ Direction advice(const board_t& board,
     if(DETAIL)
       detail_out<<"advice evaluating up move"<<endl;
   }
-  up_val = up_valid ? eval_board_outcomes(up_move(board).board, 0) : -1;
+  up_val = up_valid ? eval_board_outcomes(up_move(board).board, 0, opt) : -1;
+  if(up_valid && DETAIL)
+    detail_out<<"advice got up_val of "<<up_val<<endl;
+  else if(DETAIL) {
+    detail_out<<"advice: up is not valid"<<endl;
+  }
+
   if(down_valid) {
     if(DETAIL)
       detail_out<<"advice evaluating down move"<<endl;
   }
-  down_val = down_valid ? eval_board_outcomes(down_move(board).board, up_val) : -1;
+  down_val = down_valid ? eval_board_outcomes(down_move(board).board, up_val, opt) : -1;
+  if(down_valid && DETAIL)
+    detail_out<<"advice got down_val of "<<down_val<<endl;
+
   if(left_valid) {
     if(DETAIL)
       detail_out<<"advice evaluating left mvoe"<<endl;
   }
-  left_val = left_valid ? eval_board_outcomes(left_move(board).board, max(up_val, down_val)) : -1;
+  left_val = left_valid ? eval_board_outcomes(left_move(board).board, max(up_val, down_val), opt) : -1;
+  if(left_valid && DETAIL)
+    detail_out<<"advice got left_val of "<<left_val<<endl;
+
   if(right_valid) {
     if(DETAIL)
       detail_out<<"advice evaluting right move"<<endl;
   }
-  right_val = right_valid ? eval_board_outcomes(right_move(board).board, max(up_val, max(down_val, left_val))) : -1;
+  right_val = right_valid ? eval_board_outcomes(right_move(board).board, max(up_val, max(down_val, left_val)), opt) : -1;
+  if(right_valid && DETAIL)
+    detail_out<<"advice got right_val of "<<right_val<<endl;
+
   int max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
-  if(max_val == up_val) {
-    return UP;
+  Analysis_t a;
+  a.up_eval = up_val;
+  a.down_eval = down_val;
+  a.left_eval = left_val;
+  a.right_eval = right_val;
+
+  if(max_val == up_val && up_valid) {
+    a.direction = UP;
   }
-  else if (max_val == down_val) {
-    return DOWN;
+  else if (max_val == down_val || (max_val == up_val && !up_valid)) {
+    a.direction = DOWN;
   }
-  else if(max_val == left_val) {
-    return LEFT;
+  else if(max_val == left_val && left_valid) {
+    a.direction = LEFT;
   }
   else {
-    return RIGHT;
+    a.direction = RIGHT;
   }
+  return a;
 }
 
 // Returns number of same, adjacent tiles (that can be combined)
@@ -504,7 +607,7 @@ Block input_block() {
   return_block.empty = false;
   cout<<"New block value (2|4): ";
   cin >> return_block.val;
-  assert(return_block.val == 2 || return_block.val == 4);
+  assert(return_block.val % 2 == 0);
 
   cout<<"New block coords(x,y): ";
   cin >> return_block.x >> return_block.y;
