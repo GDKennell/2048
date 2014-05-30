@@ -1,3 +1,5 @@
+#include "SmallBoard.h"
+
 #include <algorithm>
 #include <cassert>
 #include <deque>
@@ -11,15 +13,11 @@ using namespace std;
 
 struct Block;
 
-const bool DETAIL = false;
-
-typedef deque<deque<Block> > board_t;
+typedef uint64_t board_t;
 
 enum Direction {UP, DOWN, LEFT, RIGHT};
 
 const char* direction_names[] = {"up", "down", "left", "right"};
-
-ofstream detail_out;
 
 struct Block {
   int val;
@@ -54,7 +52,7 @@ void print_board(const board_t& board, bool detail) {
     output<<"  ";
     for(int x = 0; x <= 3; x++) {
       output<<'|';
-      board[x][y].print(detail);
+      SmallBoard::print(board, x, y, detail);
     }
     output<<'|'<<endl;
   }
@@ -74,17 +72,7 @@ int max(int x1, int x2, int x3, int x4) {
   return max(x1, max(x2, max(x3, x4) ) );
 }
 
-// Returns number of same, adjacent tiles (that can be combined)
-int num_adjacent(const board_t& board);
-
-// Returns value corresponding to 2's and 4's next to open spaces
-// weighted as 6 for each 2 and 1 for each 4
-int num_open24(const board_t& board);
-
 bool board_full(const board_t& board);
-
-void copy_board(board_t& dest, const board_t& source);
-bool boards_same(const board_t& b1, const board_t& b2);
 
 struct Analysis_t {
   Direction direction;
@@ -114,39 +102,12 @@ Analysis_t advice(const board_t& board,
 
 void add_new_tile(board_t& board);
 
-int max_seen_depth = 0;
-board_t rand_board() {
-  board_t b;
-  b.resize(4);
-  for(int i = 0 ; i < 4; i++){ b[i].resize(4);}
-
-  for(int x = 0 ; x < 4; x++) {
-    for(int y = 0; y < 4; y++) {
-      b[x][y].empty = (rand() % 2 == 0);
-      if(!b[x][y].empty) {
-        if(rand() % 4 == 0) {
-          b[x][y].val = 2;
-        }
-        else if (rand() % 6 == 0) {
-          b[x][y].val = 4;
-        }
-        else {
-          b[x][y].val = pow(2,(rand() % 8) + 3);
-        }
-      }
-    }
-  }
-  return b;
-}
-
 int main() {
   srand(time(NULL));
   detail_out.open("game_detail.txt");
   int score = 0;
 
-  board_t board;
-  board.resize(4);
-  for(int i = 0; i < 4; i++){ board[i].resize(4); }
+  board_t board = 0;
 
 /*  Block init_block1 = input_block();
   board[init_block1.x - 1][init_block1.y - 1] = init_block1;
@@ -160,7 +121,7 @@ int main() {
     Block new_block = input_block();
     assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
     assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
-    board[new_block.x-1][new_block.y-1] = new_block;
+    SmallBoard::set_val(board, new_block.x-1, new_block.y-1, new_block.val);
     cout<<endl;
   }
 
@@ -170,17 +131,21 @@ int main() {
   int round_num = 0;
   while(1) {
     cout<<"###############Round "<<++round_num<<endl;
-    cerr<<"###############Round "<<++round_num<<endl;
-    cerr<<"Score: "<<score<<endl;
     if(DETAIL)
       detail_out<<"###############Round "<<round_num<<endl;
     print_board(board, false);
+    print_board(board, true);
 /*    cout<<"Ready for me to do the next move?"<<endl;
     string dontcare;
     cin >>dontcare;*/
     
     // Up move
     Move_Result up_result = up_move(board);
+    if(DETAIL) {
+      detail_out<<"Up board for this move:"<<endl;
+      print_board(up_result.board, true);
+    }
+
     // Down move
     Move_Result down_result = down_move(board);
     // Left move
@@ -194,7 +159,6 @@ int main() {
         board_full(right_result.board)) {
       cout<<"Game Over"<<endl;
       cerr<<"Score: "<<score<<endl;
-      cerr<<"Max depth: "<<max_seen_depth<<endl;
       return 0;
     }
 
@@ -214,19 +178,19 @@ int main() {
 
     switch(choice) {
       case UP:
-        copy_board(board, up_result.board);
+        board = up_result.board;
         score += up_result.combos_value;
         break;
       case DOWN:
-        copy_board(board, down_result.board);
+        board = down_result.board;
         score += down_result.combos_value;
         break;
       case LEFT:
-        copy_board(board, left_result.board);
+        board = left_result.board;
         score += left_result.combos_value;
         break;
       case RIGHT:
-        copy_board(board, right_result.board);
+        board = right_result.board;
         score += right_result.combos_value;
         break;
     }
@@ -244,7 +208,6 @@ int main() {
     } catch(...) {
       cout<<"Game OOOver!!!"<<endl;
       cerr<<"Score: "<<score<<endl;
-      cerr<<"Max depth: "<<max_seen_depth<<endl;
       return 0;
     }
     cout<<endl;
@@ -260,17 +223,16 @@ int heuristic(const board_t& board) {
 
   for(int x = 0; x < 4; x++) {
     for(int y = 0; y < 4; y++) {
-      if (!board[x][y].empty) {
+      if (SmallBoard::val_at(board, x, y) != 0) {
         num_tiles++;
       }
     }
   }
   int max_tiles = 4 * 4;
-//  int num_adj = num_adjacent(board);
   return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 8;
+const int MAX_DEPTH = 6;
 
 int depth = 0;
 
@@ -278,19 +240,15 @@ int eval_board_outcomes(const board_t& board, int best_seen, bool opt);
 
 int eval_board_moves(const board_t& board, int worst_seen, bool opt) {
   depth++;
-  if(depth > max_seen_depth) {
-    max_seen_depth = depth;
-    cerr<<"New deepest seen, depth = "<<depth<<endl;
-  }
   Move_Result up_result = up_move(board);
   Move_Result down_result = down_move(board);
   Move_Result left_result = left_move(board);
   Move_Result right_result = right_move(board);
 
-  bool up_valid = !boards_same(board, up_result.board);
-  bool down_valid = !boards_same(board, down_result.board);
-  bool left_valid = !boards_same(board, left_result.board);
-  bool right_valid = !boards_same(board, right_result.board);
+  bool up_valid = (board != up_result.board);
+  bool down_valid = (board != down_result.board);
+  bool left_valid = (board != left_result.board);
+  bool right_valid = (board != right_result.board);
 
   int up_eval, down_eval, left_eval, right_eval;
 
@@ -388,16 +346,14 @@ int eval_board_outcomes(const board_t& board, int best_seen, bool opt) {
 
   for(int x = 0; x < 4; x++) {
     for(int y = 0; y < 4; y++) {
-      if (board[x][y].empty) {
+      if (SmallBoard::val_at(board, x, y) == 0) {
         board_t board_2 = board;
-        board_2[x][y].empty = false;
-        board_2[x][y].val = 2;
-        possible_outcomes.push_back(move(board_2));
+        SmallBoard::set_val(board_2, x, y, 2);
+        possible_outcomes.push_back(board_2);
 
         board_t board_4 = board;
-        board_4[x][y].empty = false;
-        board_4[x][y].val = 4;
-        possible_outcomes.push_back(move(board_4));
+        SmallBoard::set_val(board_2, x, y, 4);
+        possible_outcomes.push_back(board_4);
       }
     }
   }
@@ -447,11 +403,10 @@ Analysis_t advice(const board_t& board,
   int left_val;
   int right_val;
 
-  bool up_valid = !boards_same(board, up_result.board);
-  bool down_valid = !boards_same(board, down_result.board);
-  bool left_valid = !boards_same(board, left_result.board);
-  bool right_valid = !boards_same(board, right_result.board);
-
+  bool up_valid = (board != up_result.board);
+  bool down_valid = (board != down_result.board);
+  bool left_valid = (board != left_result.board);
+  bool right_valid = (board != right_result.board);
 
   if(up_valid){
     if(DETAIL)
@@ -511,70 +466,10 @@ Analysis_t advice(const board_t& board,
   return a;
 }
 
-// Returns number of same, adjacent tiles (that can be combined)
-int num_adjacent(const board_t& board) {
-  int result = 0;
-  for(int x = 0; x < 4; x++) {
-    for(int y = 0; y < 4; y++) {
-      if(board[x][y].empty) continue;
-      //scan right for next non-empty tile
-      for(int xi = x + 1; xi < 4; xi++) {
-        if(board[xi][y].empty) continue;
-        if(board[x][y].val == board[xi][y].val) {
-          result++;
-        }
-        break;
-      }
-      //scan up for next non-empty tile
-      for(int yi = y + 1; yi < 4; yi++) {
-        if(board[x][yi].empty) continue;
-        if(board[x][y].val == board[x][yi].val) {
-          result++;
-        }
-        break;
-      }
-    }
-  }
-  return result;
-}
-
-int num_open24(const board_t& board) {
-  int result = 0;
-  for(int x = 0; x < 4; x++) {
-    for (int y = 0; y < 4; y++) {
-      bool has2 = false;
-      bool has4 = false;
-      if(board[x][y].empty) {
-        for(int xi = x-1; xi <= x+1; xi++) {
-          if(xi < 0 || xi >= 4) continue;
-          for(int yi = y-1; yi <= y+1; yi++) {
-            if(yi < 0 || yi >= 4) continue;
-            //disallow diagonals
-            if(xi != x && yi != y) continue;
-            //disallow same one
-            if(xi == x && yi == y) continue;
-            if(!board[xi][yi].empty && board[xi][yi].val == 2)
-              has2 = true;
-            else if(!board[xi][yi].empty && board[xi][yi].val == 4)
-              has4 = true;
-          }
-        }
-        if(has2) {
-          result += 6;
-        }
-        if(has4) {
-          result += 1;
-        }
-      }
-    }
-  }
-  return result;
-}
-
 bool board_full(const board_t& board) {
   for(int x = 0; x < 4; x++) {
     for(int y = 0; y < 4; y++) {
-      if(board[x][y].empty) return false;
+      if(SmallBoard::val_at(board,x,y) != 0) return false;
     }
   }
   return true;
@@ -584,10 +479,12 @@ void add_new_tile(board_t& board) {
   deque<Block> empty_blocks;
   for(int x = 0; x < 4; x++) {
     for(int y = 0; y < 4; y++) {
-      if(board[x][y].empty) {
-        board[x][y].x = x + 1;
-        board[x][y].y = y + 1;
-        empty_blocks.push_back(board[x][y]);
+      if(SmallBoard::val_at(board,x,y) == 0) {
+        Block next_block;
+        next_block.x = x;
+        next_block.y = y;
+        next_block.val = SmallBoard::val_at(board,x,y);
+        empty_blocks.push_back(next_block);
       }
     } 
   }
@@ -597,9 +494,10 @@ void add_new_tile(board_t& board) {
   Block block_to_fill = empty_blocks[rand() % empty_blocks.size()];
   block_to_fill.val = (rand() % 100 <= 15) ? 4 : 2;
   block_to_fill.empty = false;
-  cout<<"New block at ("<<block_to_fill.x<<',';
-  cout<<block_to_fill.y<<") with value "<<block_to_fill.val<<endl;
-  board[block_to_fill.x-1][block_to_fill.y-1] = block_to_fill;
+  cout<<"New block at ("<<block_to_fill.x+1<<',';
+  cout<<block_to_fill.y+1<<") with value "<<block_to_fill.val<<endl;
+
+  SmallBoard::set_val(board,block_to_fill.x,block_to_fill.y,block_to_fill.val);
 }
 
 Block input_block() {
@@ -616,214 +514,170 @@ Block input_block() {
   return return_block;
 }
 
-void copy_board(board_t& dest, const board_t& source) {
-  dest.resize(4);
-  for(int i = 0; i < 4; i++) {dest[i].resize(4);}
-  for(int x = 0; x < 4; x++) {
-    for(int y = 0; y < 4; y++) {
-      dest[x][y] = source[x][y];
-    }
-  }
-}
-
-bool boards_same(const board_t& b1, const board_t& b2) {
-  for(int x = 0; x < 4; x++) {
-    for(int y = 0; y < 4; y++) {
-      if((b1[x][y].empty && !b2[x][y].empty) ||
-         (!b1[x][y].empty && b2[x][y].empty) ||
-         (!b1[x][y].empty && !b2[x][y].empty && b1[x][y].val != b2[x][y].val)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
 Move_Result up_move(const board_t& in_board) {
   Move_Result result;
-  board_t board;
-  copy_board(board, in_board);
+  board_t board = in_board;
   for (int x = 0; x < 4; x++) {
     // Shift everthing up
     for (int y = 2; y >= 0; y--) {
-      if (board[x][y].empty) continue;
+      if (SmallBoard::val_at(board,x,y) == 0) continue;
       int highest_empty_y = y;
       for(int i = y + 1; i <= 3 && i >= 0; i++) {
-        if(board[x][i].empty)
+        if (SmallBoard::val_at(board,x,i) == 0) 
           highest_empty_y = i;
       }
       if(highest_empty_y != y) {
-        board[x][highest_empty_y] = board[x][y];
-        board[x][y].empty = true;
+        SmallBoard::set_exp(board,
+                            x,
+                            highest_empty_y, 
+                            SmallBoard::exp_at(board,x,y));
+        SmallBoard::set_exp(board,x,y,0);
       }
     }
     
     // Look for combinations
     for(int y = 3; y > 0; y--) {
-      if(board[x][y].empty || board[x][y-1].empty) continue; 
-      if(board[x][y].val == board[x][y-1].val) {
-        board[x][y].val *= 2;
+      if (SmallBoard::val_at(board,x,y) == 0 ||
+          SmallBoard::val_at(board,x,y-1) == 0) continue;
+      if(SmallBoard::exp_at(board,x,y) == SmallBoard::exp_at(board,x,y-1)) {
+        SmallBoard::set_exp(board,x,y,SmallBoard::exp_at(board,x,y)+1);
         result.num_combos++;
-        result.combos_value += board[x][y].val;
+        result.combos_value += SmallBoard::val_at(board,x,y);
         // Shift all blocks from y-2 down to 0 up
         for(int i = y-2; i >= 0; i--) {
-          board[x][i+1] = board[x][i];
+          SmallBoard::set_exp(board,x,i+1,SmallBoard::exp_at(board,x,i));
         }
-        board[x][0].empty = true;
+        SmallBoard::set_exp(board,x,0,0);
       }
     }
   }
-  copy_board(result.board, board);
+  result.board = board;
   return result;
 }
 
 Move_Result down_move(const board_t& in_board) {
   Move_Result result;
   board_t board;
-  copy_board(board, in_board);
+  board = in_board;
   for (int x = 0; x < 4; x++) {
     // Shift everthing down 
     for (int y = 1; y <= 3; y++) {
-      if (board[x][y].empty) continue;
+      if (SmallBoard::val_at(board,x,y) == 0) continue;
       int lowest_empty_y = y;
       for(int i = y - 1; i >= 0; i--) {
-        if(board[x][i].empty)
+        if (SmallBoard::val_at(board,x,i) == 0) 
           lowest_empty_y = i;
       }
       if(lowest_empty_y != y) {
-        board[x][lowest_empty_y] = board[x][y];
-        board[x][y].empty = true;
+        SmallBoard::set_exp(board,
+                            x,
+                            lowest_empty_y, 
+                            SmallBoard::exp_at(board,x,y));
+        SmallBoard::set_exp(board,x,y,0);
       }
     }
     
     // Look for combinations
     for(int y = 0; y < 3; y++) {
-      if(board[x][y].empty || board[x][y+1].empty) continue; 
-      if(board[x][y].val == board[x][y+1].val) {
-        board[x][y].val *= 2;
+      if (SmallBoard::val_at(board,x,y) == 0 ||
+          SmallBoard::val_at(board,x,y+1) == 0) continue;
+      if(SmallBoard::exp_at(board,x,y) == SmallBoard::exp_at(board,x,y+1)) {
+        SmallBoard::set_exp(board,x,y,SmallBoard::exp_at(board,x,y)+1);
         result.num_combos++;
-        result.combos_value += board[x][y].val;
+        result.combos_value += SmallBoard::val_at(board,x,y);
         // Shift all blocks from y+2 up to 3 down
         for(int i = y+2; i <= 3; i++) {
-          board[x][i-1] = board[x][i];
+          SmallBoard::set_exp(board,x,i-1,SmallBoard::exp_at(board,x,i));
         }
-        board[x][3].empty = true;
+        SmallBoard::set_exp(board,x,3,0);
       }
     }
   }
-  copy_board(result.board, board);
+  result.board = board;
   return result;
 }
 
 Move_Result left_move(const board_t& in_board) {
   Move_Result result;
   board_t board;
-  copy_board(board, in_board);
+  board = in_board;
   for (int y = 0; y < 4; y++) {
     // Shift everthing left 
     for (int x = 1; x <= 3; x++) {
-      if (board[x][y].empty) continue;
+      if (SmallBoard::val_at(board,x,y) == 0) continue;
       int leftest_empty_x = x;
       for(int i = x - 1; i >= 0; i--) {
-        if(board[i][y].empty)
+        if (SmallBoard::val_at(board,i,y) == 0) 
           leftest_empty_x = i;
       }
       if(leftest_empty_x != x) {
-        board[leftest_empty_x][y] = board[x][y];
-        board[x][y].empty = true;
+        SmallBoard::set_exp(board,
+                            leftest_empty_x,
+                            y, 
+                            SmallBoard::exp_at(board,x,y));
+        SmallBoard::set_exp(board,x,y,0);
       }
     }
     
     // Look for combinations
     for(int x = 0; x < 3; x++) {
-      if(board[x][y].empty || board[x+1][y].empty) continue; 
-      if(board[x][y].val == board[x+1][y].val) {
-        board[x][y].val *= 2;
+      if (SmallBoard::val_at(board,x,y) == 0 ||
+          SmallBoard::val_at(board,x+1,y) == 0) continue;
+      if(SmallBoard::exp_at(board,x,y) == SmallBoard::exp_at(board,x+1,y)) {
+        SmallBoard::set_exp(board,x,y,SmallBoard::exp_at(board,x,y)+1);
         result.num_combos++;
-        result.combos_value += board[x][y].val;
+        result.combos_value += SmallBoard::val_at(board,x,y);
         // Shift all blocks from x+2 up to 3 left
         for(int i = x+2; i <= 3; i++) {
-          board[i-1][y] = board[i][y];
+          SmallBoard::set_exp(board,i-1,y,SmallBoard::exp_at(board,i,y));
         }
-        board[3][y].empty = true;
+        SmallBoard::set_exp(board,3,y,0);
       }
     }
   }
-  copy_board(result.board, board);
+  result.board = board;
   return result;
 }
 
 Move_Result right_move(const board_t& in_board) {
   Move_Result result;
   board_t board;
-  copy_board(board, in_board);
+  board = in_board;
   for (int y = 0; y < 4; y++) {
     // Shift everthing right 
     for (int x = 2; x >= 0; x--) {
-      if (board[x][y].empty) continue;
+      if (SmallBoard::val_at(board,x,y) == 0) continue;
       int rightest_empty_x = x;
       for(int i = x + 1; i <= 3; i++) {
-        if(board[i][y].empty)
+        if (SmallBoard::val_at(board,i,y) == 0) 
           rightest_empty_x = i;
       }
       if(rightest_empty_x != x) {
-        board[rightest_empty_x][y] = board[x][y];
-        board[x][y].empty = true;
+        SmallBoard::set_exp(board,
+                            rightest_empty_x,
+                            y, 
+                            SmallBoard::exp_at(board,x,y));
+        SmallBoard::set_exp(board,x,y,0);
       }
     }
     
     // Look for combinations
     for(int x = 3; x > 0; x--) {
-      if(board[x][y].empty || board[x-1][y].empty) continue; 
-      if(board[x][y].val == board[x-1][y].val) {
-        board[x][y].val *= 2;
+      if (SmallBoard::val_at(board,x,y) == 0 ||
+          SmallBoard::val_at(board,x-1,y) == 0) continue;
+      if(SmallBoard::exp_at(board,x,y) == SmallBoard::exp_at(board,x-1,y)) {
+        SmallBoard::set_exp(board,x,y,SmallBoard::exp_at(board,x,y)+1);
         result.num_combos++;
-        result.combos_value += board[x][y].val;
+        result.combos_value += SmallBoard::val_at(board,x,y);
         // Shift all blocks from x-2 down to 0 right
         for(int i = x-2; i >= 0; i--) {
-          board[i+1][y] = board[i][y];
+          SmallBoard::set_exp(board,i+1,y,SmallBoard::exp_at(board,i,y));
         }
-        board[0][y].empty = true;
+        SmallBoard::set_exp(board,0,y,0);
       }
     }
   }
-  copy_board(result.board, board);
+  result.board = board;
   return result;
 }
-
-
-
-/*
-   _______________
-  |x,y|x,y|x,y|x,y|
-   _______________
-  |x,y|x,y|x,y|x,y|
-   _______________
-  |x,y|x,y|x,y|x,y|
-   _______________
-  |x,y|x,y|x,y|x,y|
-   _______________
-
-   _______________
-  |1,4|2,4|3,4|4,4|
-   _______________
-  |1,3|2,3|3,3|4,3|
-   _______________
-  |1,2|2,2|3,2|4,2|
-   _______________
-  |1,1|2,1|3,1|4,1|
-   _______________
-
-
-   -------------------
-  | 2  | 16 | 4  |    |
-
-
-  4 8 8 8 8   8  
-  4 4 2 4 4   4  
-  2 2 2 2 0   0  
-  2 2 0 0 0   0  
-  
-
-   */
 
