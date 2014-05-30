@@ -11,7 +11,7 @@ using namespace std;
 
 struct Block;
 
-const bool DETAIL = true;
+const bool DETAIL = false;
 
 typedef deque<deque<Block> > board_t;
 
@@ -139,76 +139,8 @@ board_t rand_board() {
 }
 
 int main() {
+  srand(time(NULL));
   detail_out.open("game_detail.txt");
-  if(!detail_out.good()) {
-    cout<<"Couldn't open detail file"<<endl;
-    return 1;
-  }
-  int num_tests = 100;
-  for(int i = 0; i < 100; i++) {
-    board_t test_board = rand_board();
-     
-    // Up move
-    Move_Result up_result = up_move(test_board);
-    // Down move
-    Move_Result down_result = down_move(test_board);
-    // Left move
-    Move_Result left_result = left_move(test_board);
-    // Right move
-    Move_Result right_result = right_move(test_board);
-
-   Analysis_t analysis_naive = advice(test_board, up_result, down_result, left_result, right_result, false);
-    Analysis_t analysis_opt = advice(test_board, up_result, down_result, left_result, right_result, true);
-
-    cout<<"Round "<<i+1<<endl;
-    print_board(test_board, false);
-    if(analysis_naive != analysis_opt) {
-      if(analysis_naive.direction != analysis_opt.direction) {
-        cout<<"found serious mismatch"<<endl;
-        cerr<<"Serious mismatch!"<<endl;
-      }
-      else {
-        Direction d = analysis_naive.direction;
-        int neval, oeval;
-        switch(d) {
-          case UP:
-            neval = analysis_naive.up_eval;
-            oeval = analysis_opt.up_eval;
-            break;
-          case DOWN:
-            neval = analysis_naive.down_eval;
-            oeval = analysis_opt.down_eval;
-            break;
-          case LEFT:
-            neval = analysis_naive.left_eval;
-            oeval = analysis_opt.left_eval;
-            break;
-          case RIGHT:
-            neval = analysis_naive.right_eval;
-            oeval = analysis_opt.right_eval;
-            break;
-        }
-        if(neval == oeval) {
-          cout<<"found trivial mismatch"<<endl;
-        }
-        else {
-          cout<<"found nontrivial mismatch"<<endl;
-        }
-      }
-      cout<<"found mismatch:"<<endl;
-      cout<<"naive analyisis:"<<endl;
-      analysis_naive.print();
-      cout<<"optimized analyisis:"<<endl;
-      analysis_opt.print();
-      cout<<endl<<endl;
-    }
-    else {
-      cout<<"decisions matched"<<endl;
-    }
-    cout<<endl;
-  }
-
-  return 0;
   int score = 0;
 
   board_t board;
@@ -333,7 +265,7 @@ int heuristic(const board_t& board) {
   return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 4;
+const int MAX_DEPTH = 8;
 
 int depth = 0;
 
@@ -361,7 +293,7 @@ int eval_board_moves(const board_t& board, int worst_seen, bool opt) {
       }
     }
     up_eval = up_valid ? eval_board_outcomes(up_result.board, 0, opt) : -1;
-    if (opt && up_eval > worst_seen) {
+    if (opt && up_eval >= worst_seen) {
       if(DETAIL) {
         for(int i = 0; i < depth; i++) {detail_out<<"  ";}
         detail_out<<"eval_moves branching and bounding, up_eval("<<up_eval<<") > worst_seen("<<worst_seen<<')'<<endl;
@@ -376,7 +308,7 @@ int eval_board_moves(const board_t& board, int worst_seen, bool opt) {
       }
     }
     down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval, opt) : -1;
-    if (opt && down_eval > worst_seen) {
+    if (opt && down_eval >= worst_seen) {
       if(DETAIL) {
         for(int i = 0; i < depth; i++) {detail_out<<"  ";}
         detail_out<<"eval_moves branching and bounding, down_eval("<<down_eval<<") > worst_seen("<<worst_seen<<')'<<endl;
@@ -391,7 +323,7 @@ int eval_board_moves(const board_t& board, int worst_seen, bool opt) {
       }
     }
     left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval), opt) : -1;
-    if (opt && left_eval > worst_seen) {
+    if (opt && left_eval >= worst_seen) {
       if(DETAIL) {
         for(int i = 0; i < depth; i++) {detail_out<<"  ";}
         detail_out<<"eval_moves branching and bounding, left_eval("<<left_eval<<") > worst_seen("<<worst_seen<<')'<<endl;
@@ -406,7 +338,7 @@ int eval_board_moves(const board_t& board, int worst_seen, bool opt) {
       }
     }
     right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval)), opt) : -1;
-    if (opt && right_eval > worst_seen) {
+    if (opt && right_eval >= worst_seen) {
       if(DETAIL) {
         for(int i = 0; i < depth; i++) {detail_out<<"  ";}
         detail_out<<"eval_moves branching and bounding, right_eval("<<right_eval<<") > worst_seen("<<worst_seen<<')'<<endl;
@@ -472,7 +404,7 @@ int eval_board_outcomes(const board_t& board, int best_seen, bool opt) {
          detail_out<<"eval_outcomes found worst yet, outcome of "<<outcome_val<<endl;
        }
        worst_case = outcome_val;
-       if (opt && worst_case < best_seen) {
+       if (opt && worst_case <= best_seen) {
          if(DETAIL) {
            for(int i = 0; i < depth; i++) {detail_out<<"  ";}
            detail_out<<"eval_outcomes found worst case "<<worst_case<<" worse than best seen "<<best_seen<<", branching and bounding"<<endl;
