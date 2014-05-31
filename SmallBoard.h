@@ -5,12 +5,21 @@
 
 using namespace std;
 
-const bool DETAIL = true;
+const bool DETAIL = false;
 ofstream detail_out;
 
 class SmallBoard {
-  public:
-    static void set_exp(uint64_t& board, int x, int y, int exp) {
+  uint64_t board;
+
+public:
+  SmallBoard() : board((uint64_t)0) { }
+  operator uint64_t() { return board;}
+  void operator=(const SmallBoard& b){ board = b.board; }
+  void operator=(int b){ assert(b == 0); board = (uint64_t)b;}
+  bool operator==(const SmallBoard& b) const {return board == b.board;} 
+  bool operator!=(const SmallBoard& b) const {return board != b.board;} 
+
+    void set_exp(int x, int y, int exp) {
       assert(exp <= 11); 
       int offset = 4 * (4 * x + y);
       
@@ -18,24 +27,24 @@ class SmallBoard {
       board |= ((uint64_t)exp << offset);
     }
 
-    static void set_val(uint64_t& board, int x, int y, int val) {
+    void set_val(int x, int y, int val) {
       int exp = log2(val);
-      set_exp(board,x,y,exp);
+      set_exp(x,y,exp);
     }
 
-    static int val_at(const uint64_t& board, int x, int y) {
-      int exp = exp_at(board,x,y);
+    int val_at(int x, int y) const  {
+      int exp = exp_at(x,y);
       return (exp == 0) ? 0 : pow(2,exp);
     }
 
-    static int exp_at(const uint64_t& board, int x, int y) {
+    int exp_at(int x, int y) const  {
       int offset = 4 * (4 * x + y);
       int exp = (board >> offset) & (uint64_t)15;
       return exp;
     }
 
-    static void print(const uint64_t& board, int x, int y, bool detail) {
-      int val = val_at(board, x, y);
+    void print(int x, int y, bool detail) const {
+      int val = val_at(x, y);
       if(!DETAIL && detail) return;
       ostream& output = detail ? detail_out : cout;
       if(val == 0) output<<"    ";
