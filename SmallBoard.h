@@ -5,9 +5,6 @@
 
 using namespace std;
 
-const bool DETAIL = false;
-ofstream detail_out;
-
 class SmallBoard {
   uint64_t board;
 
@@ -43,10 +40,9 @@ public:
       return exp;
     }
 
-    void print(int x, int y, bool detail) const {
+    void print(int x, int y) const {
       int val = val_at(x, y);
-      if(!DETAIL && detail) return;
-      ostream& output = detail ? detail_out : cout;
+      ostream& output = cout;
       if(val == 0) output<<"    ";
       else if(val < 10) output<<" "<<val<<"  ";
       else if(val < 100) output<<" "<<val<<" ";
