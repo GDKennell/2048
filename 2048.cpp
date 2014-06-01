@@ -190,6 +190,25 @@ int depth = 0;
 
 int eval_board_outcomes(const board_t& board, int best_seen);
 
+struct move_t {
+  board_t board;
+  int heur;
+  void operator=(const move_t& m) { board = m.board; heur = m.heur; }
+};
+
+void swap(move_t* arr, int x, int y) {
+  move_t xt = arr[x];
+  arr[x] = arr[y];
+  arr[y] = xt;
+}
+
+void merge_sort(move_t* arr) {
+  if(arr[0].heur > arr[1].heur) swap(arr,0,1);
+  if(arr[2].heur > arr[3].heur) swap(arr,2,3);
+  if(arr[1].heur > arr[3].heur) swap(arr,1,3);
+  if(arr[0].heur > arr[2].heur) swap(arr,0,2);
+}
+
 int eval_board_moves(const board_t& board, int worst_seen) {
   ++depth;
   board_t up_result = up_move(board);
@@ -204,38 +223,38 @@ int eval_board_moves(const board_t& board, int worst_seen) {
 
   int up_eval, down_eval, left_eval, right_eval;
 
-  if (depth < MAX_DEPTH) {
-    up_eval = up_valid ? eval_board_outcomes(up_result, 0) : -1;
-    if (up_eval >= worst_seen) {
-      --depth;
-      return INT_MAX;
-    }
+  //order moves by heuristic
+  move_t moves[4];
+  moves[0].board = up_result;
+  moves[0].heur = up_valid ? heuristic(up_result) : -1;
+  moves[1].board = down_result;
+  moves[1].heur = down_valid ? heuristic(down_result) : -1;
+  moves[2].board = left_result;
+  moves[2].heur = left_valid ? heuristic(left_result) : -1;
+  moves[3].board = right_result;
+  moves[3].heur = right_valid ? heuristic(right_result) : -1;
 
-    down_eval = down_valid ? eval_board_outcomes(down_result, up_eval) : -1;
-    if (down_eval >= worst_seen) {
-      --depth;
-      return INT_MAX;
+  merge_sort(moves);
+  // evaluating best moves first (by heuristic)
+  int max_move = 0;
+  for(int i = 3; i >=0; --i) {
+    int move_eval;
+    if (depth < MAX_DEPTH) {
+      move_eval = (moves[i].heur == -1) ? -1 : eval_board_outcomes(moves[i].board, max_move);
+      if (move_eval >= worst_seen) {
+        --depth;
+        return INT_MAX;
+      }
     }
-
-    left_eval = left_valid ? eval_board_outcomes(left_result, max(up_eval, down_eval)) : -1;
-    if (left_eval >= worst_seen) {
+    else {
       --depth;
-      return INT_MAX;
+      return moves[3].heur;
     }
-    right_eval = right_valid ? eval_board_outcomes(right_result, max(up_eval, max(down_eval, left_eval))) : -1;
-    if (right_eval >= worst_seen) {
-      --depth;
-      return INT_MAX;
-    }
-  }
-  else {
-    up_eval = up_valid ? heuristic(up_result) : -1;
-    down_eval = down_valid ? heuristic(down_result) : -1;
-    left_eval = left_valid ? heuristic(left_result) : -1;
-    right_eval = right_valid ? heuristic(right_result) : -1;
+    if(move_eval > max_move)
+      max_move = move_eval;
   }
   --depth;
-  return max(up_eval, down_eval, left_eval, right_eval);
+  return max_move;
 }
 
 int eval_board_outcomes(const board_t& board, int best_seen) {
