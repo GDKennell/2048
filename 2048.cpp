@@ -246,11 +246,13 @@ int eval_board_outcomes(const board_t& board, int best_seen) {
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
       if (board.val_at( x, y) == 0) {
-        possible_outcomes[num_outcomes++] = board;
+        possible_outcomes[num_outcomes] = board;
         possible_outcomes[num_outcomes].set_val(x, y, 2);
+        num_outcomes++;
 
-        possible_outcomes[num_outcomes++] = board;
+        possible_outcomes[num_outcomes] = board;
         possible_outcomes[num_outcomes].set_val(x, y, 4);
+        num_outcomes++;
       }
     }
   }
