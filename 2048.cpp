@@ -194,6 +194,8 @@ struct move_t {
   board_t board;
   int heur;
   void operator=(const move_t& m) { board = m.board; heur = m.heur; }
+  bool operator>(const move_t& m) { return heur > m.heur; }
+  bool operator<=(const move_t& m) { return heur <= m.heur; }
 };
 
 void swap(move_t* arr, int x, int y) {
@@ -202,11 +204,11 @@ void swap(move_t* arr, int x, int y) {
   arr[y] = xt;
 }
 
-void merge_sort(move_t* arr) {
-  if(arr[0].heur > arr[1].heur) swap(arr,0,1);
-  if(arr[2].heur > arr[3].heur) swap(arr,2,3);
-  if(arr[1].heur > arr[3].heur) swap(arr,1,3);
-  if(arr[0].heur > arr[2].heur) swap(arr,0,2);
+void mini_merge_sort(move_t* arr) {
+  if(arr[0] > arr[1]) swap(arr,0,1);
+  if(arr[2] > arr[3]) swap(arr,2,3);
+  if(arr[1] > arr[3]) swap(arr,1,3);
+  if(arr[0] > arr[2]) swap(arr,0,2);
 }
 
 int eval_board_moves(const board_t& board, int worst_seen) {
@@ -234,7 +236,7 @@ int eval_board_moves(const board_t& board, int worst_seen) {
   moves[3].board = right_result;
   moves[3].heur = right_valid ? heuristic(right_result) : -1;
 
-  merge_sort(moves);
+  mini_merge_sort(moves);
   // evaluating best moves first (by heuristic)
   int max_move = 0;
   for(int i = 3; i >=0; --i) {
@@ -257,39 +259,85 @@ int eval_board_moves(const board_t& board, int worst_seen) {
   return max_move;
 }
 
+void merge(move_t* arr, int min, int mid, int max) {
+  move_t temp[30];
+  int low_it,temp_it,high_it,k;
+  low_it = min;
+  temp_it = min;
+  high_it = mid + 1;
+  while((low_it<=mid) && (high_it <= max)) {
+    if(arr[low_it] <= arr[high_it]) {
+      temp[temp_it++] = arr[low_it++];
+    }
+    else {
+      temp[temp_it++] = arr[high_it++];
+    }
+  }
+  if(low_it > mid) {
+    for(int i = high_it; i <= max; i++) {
+      temp[temp_it++] = arr[i];
+    }
+  }
+  else {
+    for(int i = low_it; i <= mid; i++) {
+      temp[temp_it++] = arr[i];
+    }
+  }
+  for(int i = min; i <= max; i++) {
+    arr[i] = temp[i];
+  }
+}
+
+void merge_sort_h(move_t* arr, int min, int max) {
+  if(min < max) {
+    int mid = (min+max)/2;
+    merge_sort_h(arr,min,mid);
+    merge_sort_h(arr,mid+1,max);
+    merge(arr,min,mid,max);
+  }
+}
+
+void merge_sort(move_t* arr, int size) {
+  merge_sort_h(arr,0,size-1); 
+}
+
 int eval_board_outcomes(const board_t& board, int best_seen) {
   ++depth;
-  board_t possible_outcomes[30];
+  move_t possible_outcomes[30];
   int num_outcomes = 0;
 
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
       if (board.val_at( x, y) == 0) {
-        possible_outcomes[num_outcomes] = board;
-        possible_outcomes[num_outcomes].set_val(x, y, 2);
+        possible_outcomes[num_outcomes].board = board;
+        possible_outcomes[num_outcomes].board.set_val(x, y, 2);
+        possible_outcomes[num_outcomes].heur = heuristic(possible_outcomes[num_outcomes].board);
         num_outcomes++;
 
-        possible_outcomes[num_outcomes] = board;
-        possible_outcomes[num_outcomes].set_val(x, y, 4);
+        possible_outcomes[num_outcomes].board = board;
+        possible_outcomes[num_outcomes].board.set_val(x, y, 4);
+        possible_outcomes[num_outcomes].heur = heuristic(possible_outcomes[num_outcomes].board);
         num_outcomes++;
       }
     }
   }
- 
-   int worst_case = INT_MAX; 
-   for(int i = 0; i < num_outcomes; ++i) {
-     int outcome_val = eval_board_moves(possible_outcomes[i], worst_case);
-     if (outcome_val < worst_case) {
-       worst_case = outcome_val;
-       if (worst_case <= best_seen) {
-         --depth;
-         return 0;
-       }
-     }
-   }
 
-   --depth;
-   return worst_case;
+  merge_sort(possible_outcomes, num_outcomes);
+
+  int worst_case = INT_MAX; 
+  for(int i = 0; i < num_outcomes; ++i) {
+    int outcome_val = eval_board_moves(possible_outcomes[i].board, worst_case);
+    if (outcome_val < worst_case) {
+      worst_case = outcome_val;
+      if (worst_case <= best_seen) {
+        --depth;
+        return 0;
+      }
+    }
+  }
+
+  --depth;
+  return worst_case;
 }
 
 Direction advice(const board_t& board,
@@ -304,33 +352,6 @@ Direction advice(const board_t& board,
         ++num_empty;
     }
   }
-  /*
-  static int num_under2 = 0;
-  static int num_under4 = 0;
-  static int num_under7 = 0;
-  static int num_over7 = 0;
-  if(!opt) {
-    cout<<" num_under2: "<<num_under2<<endl; 
-    cout<<" num_under4: "<<num_under4<<endl;  
-    cout<<" num_under7: "<<num_under7<<endl; 
-    cout<<" num_over7 : "<<num_over7 <<endl;  
-  }
-  if(num_empty <= 2) {
-    ++num_under2;
-    MAX_DEPTH = 12;
-  }
-  else if(num_empty <= 4) {
-    ++num_under4;
-    MAX_DEPTH = 4;
-  }
-  else if(num_empty <= 7) {
-    ++num_under7;
-    MAX_DEPTH = 2;
-  }
-  else {
-    ++num_over7;
-    MAX_DEPTH = 2;
-  }*/
 
   int up_val;
   int down_val;
