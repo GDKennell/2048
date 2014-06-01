@@ -7,6 +7,8 @@
 #include <fstream>
 #include <string>
 #include <time.h>
+#include <chrono>
+#include <ctime>
 #include <math.h>
 
 using namespace std;
@@ -14,6 +16,7 @@ using namespace std;
 struct Block;
 
 typedef SmallBoard board_t;
+typedef chrono::system_clock Clock;
 
 enum Direction {UP, DOWN, LEFT, RIGHT};
 
@@ -77,6 +80,8 @@ int score = 0;
 int up_combo_val, down_combo_val, left_combo_val, right_combo_val;
 
 int main() {
+  time_t start_time, end_time;
+  start_time=Clock::to_time_t(Clock::now());
   srand(time(NULL));
 
   board_t board;
@@ -121,7 +126,10 @@ int main() {
         board_full(right_result)) {
       cout<<"Game Over"<<endl;
 //      advice(board,board,board,board,board,false);
+      end_time=Clock::to_time_t(Clock::now());
       cerr<<"Score: "<<score<<endl;
+      cerr<<"Time: "<<end_time - start_time<<endl;
+      cerr<<"Points/sec: "<<score / (end_time - start_time)<<endl;
       return 0;
     }
 
@@ -157,9 +165,12 @@ int main() {
     try {
       add_new_tile(board);
     } catch(...) {
+      end_time=Clock::to_time_t(Clock::now());
       cout<<"Game OOOver!!!"<<endl;
 //      advice(board,board,board,board,board,false);
       cerr<<"Score: "<<score<<endl;
+      cerr<<"Time: "<<end_time - start_time<<endl;
+      cerr<<"Points/sec: "<<score / (end_time - start_time)<<endl;
       return 0;
     }
     cout<<endl;
