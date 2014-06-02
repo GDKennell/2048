@@ -351,7 +351,7 @@ Direction advice(const board_t& board,
 bool board_full(const board_t& board) {
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
-      if(board.val_at(x,y) != 0) return false;
+      if(board.val_at(x,y) == 0) return false;
     }
   }
   return true;
