@@ -203,7 +203,7 @@ int heuristic(const board_t& board) {
   return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 4;
+const int MAX_DEPTH = 6;
 
 int depth = 0;
 
