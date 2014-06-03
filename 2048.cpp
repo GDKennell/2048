@@ -14,8 +14,6 @@
 
 using namespace std;
 
-pthread_mutex_t cout_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 struct Block;
 
 typedef SmallBoard board_t;
@@ -287,14 +285,8 @@ struct thread_arg_t {
 };
 
 void* eval_board_outcomes_p(void* arg_ptr) {
-  int x = pthread_mutex_lock(&cout_mutex);
-  cout<<"\tThread reporting for duty, calling eval_board_outcomes as promised"<<endl;
-  x = pthread_mutex_unlock(&cout_mutex);
   thread_arg_t in_arg = *((thread_arg_t*)arg_ptr);
   *(in_arg.ret_val) = eval_board_outcomes(in_arg.board);
-  x = pthread_mutex_lock(&cout_mutex);
-  cout<<"\tThread got value from eval_board_outcomes, "<<*(in_arg.ret_val)<<", Exiting"<<endl;
-  x = pthread_mutex_unlock(&cout_mutex);
 
   pthread_exit(NULL);
   return NULL;
@@ -330,36 +322,24 @@ Direction advice(const board_t& board,
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
   if (up_valid) {
-    int x = pthread_mutex_lock(&cout_mutex);
-    cout<<"Up valid, creating up thread"<<endl;
-    x = pthread_mutex_unlock(&cout_mutex);
     thread_arg_t up_in(up_result, &up_val);
     int thread_err = pthread_create(&up_thread, NULL, eval_board_outcomes_p, (void*)&up_in);
     assert(!thread_err);
   }
 
   if(down_valid) {
-    int x = pthread_mutex_lock(&cout_mutex);
-    cout<<"Down valid, creating down thread"<<endl;
-    x = pthread_mutex_unlock(&cout_mutex);
     thread_arg_t down_in(down_result, &down_val);
     int thread_err = pthread_create(&down_thread, NULL, eval_board_outcomes_p, (void*)&down_in);
     assert(!thread_err);
   }
 
   if(left_valid) {
-    int x = pthread_mutex_lock(&cout_mutex);
-    cout<<"Left valid, creating left thread"<<endl;
-    x = pthread_mutex_unlock(&cout_mutex);
     thread_arg_t left_in(left_result, &left_val);
     int thread_err = pthread_create(&left_thread, NULL, eval_board_outcomes_p, (void*)&left_in);
     assert(!thread_err);
   }
 
   if(right_valid) {
-    int x = pthread_mutex_lock(&cout_mutex);
-    cout<<"Right valid, creating right thread"<<endl;
-    x = pthread_mutex_unlock(&cout_mutex);
     thread_arg_t right_in(right_result, &right_val);
     int thread_err = pthread_create(&right_thread, NULL, eval_board_outcomes_p, (void*)&right_in);
     assert(!thread_err);
