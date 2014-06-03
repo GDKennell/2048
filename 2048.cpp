@@ -1,5 +1,5 @@
 #include "SmallBoard.h"
-
+#include <pthread.h>
 #include <algorithm>
 #include <cassert>
 #include <deque>
@@ -236,6 +236,7 @@ double eval_board_moves(const board_t& board) {
     right_eval = right_valid ? heuristic(right_result) : -1.0;
   }
   --depth;
+ 
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
@@ -276,6 +277,11 @@ double eval_board_outcomes(const board_t& board) {
   return tot_prob;
 }
 
+void eval_board_outcomes_p(void* board_ptr) {
+  board_t in_board = *((board_t*)board_ptr);
+  pthread_exit(new double(eval_board_outcomes(in_board)));
+}
+
 Direction advice(const board_t& board,
                  const board_t& up_result,
                  const board_t& down_result,
@@ -288,33 +294,6 @@ Direction advice(const board_t& board,
         ++num_empty;
     }
   }
-  /*
-  static int num_under2 = 0;
-  static int num_under4 = 0;
-  static int num_under7 = 0;
-  static int num_over7 = 0;
-  if(!opt) {
-    cout<<" num_under2: "<<num_under2<<endl; 
-    cout<<" num_under4: "<<num_under4<<endl;  
-    cout<<" num_under7: "<<num_under7<<endl; 
-    cout<<" num_over7 : "<<num_over7 <<endl;  
-  }
-  if(num_empty <= 2) {
-    ++num_under2;
-    MAX_DEPTH = 12;
-  }
-  else if(num_empty <= 4) {
-    ++num_under4;
-    MAX_DEPTH = 4;
-  }
-  else if(num_empty <= 7) {
-    ++num_under7;
-    MAX_DEPTH = 2;
-  }
-  else {
-    ++num_over7;
-    MAX_DEPTH = 2;
-  }*/
 
   double up_val;
   double down_val;
@@ -325,6 +304,29 @@ Direction advice(const board_t& board,
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
   bool right_valid = (board != right_result);
+
+  pthread_t up_thread, down_thread, left_thread, right_thread;
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+  int thread_err = pthread_create(&up_thread, NULL, eval_board_outcomes_p, (void*)&up_result);
+  assert(!thread_err);
+  thread_err = pthread_create(&down_thread, NULL, eval_board_outcomes_p, (void*)&down_result);
+  assert(!thread_err);
+  thread_err = pthread_create(&left_thread, NULL, eval_board_outcomes_p, (void*)&left_result);
+  assert(!thread_err);
+  thread_err = pthread_create(&right_thread, NULL, eval_board_outcomes_p, (void*)&right_result);
+  assert(!thread_err);
+
+  thread_err = pthread_join(up_thread, (void**)&up_val);
+  assert(!thread_err);
+  thread_err = pthread_join(down_thread, (void**)&down_val);
+  assert(!thread_err);
+  thread_err = pthread_join(left_thread, (void**)&left_val);
+  assert(!thread_err);
+  thread_err = pthread_join(right_thread, (void**)&right_val);
+  assert(!thread_err);
 
   up_val = up_valid ? eval_board_outcomes(up_result) : -1.0;
   down_val = down_valid ? eval_board_outcomes(down_result) : -1.0;
