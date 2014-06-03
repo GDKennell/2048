@@ -324,11 +324,18 @@ Direction advice(const board_t& board,
     if(down_valid)
       return DOWN;
     else
-      second_best max(up_val, max(right_val, left_val));
+      second_best = max(up_val, max(right_val, left_val));
   }
-  else if(max_val == left_val && left_valid) {
-    return LEFT;
+  else if(max_val == left_val) {
+    if(left_valid)
+      return LEFT;
+    else
+      second_best = max(up_val, max(right_val, down_val));
   }
+  double third_best;
+  if(second_best == up_val) {
+    if(up_valid) 
+
 
 }
 
