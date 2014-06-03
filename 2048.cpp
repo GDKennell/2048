@@ -10,8 +10,11 @@
 #include <chrono>
 #include <ctime>
 #include <math.h>
+//#include <dispatch/dispatch.h>
 
 using namespace std;
+
+pthread_mutex_t cout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct Block;
 
@@ -53,10 +56,10 @@ void print_board(const board_t& board) {
   output<<"   ___________________"<<endl;
 }
 
-board_t up_move(const board_t& in_board);
-board_t down_move(const board_t& in_board);
-board_t left_move(const board_t& in_board);
-board_t right_move(const board_t& in_board);
+inline board_t up_move(const board_t& in_board);
+inline board_t down_move(const board_t& in_board);
+inline board_t left_move(const board_t& in_board);
+inline board_t right_move(const board_t& in_board);
 
 int min(int x1, int x2, int x3, int x4) {
   return min(x1, min(x2, min(x3, x4) ) );
@@ -277,9 +280,24 @@ double eval_board_outcomes(const board_t& board) {
   return tot_prob;
 }
 
-void eval_board_outcomes_p(void* board_ptr) {
-  board_t in_board = *((board_t*)board_ptr);
-  pthread_exit(new double(eval_board_outcomes(in_board)));
+struct thread_arg_t {
+  thread_arg_t(const board_t& board_, double* ret_val_) : board(board_), ret_val(ret_val_) { }
+  const board_t& board;
+  double* ret_val;
+};
+
+void* eval_board_outcomes_p(void* arg_ptr) {
+  int x = pthread_mutex_lock(&cout_mutex);
+  cout<<"\tThread reporting for duty, calling eval_board_outcomes as promised"<<endl;
+  x = pthread_mutex_unlock(&cout_mutex);
+  thread_arg_t in_arg = *((thread_arg_t*)arg_ptr);
+  *(in_arg.ret_val) = eval_board_outcomes(in_arg.board);
+  x = pthread_mutex_lock(&cout_mutex);
+  cout<<"\tThread got value from eval_board_outcomes, "<<*(in_arg.ret_val)<<", Exiting"<<endl;
+  x = pthread_mutex_unlock(&cout_mutex);
+
+  pthread_exit(NULL);
+  return NULL;
 }
 
 Direction advice(const board_t& board,
@@ -287,6 +305,7 @@ Direction advice(const board_t& board,
                  const board_t& down_result,
                  const board_t& left_result,
                  const board_t& right_result) {
+
   int num_empty = 0;
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
@@ -310,28 +329,64 @@ Direction advice(const board_t& board,
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  int thread_err = pthread_create(&up_thread, NULL, eval_board_outcomes_p, (void*)&up_result);
-  assert(!thread_err);
-  thread_err = pthread_create(&down_thread, NULL, eval_board_outcomes_p, (void*)&down_result);
-  assert(!thread_err);
-  thread_err = pthread_create(&left_thread, NULL, eval_board_outcomes_p, (void*)&left_result);
-  assert(!thread_err);
-  thread_err = pthread_create(&right_thread, NULL, eval_board_outcomes_p, (void*)&right_result);
-  assert(!thread_err);
+  if (up_valid) {
+    int x = pthread_mutex_lock(&cout_mutex);
+    cout<<"Up valid, creating up thread"<<endl;
+    x = pthread_mutex_unlock(&cout_mutex);
+    thread_arg_t up_in(up_result, &up_val);
+    int thread_err = pthread_create(&up_thread, NULL, eval_board_outcomes_p, (void*)&up_in);
+    assert(!thread_err);
+  }
 
-  thread_err = pthread_join(up_thread, (void**)&up_val);
-  assert(!thread_err);
-  thread_err = pthread_join(down_thread, (void**)&down_val);
-  assert(!thread_err);
-  thread_err = pthread_join(left_thread, (void**)&left_val);
-  assert(!thread_err);
-  thread_err = pthread_join(right_thread, (void**)&right_val);
-  assert(!thread_err);
+  if(down_valid) {
+    int x = pthread_mutex_lock(&cout_mutex);
+    cout<<"Down valid, creating down thread"<<endl;
+    x = pthread_mutex_unlock(&cout_mutex);
+    thread_arg_t down_in(down_result, &down_val);
+    int thread_err = pthread_create(&down_thread, NULL, eval_board_outcomes_p, (void*)&down_in);
+    assert(!thread_err);
+  }
 
-  up_val = up_valid ? eval_board_outcomes(up_result) : -1.0;
-  down_val = down_valid ? eval_board_outcomes(down_result) : -1.0;
-  left_val = left_valid ? eval_board_outcomes(left_result) : -1.0;
-  right_val = right_valid ? eval_board_outcomes(right_result) : -1.0;
+  if(left_valid) {
+    int x = pthread_mutex_lock(&cout_mutex);
+    cout<<"Left valid, creating left thread"<<endl;
+    x = pthread_mutex_unlock(&cout_mutex);
+    thread_arg_t left_in(left_result, &left_val);
+    int thread_err = pthread_create(&left_thread, NULL, eval_board_outcomes_p, (void*)&left_in);
+    assert(!thread_err);
+  }
+
+  if(right_valid) {
+    int x = pthread_mutex_lock(&cout_mutex);
+    cout<<"Right valid, creating right thread"<<endl;
+    x = pthread_mutex_unlock(&cout_mutex);
+    thread_arg_t right_in(right_result, &right_val);
+    int thread_err = pthread_create(&right_thread, NULL, eval_board_outcomes_p, (void*)&right_in);
+    assert(!thread_err);
+  }
+ 
+
+  if (up_valid) {
+    int thread_err = pthread_join(up_thread, NULL);
+    assert(!thread_err);
+  }
+  if(down_valid) {
+    int thread_err = pthread_join(down_thread, NULL);
+    assert(!thread_err);
+  }
+  if(left_valid) {
+    int thread_err = pthread_join(left_thread, NULL);
+    assert(!thread_err);
+  }
+  if(right_valid) {
+    int thread_err = pthread_join(right_thread, NULL);
+    assert(!thread_err);
+  }
+
+  if(!up_valid) up_val = -1.0;
+  if(!down_valid) down_val = -1.0;
+  if(!left_valid) left_val = -1.0;
+  if(!right_valid) right_val = -1.0;
 
   double max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
