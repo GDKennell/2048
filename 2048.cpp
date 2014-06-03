@@ -288,33 +288,6 @@ Direction advice(const board_t& board,
         ++num_empty;
     }
   }
-  /*
-  static int num_under2 = 0;
-  static int num_under4 = 0;
-  static int num_under7 = 0;
-  static int num_over7 = 0;
-  if(!opt) {
-    cout<<" num_under2: "<<num_under2<<endl; 
-    cout<<" num_under4: "<<num_under4<<endl;  
-    cout<<" num_under7: "<<num_under7<<endl; 
-    cout<<" num_over7 : "<<num_over7 <<endl;  
-  }
-  if(num_empty <= 2) {
-    ++num_under2;
-    MAX_DEPTH = 12;
-  }
-  else if(num_empty <= 4) {
-    ++num_under4;
-    MAX_DEPTH = 4;
-  }
-  else if(num_empty <= 7) {
-    ++num_under7;
-    MAX_DEPTH = 2;
-  }
-  else {
-    ++num_over7;
-    MAX_DEPTH = 2;
-  }*/
 
   double up_val;
   double down_val;
@@ -334,18 +307,29 @@ Direction advice(const board_t& board,
   double max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
 
-  if(max_val == up_val && up_valid) {
-    return UP;
+  double second_best;
+  if(max_val == up_val) {
+    if(up_valid)
+      return UP;
+    else
+      second_best = max(right_val, max(down_val, left_val));
   }
-  else if (max_val == down_val || (max_val == up_val && !up_valid)) {
-    return DOWN;
+  else if(max_val == right_val) {
+    if(right_valid)
+      return RIGHT;
+    else
+      second_best = max(up_val, max(down_val, left_val));
+  }
+  else if (max_val == down_val) {
+    if(down_valid)
+      return DOWN;
+    else
+      second_best max(up_val, max(right_val, left_val));
   }
   else if(max_val == left_val && left_valid) {
     return LEFT;
   }
-  else {
-    return RIGHT;
-  }
+
 }
 
 bool board_full(const board_t& board) {
