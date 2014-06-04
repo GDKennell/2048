@@ -84,6 +84,22 @@ void add_new_tile(board_t& board);
 int score = 0;
 int up_combo_val, down_combo_val, left_combo_val, right_combo_val;
 
+pthread_mutex_t cout_mtx = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t main_mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
+
+pthread_mutex_t up_mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t up_cv = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t down_mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t down_cv = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t left_mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t left_cv = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t right_mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t right_cv = PTHREAD_COND_INITIALIZER;
+
+pthread_cond_t thread_done_cv = PTHREAD_COND_INITIALIZER;
+
 int main() {
   time_t start_time, end_time;
   start_time=Clock::to_time_t(Clock::now());
@@ -113,16 +129,24 @@ int main() {
     print_board(board);
     
     // Up move
+    int x = pthread_mutex_lock(&main_mtx); assert(!x);
     up_combo_val = 0;
+    x = pthread_mutex_unlock(&main_mtx); assert(!x);
     board_t up_result = up_move(board);
     // Down move
+    x = pthread_mutex_lock(&main_mtx); assert(!x);
     down_combo_val = 0;
+    x = pthread_mutex_unlock(&main_mtx); assert(!x);
     board_t down_result = down_move(board);
     // Left move
+    x = pthread_mutex_lock(&main_mtx); assert(!x);
     left_combo_val = 0;
+    x = pthread_mutex_unlock(&main_mtx); assert(!x);
     board_t left_result = left_move(board);
     // Right move
+    x = pthread_mutex_lock(&main_mtx); assert(!x);
     right_combo_val = 0;
+    x = pthread_mutex_unlock(&main_mtx); assert(!x);
     board_t right_result = right_move(board);
 
     if(board_full(up_result) &&
@@ -283,22 +307,6 @@ struct thread_arg_t {
   Direction dir;
 };
 
-pthread_mutex_t cout_mtx = PTHREAD_MUTEX_INITIALIZER;
-
-pthread_mutex_t main_mtx = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
-
-pthread_mutex_t up_mtx = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t up_cv = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t down_mtx = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t down_cv = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t left_mtx = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t left_cv = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t right_mtx = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t right_cv = PTHREAD_COND_INITIALIZER;
-
-pthread_cond_t thread_done_cv = PTHREAD_COND_INITIALIZER;
-
 int num_threads = 0;
 
 board_t up_board_in;
@@ -308,89 +316,98 @@ board_t right_board_in;
 
 void* eval_board_outcomes_p(void* arg_ptr) {
   board_t local_board;
+  int x;
+  thread_arg_t in_arg = *((thread_arg_t*)arg_ptr);
   while(1) {
-    thread_arg_t in_arg = *((thread_arg_t*)arg_ptr);
     switch(in_arg.dir) {
       case UP:
-        pthread_mutex_lock(&cout_mtx);
+        x = pthread_mutex_lock(&cout_mtx); assert(!x);
         cout<<"Up thread locking up_mtx and cond_waiting on up_cv"<<endl;
-        pthread_mutex_unlock(&cout_mtx);
+        x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        pthread_mutex_lock(&up_mtx);
-        pthread_cond_wait(&up_cv, &up_mtx);
+        x = pthread_mutex_lock(&up_mtx); assert(!x);
+        x = pthread_cond_wait(&up_cv, &up_mtx); assert(!x);
+        x = pthread_mutex_unlock(&up_mtx); assert(!x);
 
-        pthread_mutex_lock(&cout_mtx);
+        x = pthread_mutex_lock(&cout_mtx); assert(!x);
         cout<<"Up thread done waiting and got up_mtx lock"<<endl;
-        pthread_mutex_unlock(&cout_mtx);
+        x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        pthread_mutex_lock(&main_mtx);
+        x = pthread_mutex_lock(&main_mtx); assert(!x);
         local_board = up_board_in;
-        pthread_mutex_unlock(&main_mtx);
+        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         break;
       case DOWN:
-        pthread_mutex_lock(&cout_mtx);
+        x = pthread_mutex_lock(&cout_mtx); assert(!x);
         cout<<"Down thread locking down_mtx and cond_waiting on down_cv"<<endl;
-        pthread_mutex_unlock(&cout_mtx);
+        x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        pthread_mutex_lock(&down_mtx);
-        pthread_cond_wait(&down_cv, &down_mtx);
+        x = pthread_mutex_lock(&down_mtx); assert(!x);
+        x = pthread_cond_wait(&down_cv, &down_mtx); assert(!x);
+        x = pthread_mutex_unlock(&down_mtx); assert(!x);
 
-        pthread_mutex_lock(&cout_mtx);
+        x = pthread_mutex_lock(&cout_mtx); assert(!x);
         cout<<"Down thread done waiting and got down_mtx lock"<<endl;
-        pthread_mutex_unlock(&cout_mtx);
+        x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        pthread_mutex_lock(&main_mtx);
+        x = pthread_mutex_lock(&main_mtx); assert(!x);
         local_board = down_board_in;
-        pthread_mutex_unlock(&main_mtx);
+        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         break;
       case LEFT:
-        pthread_mutex_lock(&cout_mtx);
-        cout<<"Left thread locking down_mtx and cond_waiting on left_cv"<<endl;
-        pthread_mutex_unlock(&cout_mtx);
+        x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        cout<<"Left thread locking left_mtx and cond_waiting on left_cv"<<endl;
+        x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        pthread_mutex_lock(&left_mtx);
-        pthread_cond_wait(&left_cv, &left_mtx);
+        x = pthread_mutex_lock(&left_mtx); assert(!x);
+        x = pthread_cond_wait(&left_cv, &left_mtx); assert(!x);
+        x = pthread_mutex_unlock(&left_mtx); assert(!x);
 
-        pthread_mutex_lock(&cout_mtx);
+        x = pthread_mutex_lock(&cout_mtx); assert(!x);
         cout<<"Left thread done waiting and got left_mtx lock"<<endl;
-        pthread_mutex_unlock(&cout_mtx);
+        x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        pthread_mutex_lock(&main_mtx);
+        x = pthread_mutex_lock(&main_mtx); assert(!x);
         local_board = left_board_in;
-        pthread_mutex_unlock(&main_mtx);
+        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         break;
       case RIGHT:
-        pthread_mutex_lock(&cout_mtx);
-        cout<<"Right thread locking down_mtx and cond_waiting on left_cv"<<endl;
-        pthread_mutex_unlock(&cout_mtx);
+        x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        cout<<"Right thread locking right_mtx and cond_waiting on right_cv"<<endl;
+        x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        pthread_mutex_lock(&right_mtx);
-        pthread_cond_wait(&right_cv, &right_mtx);
+        x = pthread_mutex_lock(&right_mtx); assert(!x);
+        x = pthread_cond_wait(&right_cv, &right_mtx); assert(!x);
+        x = pthread_mutex_unlock(&right_mtx); assert(!x);
 
-        pthread_mutex_lock(&cout_mtx);
+        x = pthread_mutex_lock(&cout_mtx); assert(!x);
         cout<<"Right thread done waiting and got right_mtx lock"<<endl;
-        pthread_mutex_unlock(&cout_mtx);
+        x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        pthread_mutex_lock(&main_mtx);
+        x = pthread_mutex_lock(&main_mtx); assert(!x);
         local_board = right_board_in;
-        pthread_mutex_unlock(&main_mtx);
+        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         break;
     }
-    pthread_mutex_lock(&cout_mtx);
+    x = pthread_mutex_lock(&cout_mtx); assert(!x);
     cout<<direction_names[in_arg.dir]<<" thread running eval_board_outcomes"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
+    x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
     *(in_arg.ret_val) = eval_board_outcomes(up_board_in);
-    pthread_mutex_lock(&cout_mtx);
+    x = pthread_mutex_lock(&cout_mtx); assert(!x);
     cout<<direction_names[in_arg.dir]<<" thread locking main_mtx to --num_threads"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
-    pthread_mutex_lock(&main_mtx);
+    x = pthread_mutex_unlock(&cout_mtx); assert(!x);
+    x = pthread_mutex_lock(&main_mtx); assert(!x);
     --num_threads;
-    pthread_mutex_lock(&cout_mtx);
+    x = pthread_mutex_lock(&cout_mtx); assert(!x);
     cout<<direction_names[in_arg.dir]<<" thread broadcasting thread_done_cv and unlocking main_mtx"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
-    pthread_cond_broadcast(&thread_done_cv);
-    pthread_mutex_unlock(&main_mtx);
+    x = pthread_mutex_unlock(&cout_mtx); assert(!x);
+    x = pthread_cond_broadcast(&thread_done_cv); assert(!x);
+    x = pthread_mutex_unlock(&main_mtx); assert(!x);
+    x = pthread_mutex_lock(&cout_mtx); assert(!x);
+    cout<<direction_names[in_arg.dir]<<" thread broadcasted and unlocked main_mtx"<<endl;
+    x = pthread_mutex_unlock(&cout_mtx); assert(!x);
+
   }
   pthread_exit(NULL);
   return NULL;
@@ -402,9 +419,9 @@ Direction advice(const board_t& board,
                  const board_t& down_result,
                  const board_t& left_result,
                  const board_t& right_result) {
-  pthread_mutex_lock(&cout_mtx);
+  int z = pthread_mutex_lock(&cout_mtx); assert(!z);
   cout<<"\n\n"<<endl;
-  pthread_mutex_unlock(&cout_mtx);
+  z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
   int num_empty = 0;
   for(int x = 0; x < 4; ++x) {
@@ -432,7 +449,7 @@ Direction advice(const board_t& board,
   static bool init_var = true;
 
   if(init_var) {
-    pthread_mutex_lock(&cout_mtx);
+    z = pthread_mutex_lock(&cout_mtx); assert(!z);
     cout<<"Main thread firing off all 4 threads"<<endl;
     pthread_mutex_unlock(&cout_mtx);
     thread_arg_t up_in(up_result, &up_val, UP);
@@ -454,65 +471,65 @@ Direction advice(const board_t& board,
     init_var = false;
   }
 
-  pthread_mutex_lock(&cout_mtx);
+  z = pthread_mutex_lock(&cout_mtx); assert(!z);
   cout<<"Main thread locking main mtx"<<endl;
   pthread_mutex_unlock(&cout_mtx);
 
-  pthread_mutex_lock(&main_mtx);
+  z = pthread_mutex_lock(&main_mtx); assert(!z);
   num_threads = 0;
   if (up_valid) {
     up_board_in = up_result;
-    pthread_mutex_lock(&cout_mtx);
+    z = pthread_mutex_lock(&cout_mtx); assert(!z);
     cout<<"Main thread lock/unlocking up_mtx and signalling up_cv"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
+    z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    pthread_mutex_lock(&up_mtx);
-    pthread_mutex_unlock(&up_mtx);
-    pthread_cond_broadcast(&up_cv);
+    z = pthread_mutex_lock(&up_mtx); assert(!z);
+    z = pthread_mutex_unlock(&up_mtx); assert(!z);
+    z = pthread_cond_broadcast(&up_cv); assert(!z);
     ++num_threads;
   }
   if(down_valid) {
     down_board_in = down_result;
-    pthread_mutex_lock(&cout_mtx);
+    z = pthread_mutex_lock(&cout_mtx); assert(!z);
     cout<<"Main thread lock/unlocking down_mtx and signalling down_cv"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
+    z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    pthread_mutex_lock(&down_mtx);
-    pthread_mutex_unlock(&down_mtx);
-    pthread_cond_broadcast(&down_cv);
+    z = pthread_mutex_lock(&down_mtx); assert(!z);
+    z = pthread_mutex_unlock(&down_mtx); assert(!z);
+    z = pthread_cond_broadcast(&down_cv); assert(!z);
     ++num_threads;
   }
   if(left_valid) {
     left_board_in = left_result;
-    pthread_mutex_lock(&cout_mtx);
+    z = pthread_mutex_lock(&cout_mtx); assert(!z);
     cout<<"Main thread lock/unlocking left_mtx and signalling left_cv"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
+    z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    pthread_mutex_lock(&left_mtx);
-    pthread_mutex_unlock(&left_mtx);
-    pthread_cond_broadcast(&left_cv);
+    z = pthread_mutex_lock(&left_mtx); assert(!z);
+    z = pthread_mutex_unlock(&left_mtx); assert(!z);
+    z = pthread_cond_broadcast(&left_cv); assert(!z);
     ++num_threads;
   }
   if(right_valid) {
     right_board_in = right_result;
-    pthread_mutex_lock(&cout_mtx);
+    z = pthread_mutex_lock(&cout_mtx); assert(!z);
     cout<<"Main thread lock/unlocking right_mtx and signalling right_cv"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
+    z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    pthread_mutex_lock(&right_mtx);
-    pthread_mutex_unlock(&right_mtx);
-    pthread_cond_broadcast(&right_cv);
+    z = pthread_mutex_lock(&right_mtx); assert(!z);
+    z = pthread_mutex_unlock(&right_mtx); assert(!z);
+    z = pthread_cond_broadcast(&right_cv); assert(!z);
     ++num_threads;
   }
   
   while(num_threads > 0) {
-    pthread_mutex_lock(&cout_mtx);
+    z = pthread_mutex_lock(&cout_mtx); assert(!z);
     cout<<"Main thread waiting on main_mtx / thread_done_cv"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
+    z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    pthread_cond_wait(&thread_done_cv, &main_mtx);
+    z = pthread_cond_wait(&thread_done_cv, &main_mtx); assert(!z);
   }
-  pthread_mutex_unlock(&main_mtx);
+  z = pthread_mutex_unlock(&main_mtx); assert(!z);
 
   if(!up_valid) up_val = -1.0;
   if(!down_valid) down_val = -1.0;
@@ -610,7 +627,9 @@ board_t up_move(const board_t& in_board) {
       if(result.exp_at(x,y) == result.exp_at(x,y-1)) {
         result.set_exp(x,y,result.exp_at(x,y)+1);
         if(depth == 0) {
+          int x = pthread_mutex_lock(&main_mtx); assert(!x);
           up_combo_val += result.val_at(x,y);
+          x = pthread_mutex_unlock(&main_mtx); assert(!x);
         }
         // Shift all blocks from y-2 down to 0 up
         for(int i = y-2; i >= 0; i--) {
