@@ -54,10 +54,10 @@ void print_board(const board_t& board) {
   output<<"   ___________________"<<endl;
 }
 
-inline board_t up_move(const board_t& in_board);
-inline board_t down_move(const board_t& in_board);
-inline board_t left_move(const board_t& in_board);
-inline board_t right_move(const board_t& in_board);
+inline board_t up_move(const board_t& in_board, bool calc_costs);
+inline board_t down_move(const board_t& in_board, bool calc_costs);
+inline board_t left_move(const board_t& in_board, bool calc_costs);
+inline board_t right_move(const board_t& in_board, bool calc_costs);
 
 int min(int x1, int x2, int x3, int x4) {
   return min(x1, min(x2, min(x3, x4) ) );
@@ -131,23 +131,17 @@ int main() {
     // Up move
     int x = pthread_mutex_lock(&main_mtx); assert(!x);
     up_combo_val = 0;
-    x = pthread_mutex_unlock(&main_mtx); assert(!x);
-    board_t up_result = up_move(board);
+    board_t up_result = up_move(board, true);
     // Down move
-    x = pthread_mutex_lock(&main_mtx); assert(!x);
     down_combo_val = 0;
-    x = pthread_mutex_unlock(&main_mtx); assert(!x);
-    board_t down_result = down_move(board);
+    board_t down_result = down_move(board, true);
     // Left move
-    x = pthread_mutex_lock(&main_mtx); assert(!x);
     left_combo_val = 0;
-    x = pthread_mutex_unlock(&main_mtx); assert(!x);
-    board_t left_result = left_move(board);
+    board_t left_result = left_move(board, true);
     // Right move
-    x = pthread_mutex_lock(&main_mtx); assert(!x);
     right_combo_val = 0;
+    board_t right_result = right_move(board, true);
     x = pthread_mutex_unlock(&main_mtx); assert(!x);
-    board_t right_result = right_move(board);
 
     if(board_full(up_result) &&
         board_full(down_result) &&
@@ -171,6 +165,7 @@ int main() {
     cout<<"\n********Move "<<direction_names[choice];
     cout<<"********"<<endl;
 
+    x = pthread_mutex_lock(&main_mtx); assert(!x);
     switch(choice) {
       case UP:
         board = up_result;
@@ -190,6 +185,7 @@ int main() {
         break;
     }
     cout<<"********Score: "<<score<<"********\n"<<endl;
+    x = pthread_mutex_unlock(&main_mtx); assert(!x);
     cout<<"Input new tile"<<endl;
 
     try {
@@ -226,18 +222,15 @@ int heuristic(const board_t& board) {
   return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 6;
+const int MAX_DEPTH = 3;
 
-int depth = 0;
+double eval_board_outcomes(const board_t& board, int depth);
 
-double eval_board_outcomes(const board_t& board);
-
-double eval_board_moves(const board_t& board) {
-  ++depth;
-  board_t up_result = up_move(board);
-  board_t down_result = down_move(board);
-  board_t left_result = left_move(board);
-  board_t right_result = right_move(board);
+double eval_board_moves(const board_t& board, int depth) {
+  board_t up_result = up_move(board, false);
+  board_t down_result = down_move(board, false);
+  board_t left_result = left_move(board, false);
+  board_t right_result = right_move(board, false);
 
   bool up_valid = (board != up_result);
   bool down_valid = (board != down_result);
@@ -247,10 +240,10 @@ double eval_board_moves(const board_t& board) {
   double up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
-    up_eval = up_valid ? eval_board_outcomes(up_result) : -1.0;
-    down_eval = down_valid ? eval_board_outcomes(down_result) : -1.0;
-    left_eval = left_valid ? eval_board_outcomes(left_result) : -1.0;
-    right_eval = right_valid ? eval_board_outcomes(right_result) : -1.0;
+    up_eval = up_valid ? eval_board_outcomes(up_result, depth + 1) : -1.0;
+    down_eval = down_valid ? eval_board_outcomes(down_result, depth + 1) : -1.0;
+    left_eval = left_valid ? eval_board_outcomes(left_result, depth + 1) : -1.0;
+    right_eval = right_valid ? eval_board_outcomes(right_result, depth + 1) : -1.0;
   }
   else {
     up_eval = up_valid ? heuristic(up_result) : -1.0;
@@ -258,13 +251,10 @@ double eval_board_moves(const board_t& board) {
     left_eval = left_valid ? heuristic(left_result) : -1.0;
     right_eval = right_valid ? heuristic(right_result) : -1.0;
   }
-  --depth;
- 
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
-double eval_board_outcomes(const board_t& board) {
-  ++depth;
+double eval_board_outcomes(const board_t& board, int depth) {
   board_t possible_outcomes[30];
   int num_outcomes = 0;
 
@@ -282,7 +272,6 @@ double eval_board_outcomes(const board_t& board) {
     }
   }
   if(num_outcomes == 0) {
-    --depth;
     return 0.0;
   }
  
@@ -290,19 +279,17 @@ double eval_board_outcomes(const board_t& board) {
   double prob4 = (1.0/10.0) * (1.0 / (double)num_outcomes); 
   double tot_prob = 0.0;
   for(int i = 0; i < num_outcomes; ++i) {
-    double outcome_val = eval_board_moves(possible_outcomes[i]);
+    double outcome_val = eval_board_moves(possible_outcomes[i], depth);
     if(i % 2 == 0)
       tot_prob += (prob2 * outcome_val);
     else
       tot_prob += (prob4 * outcome_val);
   }
-  --depth;
   return tot_prob;
 }
 
 struct thread_arg_t {
-  thread_arg_t(const board_t& board_, double* ret_val_, Direction dir_) : board(board_), ret_val(ret_val_), dir(dir_) { }
-  const board_t& board;
+  thread_arg_t(double* ret_val_, Direction dir_) : ret_val(ret_val_), dir(dir_) { }
   double* ret_val;
   Direction dir;
 };
@@ -393,17 +380,22 @@ void* eval_board_outcomes_p(void* arg_ptr) {
     cout<<direction_names[in_arg.dir]<<" thread running eval_board_outcomes"<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-    *(in_arg.ret_val) = eval_board_outcomes(up_board_in);
+    *(in_arg.ret_val) = eval_board_outcomes(up_board_in, 0);
+
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
     cout<<direction_names[in_arg.dir]<<" thread locking main_mtx to --num_threads"<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
+
     x = pthread_mutex_lock(&main_mtx); assert(!x);
     --num_threads;
+
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
     cout<<direction_names[in_arg.dir]<<" thread broadcasting thread_done_cv and unlocking main_mtx"<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
+
     x = pthread_cond_broadcast(&thread_done_cv); assert(!x);
     x = pthread_mutex_unlock(&main_mtx); assert(!x);
+
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
     cout<<direction_names[in_arg.dir]<<" thread broadcasted and unlocked main_mtx"<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
@@ -422,14 +414,6 @@ Direction advice(const board_t& board,
   int z = pthread_mutex_lock(&cout_mtx); assert(!z);
   cout<<"\n\n"<<endl;
   z = pthread_mutex_unlock(&cout_mtx); assert(!z);
-
-  int num_empty = 0;
-  for(int x = 0; x < 4; ++x) {
-    for(int y = 0; y < 4; ++y) {
-      if(board.exp_at(x,y) == 0)
-        ++num_empty;
-    }
-  }
 
   double up_val;
   double down_val;
@@ -451,20 +435,20 @@ Direction advice(const board_t& board,
   if(init_var) {
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
     cout<<"Main thread firing off all 4 threads"<<endl;
-    pthread_mutex_unlock(&cout_mtx);
-    thread_arg_t up_in(up_result, &up_val, UP);
+    z = pthread_mutex_unlock(&cout_mtx); assert(!z);
+    thread_arg_t up_in(&up_val, UP);
     int thread_err = pthread_create(&up_thread, NULL, eval_board_outcomes_p, (void*)&up_in);
     assert(!thread_err);
 
-    thread_arg_t down_in(down_result, &down_val, DOWN);
+    thread_arg_t down_in(&down_val, DOWN);
     thread_err = pthread_create(&down_thread, NULL, eval_board_outcomes_p, (void*)&down_in);
     assert(!thread_err);
 
-    thread_arg_t left_in(left_result, &left_val, LEFT);
+    thread_arg_t left_in(&left_val, LEFT);
     thread_err = pthread_create(&left_thread, NULL, eval_board_outcomes_p, (void*)&left_in);
     assert(!thread_err);
 
-    thread_arg_t right_in(right_result, &right_val, RIGHT);
+    thread_arg_t right_in(&right_val, RIGHT);
     thread_err = pthread_create(&right_thread, NULL, eval_board_outcomes_p, (void*)&right_in);
     assert(!thread_err);
 
@@ -480,44 +464,36 @@ Direction advice(const board_t& board,
   if (up_valid) {
     up_board_in = up_result;
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
-    cout<<"Main thread lock/unlocking up_mtx and signalling up_cv"<<endl;
+    cout<<"Main thread signalling up_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    z = pthread_mutex_lock(&up_mtx); assert(!z);
-    z = pthread_mutex_unlock(&up_mtx); assert(!z);
     z = pthread_cond_broadcast(&up_cv); assert(!z);
     ++num_threads;
   }
   if(down_valid) {
     down_board_in = down_result;
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
-    cout<<"Main thread lock/unlocking down_mtx and signalling down_cv"<<endl;
+    cout<<"Main thread signalling down_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    z = pthread_mutex_lock(&down_mtx); assert(!z);
-    z = pthread_mutex_unlock(&down_mtx); assert(!z);
     z = pthread_cond_broadcast(&down_cv); assert(!z);
     ++num_threads;
   }
   if(left_valid) {
     left_board_in = left_result;
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
-    cout<<"Main thread lock/unlocking left_mtx and signalling left_cv"<<endl;
+    cout<<"Main thread signalling left_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    z = pthread_mutex_lock(&left_mtx); assert(!z);
-    z = pthread_mutex_unlock(&left_mtx); assert(!z);
     z = pthread_cond_broadcast(&left_cv); assert(!z);
     ++num_threads;
   }
   if(right_valid) {
     right_board_in = right_result;
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
-    cout<<"Main thread lock/unlocking right_mtx and signalling right_cv"<<endl;
+    cout<<"Main thread signalling right_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
-    z = pthread_mutex_lock(&right_mtx); assert(!z);
-    z = pthread_mutex_unlock(&right_mtx); assert(!z);
     z = pthread_cond_broadcast(&right_cv); assert(!z);
     ++num_threads;
   }
@@ -529,15 +505,17 @@ Direction advice(const board_t& board,
 
     z = pthread_cond_wait(&thread_done_cv, &main_mtx); assert(!z);
   }
-  z = pthread_mutex_unlock(&main_mtx); assert(!z);
-
   if(!up_valid) up_val = -1.0;
   if(!down_valid) down_val = -1.0;
   if(!left_valid) left_val = -1.0;
   if(!right_valid) right_val = -1.0;
 
+  z = pthread_mutex_unlock(&main_mtx); assert(!z);
+
   double max_val = max(up_val, down_val, left_val, right_val);
+  z = pthread_mutex_lock(&cout_mtx); assert(!z);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
+  z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
   if(max_val == up_val && up_valid) {
     return UP;
@@ -601,7 +579,7 @@ Block input_block() {
   return return_block;
 }
 
-board_t up_move(const board_t& in_board) {
+board_t up_move(const board_t& in_board, bool calc_combos) {
   board_t result = in_board;
   for (int x = 0; x < 4; ++x) {
     // Shift everthing up
@@ -626,10 +604,10 @@ board_t up_move(const board_t& in_board) {
           result.val_at(x,y-1) == 0) continue;
       if(result.exp_at(x,y) == result.exp_at(x,y-1)) {
         result.set_exp(x,y,result.exp_at(x,y)+1);
-        if(depth == 0) {
-          int x = pthread_mutex_lock(&main_mtx); assert(!x);
+        if(calc_combos) {
+          int z = pthread_mutex_lock(&main_mtx); assert(!z);
           up_combo_val += result.val_at(x,y);
-          x = pthread_mutex_unlock(&main_mtx); assert(!x);
+          z = pthread_mutex_unlock(&main_mtx); assert(!z);
         }
         // Shift all blocks from y-2 down to 0 up
         for(int i = y-2; i >= 0; i--) {
@@ -642,7 +620,7 @@ board_t up_move(const board_t& in_board) {
   return result;
 }
 
-board_t down_move(const board_t& in_board) {
+board_t down_move(const board_t& in_board, bool calc_combos) {
   board_t result = in_board;
   for (int x = 0; x < 4; ++x) {
     // Shift everthing down 
@@ -666,8 +644,10 @@ board_t down_move(const board_t& in_board) {
       if (result.val_at(x,y) == 0 ||
           result.val_at(x,y+1) == 0) continue;
       if(result.exp_at(x,y) == result.exp_at(x,y+1)) {
-        if(depth == 0) {
+        if(calc_combos) {
+          int z = pthread_mutex_lock(&main_mtx); assert(!z);
           down_combo_val += 2 * result.val_at(x,y);
+          z = pthread_mutex_unlock(&main_mtx); assert(!z);
         }
         result.set_exp(x,y,result.exp_at(x,y)+1);
         // Shift all blocks from y+2 up to 3 down
@@ -681,7 +661,7 @@ board_t down_move(const board_t& in_board) {
   return result;
 }
 
-board_t left_move(const board_t& in_board) {
+board_t left_move(const board_t& in_board, bool calc_combos) {
   board_t result = in_board;
   for (int y = 0; y < 4; ++y) {
     // Shift everthing left 
@@ -705,8 +685,10 @@ board_t left_move(const board_t& in_board) {
       if (result.val_at(x,y) == 0 ||
           result.val_at(x+1,y) == 0) continue;
       if(result.exp_at(x,y) == result.exp_at(x+1,y)) {
-        if(depth == 0) {
+        if(calc_combos) {
+          int z = pthread_mutex_lock(&main_mtx); assert(!z);
           left_combo_val += 2 * result.val_at(x,y);
+          z = pthread_mutex_unlock(&main_mtx); assert(!z);
         }
         result.set_exp(x,y,result.exp_at(x,y)+1);
         // Shift all blocks from x+2 up to 3 left
@@ -720,7 +702,7 @@ board_t left_move(const board_t& in_board) {
   return result;
 }
 
-board_t right_move(const board_t& in_board) {
+board_t right_move(const board_t& in_board, bool calc_combos) {
   board_t result = in_board;
   for (int y = 0; y < 4; ++y) {
     // Shift everthing right 
@@ -744,8 +726,10 @@ board_t right_move(const board_t& in_board) {
       if (result.val_at(x,y) == 0 ||
           result.val_at(x-1,y) == 0) continue;
       if(result.exp_at(x,y) == result.exp_at(x-1,y)) {
-        if(depth == 0) {
+        if(calc_combos) {
+          int z = pthread_mutex_lock(&main_mtx); assert(!z);
           right_combo_val += 2 * result.val_at(x,y);
+          z = pthread_mutex_unlock(&main_mtx); assert(!z);
         }
         result.set_exp(x,y,result.exp_at(x,y)+1);
         // Shift all blocks from x-2 down to 0 right
