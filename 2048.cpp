@@ -129,7 +129,6 @@ int main() {
         board_full(left_result) &&
         board_full(right_result)) {
       cout<<"Game Over"<<endl;
-//      advice(board,board,board,board,board,false);
       end_time=Clock::to_time_t(Clock::now());
       cerr<<"Score: "<<score<<endl;
       cerr<<"Time: "<<end_time - start_time<<endl;
@@ -173,7 +172,6 @@ int main() {
     } catch(...) {
       end_time=Clock::to_time_t(Clock::now());
       cout<<"Game OOOver!!!"<<endl;
-//      advice(board,board,board,board,board,false);
       cerr<<"Score: "<<score<<endl;
       cerr<<"Time: "<<end_time - start_time<<endl;
       if(end_time - start_time != 0) {
@@ -288,34 +286,7 @@ Direction advice(const board_t& board,
         ++num_empty;
     }
   }
-  /*
-  static int num_under2 = 0;
-  static int num_under4 = 0;
-  static int num_under7 = 0;
-  static int num_over7 = 0;
-  if(!opt) {
-    cout<<" num_under2: "<<num_under2<<endl; 
-    cout<<" num_under4: "<<num_under4<<endl;  
-    cout<<" num_under7: "<<num_under7<<endl; 
-    cout<<" num_over7 : "<<num_over7 <<endl;  
-  }
-  if(num_empty <= 2) {
-    ++num_under2;
-    MAX_DEPTH = 12;
-  }
-  else if(num_empty <= 4) {
-    ++num_under4;
-    MAX_DEPTH = 4;
-  }
-  else if(num_empty <= 7) {
-    ++num_under7;
-    MAX_DEPTH = 2;
-  }
-  else {
-    ++num_over7;
-    MAX_DEPTH = 2;
-  }*/
-
+ 
   double up_val;
   double down_val;
   double left_val;
