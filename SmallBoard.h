@@ -17,7 +17,6 @@ public:
   bool operator!=(const SmallBoard& b) const {return board != b.board;} 
 
     void set_exp(int x, int y, int exp) {
-      assert(exp <= 11); 
       int offset = 4 * (4 * x + y);
       
       board &= ~((uint64_t)15 << offset);
