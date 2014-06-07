@@ -21,6 +21,8 @@ typedef chrono::system_clock Clock;
 
 enum Direction {UP, DOWN, LEFT, RIGHT};
 
+const bool thread_out = false;
+
 const char* direction_names[] = {"up", "down", "left", "right"};
 
 struct Block {
@@ -54,10 +56,15 @@ void print_board(const board_t& board) {
   output<<"   ___________________"<<endl;
 }
 
-inline board_t up_move(const board_t& in_board, bool calc_costs);
-inline board_t down_move(const board_t& in_board, bool calc_costs);
-inline board_t left_move(const board_t& in_board, bool calc_costs);
-inline board_t right_move(const board_t& in_board, bool calc_costs);
+struct Move_Result {
+  board_t board;
+  int combos_val;
+};
+
+inline Move_Result up_move(const board_t& in_board, bool calc_costs);
+inline Move_Result down_move(const board_t& in_board, bool calc_costs);
+inline Move_Result left_move(const board_t& in_board, bool calc_costs);
+inline Move_Result right_move(const board_t& in_board, bool calc_costs);
 
 int min(int x1, int x2, int x3, int x4) {
   return min(x1, min(x2, min(x3, x4) ) );
@@ -82,7 +89,7 @@ Direction advice(const board_t& board,
 void add_new_tile(board_t& board);
 
 int score = 0;
-int up_combo_val, down_combo_val, left_combo_val, right_combo_val;
+bool up_go = false, down_go = false, left_go = false, right_go = false;
 
 pthread_mutex_t cout_mtx = PTHREAD_MUTEX_INITIALIZER;
 
@@ -129,24 +136,24 @@ int main() {
     print_board(board);
     
     // Up move
+    if(thread_out)
+    cout<<"Main locking main_mtx"<<endl;
     int x = pthread_mutex_lock(&main_mtx); assert(!x);
-    up_combo_val = 0;
-    board_t up_result = up_move(board, true);
+    Move_Result up_result = up_move(board, true);
     // Down move
-    down_combo_val = 0;
-    board_t down_result = down_move(board, true);
+    Move_Result down_result = down_move(board, true);
     // Left move
-    left_combo_val = 0;
-    board_t left_result = left_move(board, true);
+    Move_Result left_result = left_move(board, true);
     // Right move
-    right_combo_val = 0;
-    board_t right_result = right_move(board, true);
+    Move_Result right_result = right_move(board, true);
+    if(thread_out)
+    cout<<"Main unlocking main_mtx"<<endl;
     x = pthread_mutex_unlock(&main_mtx); assert(!x);
 
-    if(board_full(up_result) &&
-        board_full(down_result) &&
-        board_full(left_result) &&
-        board_full(right_result)) {
+    if(board_full(up_result.board) &&
+        board_full(down_result.board) &&
+        board_full(left_result.board) &&
+        board_full(right_result.board)) {
       cout<<"Game Over"<<endl;
       end_time=Clock::to_time_t(Clock::now());
       cerr<<"Score: "<<score<<endl;
@@ -158,33 +165,41 @@ int main() {
     }
 
      Direction choice = advice(board,
-                               up_result,
-                               down_result, 
-                               left_result,
-                               right_result);
+                               up_result.board,
+                               down_result.board, 
+                               left_result.board,
+                               right_result.board);
+    x = pthread_mutex_lock(&cout_mtx); assert(!x);
     cout<<"\n********Move "<<direction_names[choice];
     cout<<"********"<<endl;
 
+    if(thread_out)
+      cout<<"Main locking main_mtx"<<endl;
+    x = pthread_mutex_unlock(&cout_mtx); assert(!x);
     x = pthread_mutex_lock(&main_mtx); assert(!x);
     switch(choice) {
       case UP:
-        board = up_result;
-        score += up_combo_val;
+        board = up_result.board;
+        score += up_result.combos_val;
         break;
       case DOWN:
-        board = down_result;
-        score += down_combo_val;
+        board = down_result.board;
+        score += down_result.combos_val;
         break;
       case LEFT:
-        board = left_result;
-        score += left_combo_val;
+        board = left_result.board;
+        score += left_result.combos_val;
         break;
       case RIGHT:
-        board = right_result;
-        score += right_combo_val;
+        board = right_result.board;
+        score += right_result.combos_val;
         break;
     }
+    x = pthread_mutex_lock(&cout_mtx); assert(!x);
     cout<<"********Score: "<<score<<"********\n"<<endl;
+    if(thread_out)
+      cout<<"Main unlocking main_mtx"<<endl;
+    x = pthread_mutex_unlock(&cout_mtx); assert(!x);
     x = pthread_mutex_unlock(&main_mtx); assert(!x);
     cout<<"Input new tile"<<endl;
 
@@ -222,34 +237,34 @@ int heuristic(const board_t& board) {
   return (max_tiles - num_tiles);
 }
 
-const int MAX_DEPTH = 3;
+const int MAX_DEPTH = 2;
 
 double eval_board_outcomes(const board_t& board, int depth);
 
 double eval_board_moves(const board_t& board, int depth) {
-  board_t up_result = up_move(board, false);
-  board_t down_result = down_move(board, false);
-  board_t left_result = left_move(board, false);
-  board_t right_result = right_move(board, false);
+  Move_Result up_result = up_move(board, false);
+  Move_Result down_result = down_move(board, false);
+  Move_Result left_result = left_move(board, false);
+  Move_Result right_result = right_move(board, false);
 
-  bool up_valid = (board != up_result);
-  bool down_valid = (board != down_result);
-  bool left_valid = (board != left_result);
-  bool right_valid = (board != right_result);
+  bool up_valid = (board != up_result.board);
+  bool down_valid = (board != down_result.board);
+  bool left_valid = (board != left_result.board);
+  bool right_valid = (board != right_result.board);
 
   double up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
-    up_eval = up_valid ? eval_board_outcomes(up_result, depth + 1) : -1.0;
-    down_eval = down_valid ? eval_board_outcomes(down_result, depth + 1) : -1.0;
-    left_eval = left_valid ? eval_board_outcomes(left_result, depth + 1) : -1.0;
-    right_eval = right_valid ? eval_board_outcomes(right_result, depth + 1) : -1.0;
+    up_eval = up_valid ? eval_board_outcomes(up_result.board, depth + 1) : -1.0;
+    down_eval = down_valid ? eval_board_outcomes(down_result.board, depth + 1) : -1.0;
+    left_eval = left_valid ? eval_board_outcomes(left_result.board, depth + 1) : -1.0;
+    right_eval = right_valid ? eval_board_outcomes(right_result.board, depth + 1) : -1.0;
   }
   else {
-    up_eval = up_valid ? heuristic(up_result) : -1.0;
-    down_eval = down_valid ? heuristic(down_result) : -1.0;
-    left_eval = left_valid ? heuristic(left_result) : -1.0;
-    right_eval = right_valid ? heuristic(right_result) : -1.0;
+    up_eval = up_valid ? heuristic(up_result.board) : -1.0;
+    down_eval = down_valid ? heuristic(down_result.board) : -1.0;
+    left_eval = left_valid ? heuristic(left_result.board) : -1.0;
+    right_eval = right_valid ? heuristic(right_result.board) : -1.0;
   }
   return max(up_eval, down_eval, left_eval, right_eval);
 }
@@ -309,87 +324,120 @@ void* eval_board_outcomes_p(void* arg_ptr) {
     switch(in_arg.dir) {
       case UP:
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
-        cout<<"Up thread locking up_mtx and cond_waiting on up_cv"<<endl;
+        if(thread_out)
+          cout<<"Up thread locking up_mtx and cond_waiting on up_cv"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
         x = pthread_mutex_lock(&up_mtx); assert(!x);
-        x = pthread_cond_wait(&up_cv, &up_mtx); assert(!x);
+        x = pthread_mutex_lock(&main_mtx); assert(!x);
+        while(!up_go) {
+          x = pthread_mutex_unlock(&main_mtx); assert(!x);
+          x = pthread_cond_wait(&up_cv, &up_mtx); assert(!x);
+          x = pthread_mutex_lock(&main_mtx); assert(!x);
+        }
+        up_go = false;
+        local_board = up_board_in;
+        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         x = pthread_mutex_unlock(&up_mtx); assert(!x);
 
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
         cout<<"Up thread done waiting and got up_mtx lock"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        x = pthread_mutex_lock(&main_mtx); assert(!x);
-        local_board = up_board_in;
-        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         break;
       case DOWN:
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
         cout<<"Down thread locking down_mtx and cond_waiting on down_cv"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
         x = pthread_mutex_lock(&down_mtx); assert(!x);
-        x = pthread_cond_wait(&down_cv, &down_mtx); assert(!x);
+        x = pthread_mutex_lock(&main_mtx); assert(!x);
+        while(!down_go) {
+          x = pthread_mutex_unlock(&main_mtx); assert(!x);
+          x = pthread_cond_wait(&down_cv, &down_mtx); assert(!x);
+          x = pthread_mutex_lock(&main_mtx); assert(!x);
+        }
+        down_go = false;
+        local_board = down_board_in;
+        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         x = pthread_mutex_unlock(&down_mtx); assert(!x);
 
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
         cout<<"Down thread done waiting and got down_mtx lock"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        x = pthread_mutex_lock(&main_mtx); assert(!x);
-        local_board = down_board_in;
-        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         break;
       case LEFT:
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
         cout<<"Left thread locking left_mtx and cond_waiting on left_cv"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
         x = pthread_mutex_lock(&left_mtx); assert(!x);
-        x = pthread_cond_wait(&left_cv, &left_mtx); assert(!x);
+        x = pthread_mutex_lock(&main_mtx); assert(!x);
+        while(!left_go) {
+          x = pthread_mutex_unlock(&main_mtx); assert(!x);
+          x = pthread_cond_wait(&left_cv, &left_mtx); assert(!x);
+          x = pthread_mutex_lock(&main_mtx); assert(!x);
+        }
+        left_go = false;
+
+        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         x = pthread_mutex_unlock(&left_mtx); assert(!x);
 
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
         cout<<"Left thread done waiting and got left_mtx lock"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        x = pthread_mutex_lock(&main_mtx); assert(!x);
-        local_board = left_board_in;
-        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         break;
       case RIGHT:
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
         cout<<"Right thread locking right_mtx and cond_waiting on right_cv"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
         x = pthread_mutex_lock(&right_mtx); assert(!x);
-        x = pthread_cond_wait(&right_cv, &right_mtx); assert(!x);
+        x = pthread_mutex_lock(&main_mtx); assert(!x);
+        while(!right_go) {
+          x = pthread_mutex_unlock(&main_mtx); assert(!x);
+          x = pthread_cond_wait(&right_cv, &right_mtx); assert(!x);
+          x = pthread_mutex_lock(&main_mtx); assert(!x);
+        } 
+        right_go = false;
+        local_board = right_board_in;
+        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         x = pthread_mutex_unlock(&right_mtx); assert(!x);
 
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
         cout<<"Right thread done waiting and got right_mtx lock"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-        x = pthread_mutex_lock(&main_mtx); assert(!x);
-        local_board = right_board_in;
-        x = pthread_mutex_unlock(&main_mtx); assert(!x);
         break;
     }
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
     cout<<direction_names[in_arg.dir]<<" thread running eval_board_outcomes"<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-    *(in_arg.ret_val) = eval_board_outcomes(up_board_in, 0);
+    double eval = eval_board_outcomes(up_board_in, 0);
 
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
-    cout<<direction_names[in_arg.dir]<<" thread locking main_mtx to --num_threads"<<endl;
+        if(thread_out)
+    cout<<direction_names[in_arg.dir]<<" thread locking main_mtx to --num_threads";
+        if(thread_out)
+    cout<<" and set in_arg.ret_val to value "<<eval<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
     x = pthread_mutex_lock(&main_mtx); assert(!x);
     --num_threads;
+    *(in_arg.ret_val) = eval;
 
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
     cout<<direction_names[in_arg.dir]<<" thread broadcasting thread_done_cv and unlocking main_mtx"<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
@@ -397,6 +445,7 @@ void* eval_board_outcomes_p(void* arg_ptr) {
     x = pthread_mutex_unlock(&main_mtx); assert(!x);
 
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
     cout<<direction_names[in_arg.dir]<<" thread broadcasted and unlocked main_mtx"<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
@@ -411,6 +460,7 @@ Direction advice(const board_t& board,
                  const board_t& down_result,
                  const board_t& left_result,
                  const board_t& right_result) {
+  cout<<"Advice"<<endl;
   int z = pthread_mutex_lock(&cout_mtx); assert(!z);
   cout<<"\n\n"<<endl;
   z = pthread_mutex_unlock(&cout_mtx); assert(!z);
@@ -434,6 +484,7 @@ Direction advice(const board_t& board,
 
   if(init_var) {
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
+        if(thread_out)
     cout<<"Main thread firing off all 4 threads"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
     thread_arg_t up_in(&up_val, UP);
@@ -456,6 +507,7 @@ Direction advice(const board_t& board,
   }
 
   z = pthread_mutex_lock(&cout_mtx); assert(!z);
+        if(thread_out)
   cout<<"Main thread locking main mtx"<<endl;
   pthread_mutex_unlock(&cout_mtx);
 
@@ -464,17 +516,20 @@ Direction advice(const board_t& board,
   if (up_valid) {
     up_board_in = up_result;
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
+        if(thread_out)
     cout<<"Main thread signalling up_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
-
+    up_go = true;
     z = pthread_cond_broadcast(&up_cv); assert(!z);
     ++num_threads;
   }
   if(down_valid) {
     down_board_in = down_result;
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
+        if(thread_out)
     cout<<"Main thread signalling down_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
+    down_go = true;
 
     z = pthread_cond_broadcast(&down_cv); assert(!z);
     ++num_threads;
@@ -482,8 +537,10 @@ Direction advice(const board_t& board,
   if(left_valid) {
     left_board_in = left_result;
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
+        if(thread_out)
     cout<<"Main thread signalling left_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
+    left_go = true;
 
     z = pthread_cond_broadcast(&left_cv); assert(!z);
     ++num_threads;
@@ -491,8 +548,10 @@ Direction advice(const board_t& board,
   if(right_valid) {
     right_board_in = right_result;
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
+        if(thread_out)
     cout<<"Main thread signalling right_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
+    right_go = true;
 
     z = pthread_cond_broadcast(&right_cv); assert(!z);
     ++num_threads;
@@ -500,6 +559,7 @@ Direction advice(const board_t& board,
   
   while(num_threads > 0) {
     z = pthread_mutex_lock(&cout_mtx); assert(!z);
+        if(thread_out)
     cout<<"Main thread waiting on main_mtx / thread_done_cv"<<endl;
     z = pthread_mutex_unlock(&cout_mtx); assert(!z);
 
@@ -579,164 +639,160 @@ Block input_block() {
   return return_block;
 }
 
-board_t up_move(const board_t& in_board, bool calc_combos) {
-  board_t result = in_board;
+Move_Result up_move(const board_t& in_board, bool calc_combos) {
+  Move_Result result;
+  result.board = in_board;
   for (int x = 0; x < 4; ++x) {
     // Shift everthing up
     for (int y = 2; y >= 0; y--) {
-      if (result.val_at(x,y) == 0) continue;
+      if (result.board.val_at(x,y) == 0) continue;
       int highest_empty_y = y;
       for(int i = y + 1; i <= 3 && i >= 0; ++i) {
-        if (result.val_at(x,i) == 0) 
+        if (result.board.val_at(x,i) == 0) 
           highest_empty_y = i;
       }
       if(highest_empty_y != y) {
-        result.set_exp(x,
+        result.board.set_exp(x,
                        highest_empty_y, 
-                       result.exp_at(x,y));
-        result.set_exp(x,y,0);
+                       result.board.exp_at(x,y));
+        result.board.set_exp(x,y,0);
       }
     }
     
     // Look for combinations
     for(int y = 3; y > 0; y--) {
-      if (result.val_at(x,y) == 0 ||
-          result.val_at(x,y-1) == 0) continue;
-      if(result.exp_at(x,y) == result.exp_at(x,y-1)) {
-        result.set_exp(x,y,result.exp_at(x,y)+1);
+      if (result.board.val_at(x,y) == 0 ||
+          result.board.val_at(x,y-1) == 0) continue;
+      if(result.board.exp_at(x,y) == result.board.exp_at(x,y-1)) {
+        result.board.set_exp(x,y,result.board.exp_at(x,y)+1);
         if(calc_combos) {
-          int z = pthread_mutex_lock(&main_mtx); assert(!z);
-          up_combo_val += result.val_at(x,y);
-          z = pthread_mutex_unlock(&main_mtx); assert(!z);
+          result.combos_val += result.board.val_at(x,y);
         }
         // Shift all blocks from y-2 down to 0 up
         for(int i = y-2; i >= 0; i--) {
-          result.set_exp(x,i+1,result.exp_at(x,i));
+          result.board.set_exp(x,i+1,result.board.exp_at(x,i));
         }
-        result.set_exp(x,0,0);
+        result.board.set_exp(x,0,0);
       }
     }
   }
   return result;
 }
 
-board_t down_move(const board_t& in_board, bool calc_combos) {
-  board_t result = in_board;
+Move_Result down_move(const board_t& in_board, bool calc_combos) {
+  Move_Result result;
+  result.board = in_board;
   for (int x = 0; x < 4; ++x) {
     // Shift everthing down 
     for (int y = 1; y <= 3; ++y) {
-      if (result.val_at(x,y) == 0) continue;
+      if (result.board.val_at(x,y) == 0) continue;
       int lowest_empty_y = y;
       for(int i = y - 1; i >= 0; i--) {
-        if (result.val_at(x,i) == 0) 
+        if (result.board.val_at(x,i) == 0) 
           lowest_empty_y = i;
       }
       if(lowest_empty_y != y) {
-        result.set_exp(x,
+        result.board.set_exp(x,
                        lowest_empty_y, 
-                       result.exp_at(x,y));
-        result.set_exp(x,y,0);
+                       result.board.exp_at(x,y));
+        result.board.set_exp(x,y,0);
       }
     }
     
     // Look for combinations
     for(int y = 0; y < 3; ++y) {
-      if (result.val_at(x,y) == 0 ||
-          result.val_at(x,y+1) == 0) continue;
-      if(result.exp_at(x,y) == result.exp_at(x,y+1)) {
+      if (result.board.val_at(x,y) == 0 ||
+          result.board.val_at(x,y+1) == 0) continue;
+      if(result.board.exp_at(x,y) == result.board.exp_at(x,y+1)) {
         if(calc_combos) {
-          int z = pthread_mutex_lock(&main_mtx); assert(!z);
-          down_combo_val += 2 * result.val_at(x,y);
-          z = pthread_mutex_unlock(&main_mtx); assert(!z);
+          result.combos_val += 2 * result.board.val_at(x,y);
         }
-        result.set_exp(x,y,result.exp_at(x,y)+1);
+        result.board.set_exp(x,y,result.board.exp_at(x,y)+1);
         // Shift all blocks from y+2 up to 3 down
         for(int i = y+2; i <= 3; ++i) {
-          result.set_exp(x,i-1,result.exp_at(x,i));
+          result.board.set_exp(x,i-1,result.board.exp_at(x,i));
         }
-        result.set_exp(x,3,0);
+        result.board.set_exp(x,3,0);
       }
     }
   }
   return result;
 }
 
-board_t left_move(const board_t& in_board, bool calc_combos) {
-  board_t result = in_board;
+Move_Result left_move(const board_t& in_board, bool calc_combos) {
+  Move_Result result;
+  result.board = in_board;
   for (int y = 0; y < 4; ++y) {
     // Shift everthing left 
     for (int x = 1; x <= 3; ++x) {
-      if (result.val_at(x,y) == 0) continue;
+      if (result.board.val_at(x,y) == 0) continue;
       int leftest_empty_x = x;
       for(int i = x - 1; i >= 0; i--) {
-        if (result.val_at(i,y) == 0) 
+        if (result.board.val_at(i,y) == 0) 
           leftest_empty_x = i;
       }
       if(leftest_empty_x != x) {
-        result.set_exp(leftest_empty_x,
+        result.board.set_exp(leftest_empty_x,
                        y, 
-                       result.exp_at(x,y));
-        result.set_exp(x,y,0);
+                       result.board.exp_at(x,y));
+        result.board.set_exp(x,y,0);
       }
     }
     
     // Look for combinations
     for(int x = 0; x < 3; ++x) {
-      if (result.val_at(x,y) == 0 ||
-          result.val_at(x+1,y) == 0) continue;
-      if(result.exp_at(x,y) == result.exp_at(x+1,y)) {
+      if (result.board.val_at(x,y) == 0 ||
+          result.board.val_at(x+1,y) == 0) continue;
+      if(result.board.exp_at(x,y) == result.board.exp_at(x+1,y)) {
         if(calc_combos) {
-          int z = pthread_mutex_lock(&main_mtx); assert(!z);
-          left_combo_val += 2 * result.val_at(x,y);
-          z = pthread_mutex_unlock(&main_mtx); assert(!z);
+          result.combos_val += 2 * result.board.val_at(x,y);
         }
-        result.set_exp(x,y,result.exp_at(x,y)+1);
+        result.board.set_exp(x,y,result.board.exp_at(x,y)+1);
         // Shift all blocks from x+2 up to 3 left
         for(int i = x+2; i <= 3; ++i) {
-          result.set_exp(i-1,y,result.exp_at(i,y));
+          result.board.set_exp(i-1,y,result.board.exp_at(i,y));
         }
-        result.set_exp(3,y,0);
+        result.board.set_exp(3,y,0);
       }
     }
   }
   return result;
 }
 
-board_t right_move(const board_t& in_board, bool calc_combos) {
-  board_t result = in_board;
+Move_Result right_move(const board_t& in_board, bool calc_combos) {
+  Move_Result result;
+  result.board = in_board;
   for (int y = 0; y < 4; ++y) {
     // Shift everthing right 
     for (int x = 2; x >= 0; x--) {
-      if (result.val_at(x,y) == 0) continue;
+      if (result.board.val_at(x,y) == 0) continue;
       int rightest_empty_x = x;
       for(int i = x + 1; i <= 3; ++i) {
-        if (result.val_at(i,y) == 0) 
+        if (result.board.val_at(i,y) == 0) 
           rightest_empty_x = i;
       }
       if(rightest_empty_x != x) {
-        result.set_exp(rightest_empty_x,
+        result.board.set_exp(rightest_empty_x,
                        y, 
-                       result.exp_at(x,y));
-        result.set_exp(x,y,0);
+                       result.board.exp_at(x,y));
+        result.board.set_exp(x,y,0);
       }
     }
     
     // Look for combinations
     for(int x = 3; x > 0; x--) {
-      if (result.val_at(x,y) == 0 ||
-          result.val_at(x-1,y) == 0) continue;
-      if(result.exp_at(x,y) == result.exp_at(x-1,y)) {
+      if (result.board.val_at(x,y) == 0 ||
+          result.board.val_at(x-1,y) == 0) continue;
+      if(result.board.exp_at(x,y) == result.board.exp_at(x-1,y)) {
         if(calc_combos) {
-          int z = pthread_mutex_lock(&main_mtx); assert(!z);
-          right_combo_val += 2 * result.val_at(x,y);
-          z = pthread_mutex_unlock(&main_mtx); assert(!z);
+          result.combos_val += 2 * result.board.val_at(x,y);
         }
-        result.set_exp(x,y,result.exp_at(x,y)+1);
+        result.board.set_exp(x,y,result.board.exp_at(x,y)+1);
         // Shift all blocks from x-2 down to 0 right
         for(int i = x-2; i >= 0; i--) {
-          result.set_exp(i+1,y,result.exp_at(i,y));
+          result.board.set_exp(i+1,y,result.board.exp_at(i,y));
         }
-        result.set_exp(0,y,0);
+        result.board.set_exp(0,y,0);
       }
     }
   }
