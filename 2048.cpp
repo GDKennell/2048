@@ -57,8 +57,9 @@ void print_board(const board_t& board) {
 }
 
 struct Move_Result {
-  board_t board;
+  Move_Result() : combos_val(0) { }
   int combos_val;
+  board_t board;
 };
 
 inline Move_Result up_move(const board_t& in_board, bool calc_costs);
@@ -90,6 +91,7 @@ void add_new_tile(board_t& board);
 
 int score = 0;
 bool up_go = false, down_go = false, left_go = false, right_go = false;
+double *up_thread_val, *down_thread_val, *left_thread_val, *right_thread_val;
 
 pthread_mutex_t cout_mtx = PTHREAD_MUTEX_INITIALIZER;
 
@@ -108,6 +110,11 @@ pthread_cond_t right_cv = PTHREAD_COND_INITIALIZER;
 pthread_cond_t thread_done_cv = PTHREAD_COND_INITIALIZER;
 
 int main() {
+  up_thread_val = new double;
+  down_thread_val = new double;
+  left_thread_val = new double;
+  right_thread_val = new double;
+
   time_t start_time, end_time;
   start_time=Clock::to_time_t(Clock::now());
   srand(time(NULL));
@@ -239,9 +246,9 @@ int heuristic(const board_t& board) {
 
 const int MAX_DEPTH = 2;
 
-double eval_board_outcomes(const board_t& board, int depth);
+double eval_board_outcomes(board_t board, int depth);
 
-double eval_board_moves(const board_t& board, int depth) {
+double eval_board_moves(board_t board, int depth) {
   Move_Result up_result = up_move(board, false);
   Move_Result down_result = down_move(board, false);
   Move_Result left_result = left_move(board, false);
@@ -269,7 +276,7 @@ double eval_board_moves(const board_t& board, int depth) {
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
-double eval_board_outcomes(const board_t& board, int depth) {
+double eval_board_outcomes(board_t board, int depth) {
   board_t possible_outcomes[30];
   int num_outcomes = 0;
 
@@ -384,6 +391,7 @@ void* eval_board_outcomes_p(void* arg_ptr) {
           x = pthread_mutex_lock(&main_mtx); assert(!x);
         }
         left_go = false;
+        local_board = left_board_in;
 
         x = pthread_mutex_unlock(&main_mtx); assert(!x);
         x = pthread_mutex_unlock(&left_mtx); assert(!x);
@@ -413,6 +421,7 @@ void* eval_board_outcomes_p(void* arg_ptr) {
         x = pthread_mutex_unlock(&right_mtx); assert(!x);
 
         x = pthread_mutex_lock(&cout_mtx); assert(!x);
+        if(thread_out)
         cout<<"Right thread done waiting and got right_mtx lock"<<endl;
         x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
@@ -423,7 +432,7 @@ void* eval_board_outcomes_p(void* arg_ptr) {
     cout<<direction_names[in_arg.dir]<<" thread running eval_board_outcomes"<<endl;
     x = pthread_mutex_unlock(&cout_mtx); assert(!x);
 
-    double eval = eval_board_outcomes(up_board_in, 0);
+    double eval = eval_board_outcomes(local_board, 0);
 
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
         if(thread_out)
@@ -434,7 +443,24 @@ void* eval_board_outcomes_p(void* arg_ptr) {
 
     x = pthread_mutex_lock(&main_mtx); assert(!x);
     --num_threads;
-    *(in_arg.ret_val) = eval;
+
+    double *global_ptr;
+    switch(in_arg.dir) {
+      case UP:
+        global_ptr = up_thread_val;
+        break;
+      case DOWN:
+        global_ptr = down_thread_val;
+        break;
+      case LEFT:
+        global_ptr = left_thread_val;
+        break;
+      case RIGHT:
+        global_ptr = right_thread_val;
+        break;
+    }
+
+    *global_ptr = eval;
 
     x = pthread_mutex_lock(&cout_mtx); assert(!x);
         if(thread_out)
@@ -565,10 +591,10 @@ Direction advice(const board_t& board,
 
     z = pthread_cond_wait(&thread_done_cv, &main_mtx); assert(!z);
   }
-  if(!up_valid) up_val = -1.0;
-  if(!down_valid) down_val = -1.0;
-  if(!left_valid) left_val = -1.0;
-  if(!right_valid) right_val = -1.0;
+  up_val = up_valid ? *up_thread_val : -1.0;
+  down_val = down_valid ? *down_thread_val : -1.0;
+  left_val = left_valid ? *left_thread_val : -1.0;
+  right_val = right_valid ? *right_thread_val : -1.0;
 
   z = pthread_mutex_unlock(&main_mtx); assert(!z);
 
