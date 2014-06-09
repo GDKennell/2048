@@ -217,7 +217,7 @@ int heuristic(const board_t& board) {
   return num_empty;
 }
 
-const int MAX_DEPTH = 6;
+const int MAX_DEPTH = 8;
 const double up_weight = 1.0;
 const double right_weight = 1.0;
 const double down_weight = 1.0;
@@ -225,9 +225,9 @@ const double left_weight = 1.0;
 
 int depth = 0;
 
-double eval_board_outcomes(const board_t& board);
+int eval_board_outcomes(const board_t& board, int best_seen);
 
-double eval_board_moves(const board_t& board) {
+int eval_board_moves(const board_t& board, int worst_seen) {
   ++depth;
   Move_Result up_result = up_move(board);
   Move_Result down_result = down_move(board);
@@ -242,10 +242,26 @@ double eval_board_moves(const board_t& board) {
   double up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
-    up_eval = up_valid ? eval_board_outcomes(up_result.board) : -1.0;
-    down_eval = down_valid ? eval_board_outcomes(down_result.board) : -1.0;
-    left_eval = left_valid ? eval_board_outcomes(left_result.board) : -1.0;
-    right_eval = right_valid ? eval_board_outcomes(right_result.board) : -1.0;
+    up_eval = up_valid ? eval_board_outcomes(up_result.board, 0) : -1.0;
+    if(up_eval >= worst_seen) {
+      --depth;
+      return up_eval;
+    }
+    down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval) : -1.0;
+    if(down_eval >= worst_seen) {
+      --depth;
+      return down_eval;
+    }
+    left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval)) : -1.0;
+    if(left_eval >= worst_seen) {
+      --depth;
+      return left_eval;
+    }
+    right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval))) : -1.0;
+    if(right_eval >= worst_seen) {
+      --depth;
+      return right_eval;
+    }
   }
   else {
     up_eval = up_valid ? heuristic(up_result.board) : -1.0;
@@ -257,7 +273,7 @@ double eval_board_moves(const board_t& board) {
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
-double eval_board_outcomes(const board_t& board) {
+int eval_board_outcomes(const board_t& board, int best_seen) {
   ++depth;
   board_t possible_outcomes[30];
   int num_outcomes = 0;
@@ -280,18 +296,19 @@ double eval_board_outcomes(const board_t& board) {
     return 0.0;
   }
  
-  double prob2 = (9.0/10.0) * (1.0 / (double)num_outcomes); 
-  double prob4 = (1.0/10.0) * (1.0 / (double)num_outcomes); 
-  double tot_prob = 0.0;
+  int worst_case = INT_MAX; 
   for(int i = 0; i < num_outcomes; ++i) {
-    double outcome_val = eval_board_moves(possible_outcomes[i]);
-    if(i % 2 == 0)
-      tot_prob += (prob2 * outcome_val);
-    else
-      tot_prob += (prob4 * outcome_val);
+    double outcome_val = eval_board_moves(possible_outcomes[i], worst_case);
+     if (outcome_val < worst_case) {
+       worst_case = outcome_val;
+       if (worst_case <= best_seen) {
+         --depth;
+         return 0;
+       }
+     } 
   }
   --depth;
-  return tot_prob;
+  return worst_case;
 }
 
 Direction advice(const board_t& board,
@@ -309,10 +326,10 @@ Direction advice(const board_t& board,
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
 
-  up_val = up_valid ? eval_board_outcomes(up_result) * up_weight : -1.0;
-  down_val = down_valid ? eval_board_outcomes(down_result) * down_weight : -1.0;
-  left_val = left_valid ? eval_board_outcomes(left_result) * left_weight : -1.0;
-  right_val = right_valid ? eval_board_outcomes(right_result) * right_weight : -1.0;
+  up_val = up_valid ? eval_board_outcomes(up_result, 0) * up_weight : -1.0;
+  down_val = down_valid ? eval_board_outcomes(down_result, up_val) * down_weight : -1.0;
+  left_val = left_valid ? eval_board_outcomes(left_result, max(up_val, down_val)) * left_weight : -1.0;
+  right_val = right_valid ? eval_board_outcomes(right_result, max(up_val, max(down_val, left_val))) * right_weight : -1.0;
 
   double max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
