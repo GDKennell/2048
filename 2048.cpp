@@ -54,8 +54,8 @@ void print_board(const board_t& board) {
 }
 
 struct Move_Result {
-  Move_Result() : num_combos(0){ }
-  int num_combos;
+  Move_Result() : combos_val(0){ }
+  int combos_val;
   board_t board;
 };
 
@@ -89,7 +89,54 @@ void add_new_tile(board_t& board, bool user_in);
 int score = 0;
 int up_combo_val, down_combo_val, left_combo_val, right_combo_val;
 
+const int NUM_TRANSFORMS = 65536;
+typedef int transform_t;
+transform_t left_move_transforms[NUM_TRANSFORMS];
+transform_t right_move_transforms[NUM_TRANSFORMS];
+
 int main() {
+
+  fstream leftFile ("left.bin", ios::in | ios::binary);
+  assert(leftFile.good());
+  fstream rightFile ("right.bin", ios::in | ios::binary);
+  assert(rightFile.good());
+  for(int i = 0; i < NUM_TRANSFORMS; ++i) {
+    leftFile.read((char*)&left_move_transforms[i], 4);
+    rightFile.read((char*)&right_move_transforms[i], 4);
+  }
+
+  cout<<"Testing transform data\n"<<endl;
+
+  SmallBoard t1, t2, t3, t4;
+  t1.set_exp(0,0,1);
+  t1.set_exp(1,0,2);
+  t1.set_exp(2,0,3);
+  t1.set_exp(3,0,1);
+  t1.set_exp(0,1,4);
+  t1.set_exp(0,2,5);
+  t1.set_exp(0,3,1);
+  cout<<"Test1 board before:"<<endl;
+  print_board(t1);
+  cout<<"Test1 up: \n";
+  Move_Result r1 = up_move(t1);
+  cout<<"r1.combos_val = "<<r1.combos_val<<endl;
+  print_board(r1.board);
+  cout<<"Test1 down: \n";
+  r1 = down_move(t1);
+  cout<<"r1.combos_val = "<<r1.combos_val<<endl;
+  print_board(r1.board);
+  cout<<"Test1 left: \n";
+  r1 = left_move(t1);
+  cout<<"r1.combos_val = "<<r1.combos_val<<endl;
+  print_board(r1.board);
+  cout<<"Test1 right: \n";
+  r1 = right_move(t1);
+  cout<<"r1.combos_val = "<<r1.combos_val<<endl;
+  print_board(r1.board);
+      
+  return 0;
+  
+
   time_t start_time, end_time;
   start_time=Clock::to_time_t(Clock::now());
   srand(time(NULL));
@@ -232,11 +279,10 @@ double eval_board_moves(const board_t& board) {
     right_eval = right_valid ? eval_board_outcomes(right_result.board) : -1.0;
   }
   else {
-    int this_heur = heuristic(board);
-    up_eval = up_valid ? this_heur - up_result.num_combos : -1.0;
-    down_eval = down_valid ? this_heur - down_result.num_combos : -1.0;
-    left_eval = left_valid ? this_heur - left_result.num_combos : -1.0;
-    right_eval = right_valid ? this_heur - right_result.num_combos : -1.0;
+    up_eval = up_valid ? heuristic(up_result.board) : -1.0;
+    down_eval = down_valid ? heuristic(down_result.board) : -1.0;
+    left_eval = left_valid ? heuristic(left_result.board) : -1.0;
+    right_eval = right_valid ? heuristic(right_result.board) : -1.0;
   }
   --depth;
   return max(up_eval, down_eval, left_eval, right_eval);
@@ -309,36 +355,18 @@ Direction advice(const board_t& board,
   double max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
 
-  double second_best;
-  if(max_val == up_val) {
-    if(up_valid)
-      return UP;
-    else
-      second_best = max(right_val, max(down_val, left_val));
+  if(max_val - up_val < 0.05 && max_val - up_val > -0.05) {
+    return UP;
   }
-  else if(max_val == right_val) {
-    if(right_valid)
-      return RIGHT;
-    else
-      second_best = max(up_val, max(down_val, left_val));
+  else if(max_val - right_val < 0.05 && max_val - right_val > -0.05) {
+    return RIGHT;
   }
-  else if (max_val == down_val) {
-    if(down_valid)
-      return DOWN;
-    else
-      second_best = max(up_val, max(right_val, left_val));
+  else if (max_val - down_val < 0.05 && max_val - down_val > -0.05) {
+    return DOWN;
   }
-  else if(max_val == left_val) {
-    if(left_valid)
-      return LEFT;
-    else
-      second_best = max(up_val, max(right_val, down_val));
+  else {
+    return LEFT;
   }
-  double third_best;
-  if(second_best == up_val) {
-    if(up_valid) 
-
-
 }
 
 bool board_full(const board_t& board) {
@@ -399,165 +427,79 @@ Block input_block() {
 Move_Result up_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
-  for (int x = 0; x < 4; ++x) {
-    // Shift everthing up
-    for (int y = 2; y >= 0; y--) {
-      if (result.board.val_at(x,y) == 0) continue;
-      int highest_empty_y = y;
-      for(int i = y + 1; i <= 3 && i >= 0; ++i) {
-        if (result.board.val_at(x,i) == 0) 
-          highest_empty_y = i;
-      }
-      if(highest_empty_y != y) {
-        result.board.set_exp(x,
-                       highest_empty_y, 
-                       result.board.exp_at(x,y));
-        result.board.set_exp(x,y,0);
-      }
-    }
-    
-    // Look for combinations
-    for(int y = 3; y > 0; y--) {
-      if (result.board.val_at(x,y) == 0 ||
-          result.board.val_at(x,y-1) == 0) continue;
-      if(result.board.exp_at(x,y) == result.board.exp_at(x,y-1)) {
-        result.board.set_exp(x,y,result.board.exp_at(x,y)+1);
-        if(depth == 0) {
-          up_combo_val += result.board.val_at(x,y);
-        }
-        ++result.num_combos;
-        // Shift all blocks from y-2 down to 0 up
-        for(int i = y-2; i >= 0; i--) {
-          result.board.set_exp(x,i+1,result.board.exp_at(x,i));
-        }
-        result.board.set_exp(x,0,0);
-      }
-    }
+ 
+  for(int c = 0; c < 4; ++c) {
+    int col = in_board.raw_col(c);
+    cout<<"\tup_move got raw col("<<c<<") "<<col<<endl;
+    assert(col < NUM_TRANSFORMS);
+    transform_t col_transform = right_move_transforms[col];
+    cout<<"\tand transform = "<<col_transform<<endl<<endl;
+
+    result.combos_val += col_transform >> 16;
+    assert((col_transform >> 16) <= pow(2,16));
+    assert((col_transform >> 16) % 2 == 0);
+
+    result.board.set_col(c, col_transform);
   }
+
   return result;
 }
 
 Move_Result down_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
-  for (int x = 0; x < 4; ++x) {
-    // Shift everthing down 
-    for (int y = 1; y <= 3; ++y) {
-      if (result.board.val_at(x,y) == 0) continue;
-      int lowest_empty_y = y;
-      for(int i = y - 1; i >= 0; i--) {
-        if (result.board.val_at(x,i) == 0) 
-          lowest_empty_y = i;
-      }
-      if(lowest_empty_y != y) {
-        result.board.set_exp(x,
-                       lowest_empty_y, 
-                       result.board.exp_at(x,y));
-        result.board.set_exp(x,y,0);
-      }
-    }
-    
-    // Look for combinations
-    for(int y = 0; y < 3; ++y) {
-      if (result.board.val_at(x,y) == 0 ||
-          result.board.val_at(x,y+1) == 0) continue;
-      if(result.board.exp_at(x,y) == result.board.exp_at(x,y+1)) {
-        if(depth == 0) {
-          down_combo_val += 2 * result.board.val_at(x,y);
-        }
-        ++result.num_combos;
-        result.board.set_exp(x,y,result.board.exp_at(x,y)+1);
-        // Shift all blocks from y+2 up to 3 down
-        for(int i = y+2; i <= 3; ++i) {
-          result.board.set_exp(x,i-1,result.board.exp_at(x,i));
-        }
-        result.board.set_exp(x,3,0);
-      }
-    }
+
+  for(int c = 0; c < 4; ++c) {
+    int col = in_board.raw_col(c);
+    assert(col < NUM_TRANSFORMS);
+    transform_t col_transform = left_move_transforms[col];
+
+    result.combos_val += col_transform >> 16;
+    assert((col_transform >> 16) <= pow(2,16));
+    assert((col_transform >> 16) % 2 == 0);
+
+    result.board.set_col(c, col_transform);
   }
+
   return result;
 }
 
 Move_Result left_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
-  
-  for (int y = 0; y < 4; ++y) {
-    // Shift everthing left 
-    for (int x = 1; x <= 3; ++x) {
-      if (result.board.val_at(x,y) == 0) continue;
-      int leftest_empty_x = x;
-      for(int i = x - 1; i >= 0; i--) {
-        if (result.board.val_at(i,y) == 0) 
-          leftest_empty_x = i;
-      }
-      if(leftest_empty_x != x) {
-        result.board.set_exp(leftest_empty_x,
-                       y, 
-                       result.board.exp_at(x,y));
-        result.board.set_exp(x,y,0);
-      }
-    }
-    
-    // Look for combinations
-    for(int x = 0; x < 3; ++x) {
-      if (result.board.val_at(x,y) == 0 ||
-          result.board.val_at(x+1,y) == 0) continue;
-      if(result.board.exp_at(x,y) == result.board.exp_at(x+1,y)) {
-        if(depth == 0) {
-          left_combo_val += 2 * result.board.val_at(x,y);
-        }
-        ++result.num_combos;
-        result.board.set_exp(x,y,result.board.exp_at(x,y)+1);
-        // Shift all blocks from x+2 up to 3 left
-        for(int i = x+2; i <= 3; ++i) {
-          result.board.set_exp(i-1,y,result.board.exp_at(i,y));
-        }
-        result.board.set_exp(3,y,0);
-      }
-    }
+
+  for(int r = 0; r < 4; ++r) {
+    int row = in_board.raw_row(r);
+    assert(row < NUM_TRANSFORMS);
+    transform_t row_transform = left_move_transforms[row];
+
+    result.combos_val += row_transform >> 16;
+    assert((row_transform >> 16) <= pow(2,16));
+    assert((row_transform >> 16) % 2 == 0);
+
+    result.board.set_row(r, row_transform);
   }
+
   return result;
 }
 
 Move_Result right_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
-  for (int y = 0; y < 4; ++y) {
-    // Shift everthing right 
-    for (int x = 2; x >= 0; x--) {
-      if (result.board.val_at(x,y) == 0) continue;
-      int rightest_empty_x = x;
-      for(int i = x + 1; i <= 3; ++i) {
-        if (result.board.val_at(i,y) == 0) 
-          rightest_empty_x = i;
-      }
-      if(rightest_empty_x != x) {
-        result.board.set_exp(rightest_empty_x,
-                       y, 
-                       result.board.exp_at(x,y));
-        result.board.set_exp(x,y,0);
-      }
-    }
-    
-    // Look for combinations
-    for(int x = 3; x > 0; x--) {
-      if (result.board.val_at(x,y) == 0 ||
-          result.board.val_at(x-1,y) == 0) continue;
-      if(result.board.exp_at(x,y) == result.board.exp_at(x-1,y)) {
-        if(depth == 0) {
-          right_combo_val += 2 * result.board.val_at(x,y);
-        }
-        ++result.num_combos;
-        result.board.set_exp(x,y,result.board.exp_at(x,y)+1);
-        // Shift all blocks from x-2 down to 0 right
-        for(int i = x-2; i >= 0; i--) {
-          result.board.set_exp(i+1,y,result.board.exp_at(i,y));
-        }
-        result.board.set_exp(0,y,0);
-      }
-    }
+
+  for(int r = 0; r < 4; ++r) {
+    int row = in_board.raw_row(r);
+    assert(row < NUM_TRANSFORMS);
+    transform_t row_transform = right_move_transforms[row];
+
+    result.combos_val += row_transform >> 16;
+    assert((row_transform >> 16) <= pow(2,16));
+    assert((row_transform >> 16) % 2 == 0);
+
+    result.board.set_row(r, row_transform);
   }
+
   return result;
 }
+
 
