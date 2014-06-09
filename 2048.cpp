@@ -94,15 +94,20 @@ typedef int transform_t;
 transform_t left_move_transforms[NUM_TRANSFORMS];
 transform_t right_move_transforms[NUM_TRANSFORMS];
 
+int empty_vals[NUM_TRANSFORMS];
+
 int main() {
 
   fstream leftFile ("left.bin", ios::in | ios::binary);
   assert(leftFile.good());
   fstream rightFile ("right.bin", ios::in | ios::binary);
   assert(rightFile.good());
+  fstream emptyFile ("numempty.bin", ios::in | ios::binary);
+  assert(emptyFile.good());
   for(int i = 0; i < NUM_TRANSFORMS; ++i) {
     leftFile.read((char*)&left_move_transforms[i], 4);
     rightFile.read((char*)&right_move_transforms[i], 4);
+    emptyFile.read((char*)&empty_vals[i], sizeof(int));
   }
 
  
@@ -204,17 +209,12 @@ int main() {
 //returns some evaluation of this board based on number of tiles,
 //    number of combos available, highest tile value
 int heuristic(const board_t& board) {
-  int num_tiles = 0;
-
-  for(int x = 0; x < 4; ++x) {
-    for(int y = 0; y < 4; ++y) {
-      if (board.val_at( x, y) != 0) {
-        ++num_tiles;
-      }
-    }
+  int num_empty = 0;
+  for(int c = 0; c < 4; ++c) {
+    int column = board.raw_col(c);
+    num_empty += empty_vals[column];
   }
-  int max_tiles = 4 * 4;
-  return (max_tiles - num_tiles);
+  return num_empty;
 }
 
 const int MAX_DEPTH = 6;
