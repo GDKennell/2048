@@ -58,7 +58,7 @@ public:
     void set_col(int row_num, int row) {
       assert(row_num >=0 && row_num < 4);
       int offset = 16 * row_num;
-      board &= ~(0xffff << offset);
+      board &= ~((uint64_t)0xffff << offset);
       board |= ((uint64_t)row << offset);
     }
 

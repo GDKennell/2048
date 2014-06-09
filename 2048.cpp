@@ -110,11 +110,11 @@ int main() {
   SmallBoard t1, t2, t3, t4;
   t1.set_exp(0,0,1);
   t1.set_exp(1,0,2);
-  t1.set_exp(2,0,3);
-  t1.set_exp(3,0,1);
+  t1.set_exp(2,0,2);
+  t1.set_exp(3,0,3);
   t1.set_exp(0,1,4);
-  t1.set_exp(0,2,5);
-  t1.set_exp(0,3,1);
+  t1.set_exp(0,2,4);
+  t1.set_exp(0,3,6);
   cout<<"Test1 board before:"<<endl;
   print_board(t1);
   cout<<"Test1 up: \n";
