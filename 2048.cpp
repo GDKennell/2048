@@ -105,38 +105,7 @@ int main() {
     rightFile.read((char*)&right_move_transforms[i], 4);
   }
 
-  cout<<"Testing transform data\n"<<endl;
-
-  SmallBoard t1, t2, t3, t4;
-  t1.set_exp(0,0,1);
-  t1.set_exp(1,0,2);
-  t1.set_exp(2,0,2);
-  t1.set_exp(3,0,3);
-  t1.set_exp(0,1,4);
-  t1.set_exp(0,2,4);
-  t1.set_exp(0,3,6);
-  cout<<"Test1 board before:"<<endl;
-  print_board(t1);
-  cout<<"Test1 up: \n";
-  Move_Result r1 = up_move(t1);
-  cout<<"r1.combos_val = "<<r1.combos_val<<endl;
-  print_board(r1.board);
-  cout<<"Test1 down: \n";
-  r1 = down_move(t1);
-  cout<<"r1.combos_val = "<<r1.combos_val<<endl;
-  print_board(r1.board);
-  cout<<"Test1 left: \n";
-  r1 = left_move(t1);
-  cout<<"r1.combos_val = "<<r1.combos_val<<endl;
-  print_board(r1.board);
-  cout<<"Test1 right: \n";
-  r1 = right_move(t1);
-  cout<<"r1.combos_val = "<<r1.combos_val<<endl;
-  print_board(r1.board);
-      
-  return 0;
-  
-
+ 
   time_t start_time, end_time;
   start_time=Clock::to_time_t(Clock::now());
   srand(time(NULL));
@@ -196,19 +165,19 @@ int main() {
     switch(choice) {
       case UP:
         board = up_result.board;
-        score += up_combo_val;
+        score += up_result.combos_val;
         break;
       case DOWN:
         board = down_result.board;
-        score += down_combo_val;
+        score += down_result.combos_val;
         break;
       case LEFT:
         board = left_result.board;
-        score += left_combo_val;
+        score += left_result.combos_val;
         break;
       case RIGHT:
         board = right_result.board;
-        score += right_combo_val;
+        score += right_result.combos_val;
         break;
     }
     cout<<"********Score: "<<score<<"********\n"<<endl;
@@ -430,10 +399,8 @@ Move_Result up_move(const board_t& in_board) {
  
   for(int c = 0; c < 4; ++c) {
     int col = in_board.raw_col(c);
-    cout<<"\tup_move got raw col("<<c<<") "<<col<<endl;
     assert(col < NUM_TRANSFORMS);
     transform_t col_transform = right_move_transforms[col];
-    cout<<"\tand transform = "<<col_transform<<endl<<endl;
 
     result.combos_val += col_transform >> 16;
     assert((col_transform >> 16) <= pow(2,16));
