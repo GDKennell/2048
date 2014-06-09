@@ -299,13 +299,6 @@ Direction advice(const board_t& board,
                  const board_t& down_result,
                  const board_t& left_result,
                  const board_t& right_result) {
-  int num_empty = 0;
-  for(int x = 0; x < 4; ++x) {
-    for(int y = 0; y < 4; ++y) {
-      if(board.exp_at(x,y) == 0)
-        ++num_empty;
-    }
-  }
   double up_val;
   double down_val;
   double left_val;
