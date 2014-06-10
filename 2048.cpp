@@ -247,20 +247,20 @@ int eval_board_moves(const board_t& board, int worst_seen) {
       --depth;
       return up_eval;
     }
-    down_eval = down_valid ? eval_board_outcomes(down_result.board, up_eval) : -1.0;
+    right_eval = right_valid ? eval_board_outcomes(right_result.board,up_eval) : -1.0;
+    if(right_eval >= worst_seen) {
+      --depth;
+      return right_eval;
+    }
+    down_eval = down_valid ? eval_board_outcomes(down_result.board, max(up_eval, right_eval)) : -1.0;
     if(down_eval >= worst_seen) {
       --depth;
       return down_eval;
     }
-    left_eval = left_valid ? eval_board_outcomes(left_result.board, max(up_eval, down_eval)) : -1.0;
+    left_eval = left_valid ? eval_board_outcomes(left_result.board, max(right_eval, max(up_eval, down_eval))) : -1.0;
     if(left_eval >= worst_seen) {
       --depth;
       return left_eval;
-    }
-    right_eval = right_valid ? eval_board_outcomes(right_result.board, max(up_eval, max(down_eval, left_eval))) : -1.0;
-    if(right_eval >= worst_seen) {
-      --depth;
-      return right_eval;
     }
   }
   else {
@@ -334,18 +334,14 @@ Direction advice(const board_t& board,
   double max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
 
-  if(max_val - up_val < 0.05 && max_val - up_val > -0.05) {
+  if(max_val == up_val) 
     return UP;
-  }
-  else if(max_val - right_val < 0.05 && max_val - right_val > -0.05) {
+  else if(max_val == right_val)
     return RIGHT;
-  }
-  else if (max_val - down_val < 0.05 && max_val - down_val > -0.05) {
+  else if(max_val == down_val)
     return DOWN;
-  }
-  else {
+  else
     return LEFT;
-  }
 }
 
 bool board_full(const board_t& board) {
