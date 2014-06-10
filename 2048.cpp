@@ -39,7 +39,7 @@ struct Block {
 
 Block input_block();
 
-void print_board(const board_t& board) {
+inline void print_board(const board_t& board) {
   ostream& output = cout;
   for(int y = 3; y >= 0; y--) {
     output<<"   ___________________"<<endl;
@@ -59,32 +59,32 @@ struct Move_Result {
   board_t board;
 };
 
-Move_Result up_move(const board_t& in_board);
-Move_Result down_move(const board_t& in_board);
-Move_Result left_move(const board_t& in_board);
-Move_Result right_move(const board_t& in_board);
+inline Move_Result up_move(const board_t& in_board);
+inline Move_Result down_move(const board_t& in_board);
+inline Move_Result left_move(const board_t& in_board);
+inline Move_Result right_move(const board_t& in_board);
 
-int min(int x1, int x2, int x3, int x4) {
+inline int min(int x1, int x2, int x3, int x4) {
   return min(x1, min(x2, min(x3, x4) ) );
 }
 
-int max(int x1, int x2, int x3, int x4) {
+inline int max(int x1, int x2, int x3, int x4) {
   return max(x1, max(x2, max(x3, x4) ) );
 }
 
-double max(double x1, double x2, double x3, double x4) {
+inline double max(double x1, double x2, double x3, double x4) {
   return max(x1, max(x2, max(x3, x4) ) );
 }
 
-bool board_full(const board_t& board);
+inline bool board_full(const board_t& board);
 
-Direction advice(const board_t& board,
-                 const board_t& up_result,
-                 const board_t& down_result,
-                 const board_t& left_result,
-                 const board_t& right_result);
+inline Direction advice(const board_t& board,
+                        const board_t& up_result,
+                        const board_t& down_result,
+                        const board_t& left_result,
+                        const board_t& right_result);
 
-void add_new_tile(board_t& board, bool user_in);
+inline void add_new_tile(board_t& board, bool user_in);
 
 int score = 0;
 int up_combo_val, down_combo_val, left_combo_val, right_combo_val;
@@ -208,7 +208,7 @@ int main() {
 
 //returns some evaluation of this board based on number of tiles,
 //    number of combos available, highest tile value
-int heuristic(const board_t& board) {
+inline int heuristic(const board_t& board) {
   int num_empty = 0;
   for(int c = 0; c < 4; ++c) {
     int column = board.raw_col(c);
@@ -227,7 +227,7 @@ int depth = 0;
 
 int eval_board_outcomes(const board_t& board, int best_seen);
 
-int eval_board_moves(const board_t& board, int worst_seen) {
+inline int eval_board_moves(const board_t& board, int worst_seen) {
   ++depth;
   Move_Result up_result = up_move(board);
   Move_Result down_result = down_move(board);
@@ -311,11 +311,11 @@ int eval_board_outcomes(const board_t& board, int best_seen) {
   return worst_case;
 }
 
-Direction advice(const board_t& board,
-                 const board_t& up_result,
-                 const board_t& down_result,
-                 const board_t& left_result,
-                 const board_t& right_result) {
+inline Direction advice(const board_t& board,
+                        const board_t& up_result,
+                        const board_t& down_result,
+                        const board_t& left_result,
+                        const board_t& right_result) {
   double up_val;
   double down_val;
   double left_val;
@@ -344,7 +344,7 @@ Direction advice(const board_t& board,
     return LEFT;
 }
 
-bool board_full(const board_t& board) {
+inline bool board_full(const board_t& board) {
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
       if(board.val_at(x,y) == 0) return false;
@@ -353,7 +353,7 @@ bool board_full(const board_t& board) {
   return true;
 }
 
-void add_new_tile(board_t& board, bool user_in) {
+inline void add_new_tile(board_t& board, bool user_in) {
   deque<Block> empty_blocks;
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
@@ -385,7 +385,7 @@ void add_new_tile(board_t& board, bool user_in) {
   board.set_val(block_to_fill.x,block_to_fill.y,block_to_fill.val);
 }
 
-Block input_block() {
+inline Block input_block() {
   Block return_block;
   return_block.empty = false;
   cout<<"New block value (2|4): ";
@@ -399,7 +399,7 @@ Block input_block() {
   return return_block;
 }
 
-Move_Result up_move(const board_t& in_board) {
+inline Move_Result up_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
  
@@ -418,7 +418,7 @@ Move_Result up_move(const board_t& in_board) {
   return result;
 }
 
-Move_Result down_move(const board_t& in_board) {
+inline Move_Result down_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
 
@@ -437,7 +437,7 @@ Move_Result down_move(const board_t& in_board) {
   return result;
 }
 
-Move_Result left_move(const board_t& in_board) {
+inline Move_Result left_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
 
@@ -456,7 +456,7 @@ Move_Result left_move(const board_t& in_board) {
   return result;
 }
 
-Move_Result right_move(const board_t& in_board) {
+inline Move_Result right_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
 
