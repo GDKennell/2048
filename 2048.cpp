@@ -227,6 +227,8 @@ int depth = 0;
 
 double eval_board_outcomes(const board_t& board);
 
+const double INVALID_MOVE_WEIGHT = 0.0;
+
 double eval_board_moves(const board_t& board) {
   ++depth;
   Move_Result up_result = up_move(board);
@@ -242,16 +244,16 @@ double eval_board_moves(const board_t& board) {
   double up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
-    up_eval = up_valid ? eval_board_outcomes(up_result.board) : -1.0;
-    down_eval = down_valid ? eval_board_outcomes(down_result.board) : -1.0;
-    left_eval = left_valid ? eval_board_outcomes(left_result.board) : -1.0;
-    right_eval = right_valid ? eval_board_outcomes(right_result.board) : -1.0;
+    up_eval = up_valid ? eval_board_outcomes(up_result.board) : INVALID_MOVE_WEIGHT;
+    down_eval = down_valid ? eval_board_outcomes(down_result.board) : INVALID_MOVE_WEIGHT;
+    left_eval = left_valid ? eval_board_outcomes(left_result.board) : INVALID_MOVE_WEIGHT;
+    right_eval = right_valid ? eval_board_outcomes(right_result.board) : INVALID_MOVE_WEIGHT;
   }
   else {
-    up_eval = up_valid ? heuristic(up_result.board) : -1.0;
-    down_eval = down_valid ? heuristic(down_result.board) : -1.0;
-    left_eval = left_valid ? heuristic(left_result.board) : -1.0;
-    right_eval = right_valid ? heuristic(right_result.board) : -1.0;
+    up_eval = up_valid ? heuristic(up_result.board) : INVALID_MOVE_WEIGHT;
+    down_eval = down_valid ? heuristic(down_result.board) : INVALID_MOVE_WEIGHT;
+    left_eval = left_valid ? heuristic(left_result.board) : INVALID_MOVE_WEIGHT;
+    right_eval = right_valid ? heuristic(right_result.board) : INVALID_MOVE_WEIGHT;
   }
   --depth;
   return max(up_eval, down_eval, left_eval, right_eval);
@@ -294,6 +296,8 @@ double eval_board_outcomes(const board_t& board) {
   return tot_prob;
 }
 
+const double TOLERANCE = 0.02;
+
 Direction advice(const board_t& board,
                  const board_t& up_result,
                  const board_t& down_result,
@@ -304,26 +308,32 @@ Direction advice(const board_t& board,
   double left_val;
   double right_val;
 
+/*  int num_empty = heuristic(board);
+  if(num_empty < 2) MAX_DEPTH = 10;
+  else if(num_empty < 4) MAX_DEPTH = 8;
+  else if(num_empty < 7) MAX_DEPTH = 6;
+  else MAX_DEPTH = 4;*/
+
   bool up_valid = (board != up_result);
   bool right_valid = (board != right_result);
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
 
-  up_val = up_valid ? eval_board_outcomes(up_result) * up_weight : -1.0;
-  down_val = down_valid ? eval_board_outcomes(down_result) * down_weight : -1.0;
-  left_val = left_valid ? eval_board_outcomes(left_result) * left_weight : -1.0;
-  right_val = right_valid ? eval_board_outcomes(right_result) * right_weight : -1.0;
+  up_val = up_valid ? eval_board_outcomes(up_result) * up_weight : INVALID_MOVE_WEIGHT;
+  down_val = down_valid ? eval_board_outcomes(down_result) * down_weight : INVALID_MOVE_WEIGHT;
+  left_val = left_valid ? eval_board_outcomes(left_result) * left_weight : INVALID_MOVE_WEIGHT;
+  right_val = right_valid ? eval_board_outcomes(right_result) * right_weight : INVALID_MOVE_WEIGHT;
 
   double max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
 
-  if(max_val - up_val < 0.05 && max_val - up_val > -0.05) {
+  if(max_val - up_val < TOLERANCE && max_val - up_val > -TOLERANCE) {
     return UP;
   }
-  else if(max_val - right_val < 0.05 && max_val - right_val > -0.05) {
+  else if(max_val - right_val < TOLERANCE && max_val - right_val > -TOLERANCE) {
     return RIGHT;
   }
-  else if (max_val - down_val < 0.05 && max_val - down_val > -0.05) {
+  else if (max_val - down_val < TOLERANCE && max_val - down_val > -TOLERANCE) {
     return DOWN;
   }
   else {
