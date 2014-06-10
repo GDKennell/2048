@@ -217,7 +217,7 @@ inline int heuristic(const board_t& board) {
   return num_empty;
 }
 
-const int MAX_DEPTH = 8;
+int MAX_DEPTH = 8;
 const double up_weight = 1.0;
 const double right_weight = 1.0;
 const double down_weight = 1.0;
@@ -320,6 +320,13 @@ inline Direction advice(const board_t& board,
   double down_val;
   double left_val;
   double right_val;
+
+  int num_empty = heuristic(board);
+  
+  if(num_empty <= 1) MAX_DEPTH = 12;
+  else if(num_empty <= 3) MAX_DEPTH = 10;
+  else if(num_empty < 7) MAX_DEPTH = 8;
+  else MAX_DEPTH = 6;
 
   bool up_valid = (board != up_result);
   bool right_valid = (board != right_result);
