@@ -217,7 +217,10 @@ int heuristic(const board_t& board) {
   return num_empty;
 }
 
-const int MAX_DEPTH = 6;
+int MAX_DEPTH = 6;
+const double INVALID_MOVE_WEIGHT = 0.0;
+double TOLERANCE = 0.01;
+
 const double up_weight = 1.0;
 const double right_weight = 1.0;
 const double down_weight = 1.0;
@@ -226,8 +229,6 @@ const double left_weight = 1.0;
 int depth = 0;
 
 double eval_board_outcomes(const board_t& board);
-
-const double INVALID_MOVE_WEIGHT = 0.0;
 
 double eval_board_moves(const board_t& board) {
   ++depth;
@@ -296,8 +297,6 @@ double eval_board_outcomes(const board_t& board) {
   return tot_prob;
 }
 
-const double TOLERANCE = 0.02;
-
 Direction advice(const board_t& board,
                  const board_t& up_result,
                  const board_t& down_result,
@@ -308,11 +307,23 @@ Direction advice(const board_t& board,
   double left_val;
   double right_val;
 
-/*  int num_empty = heuristic(board);
-  if(num_empty < 2) MAX_DEPTH = 10;
-  else if(num_empty < 4) MAX_DEPTH = 8;
-  else if(num_empty < 7) MAX_DEPTH = 6;
-  else MAX_DEPTH = 4;*/
+  int num_empty = heuristic(board);
+  if(num_empty < 2) {
+    TOLERANCE = 0.005;
+    MAX_DEPTH = 10;
+  }
+  else if(num_empty < 4) {
+    TOLERANCE = 0.01;
+    MAX_DEPTH = 8;
+  }
+  else if(num_empty < 7) {
+    TOLERANCE = 0.02;
+    MAX_DEPTH = 6;
+  }
+  else {
+    TOLERANCE = 0.05;
+    MAX_DEPTH = 4; 
+  }
 
   bool up_valid = (board != up_result);
   bool right_valid = (board != right_result);
