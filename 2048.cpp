@@ -10,6 +10,7 @@
 #include <chrono>
 #include <ctime>
 #include <math.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -96,7 +97,11 @@ transform_t right_move_transforms[NUM_TRANSFORMS];
 
 int empty_vals[NUM_TRANSFORMS];
 
-int main() {
+int main(int argc, char** argv) {
+  int num_tiles = 16;
+  if (argc > 1) {
+    num_tiles = atoi(argv[1]);
+  }
 
   fstream leftFile ("left.bin", ios::in | ios::binary);
   assert(leftFile.good());
@@ -117,13 +122,14 @@ int main() {
 
   board_t board;
 
-  int num_tiles = 2;
   cout<<"Input "<<num_tiles<<" tiles"<<endl;
   for(int i = 0; i < num_tiles; ++i){
     Block new_block = input_block();
     assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
     assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
     board.set_val(new_block.x-1, new_block.y-1, new_block.val);
+    cout<<endl;
+    print_board(board);
     cout<<endl;
   }
 
@@ -189,7 +195,7 @@ int main() {
     cout<<"Input new tile"<<endl;
 
     try {
-      add_new_tile(board, false);
+      add_new_tile(board, true);
     } catch(...) {
       end_time=Clock::to_time_t(Clock::now());
       cout<<"Game OOOver!!!"<<endl;
