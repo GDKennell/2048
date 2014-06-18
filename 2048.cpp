@@ -336,10 +336,10 @@ Direction advice(const board_t& board,
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
 
-  up_val = up_valid ? eval_board_outcomes(up_result) * up_weight : INVALID_MOVE_WEIGHT;
-  down_val = down_valid ? eval_board_outcomes(down_result) * down_weight : INVALID_MOVE_WEIGHT;
-  left_val = left_valid ? eval_board_outcomes(left_result) * left_weight : INVALID_MOVE_WEIGHT;
-  right_val = right_valid ? eval_board_outcomes(right_result) * right_weight : INVALID_MOVE_WEIGHT;
+  up_val = up_valid ? eval_board_outcomes(up_result) * up_weight : -1.0;
+  down_val = down_valid ? eval_board_outcomes(down_result) * down_weight : -1.0;
+  left_val = left_valid ? eval_board_outcomes(left_result) * left_weight : -1.0;
+  right_val = right_valid ? eval_board_outcomes(right_result) * right_weight : -1.0;
 
   double max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
