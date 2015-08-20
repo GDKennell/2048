@@ -19,9 +19,9 @@ struct Block;
 typedef SmallBoard board_t;
 typedef chrono::system_clock Clock;
 
-enum Direction {UP, DOWN, LEFT, RIGHT};
+enum Direction {UP, DOWN, LEFT, RIGHT, NONE};
 
-const char* direction_names[] = {"up", "down", "left", "right"};
+const char* direction_names[] = {"up", "down", "left", "right", "none"};
 
 struct Block {
   int val;
@@ -99,48 +99,61 @@ int empty_vals[NUM_TRANSFORMS];
 
 void load_precompute_files();
 
+board_t input_board();
+
+Direction decide_move(const board_t &board);
+
+Direction decide_move(const board_t &board) {
+  // Up move
+  up_combo_val = 0;
+  Move_Result up_result = up_move(board);
+  // Down move
+  down_combo_val = 0;
+  Move_Result down_result = down_move(board);
+  // Left move
+  left_combo_val = 0;
+  Move_Result left_result = left_move(board);
+  // Right move
+  right_combo_val = 0;
+  Move_Result right_result = right_move(board);
+
+  if (up_result.board == board &&
+      down_result.board == board &&
+      left_result.board == board &&
+      right_result.board == board) {
+    return NONE;
+  }
+  else {
+    return advice(board,
+                  up_result.board,
+                  down_result.board,
+                  left_result.board,
+                  right_result.board);
+  }
+}
+
+board_t apply_move(Direction move_direction, const board_t &board, int& score);
+
 int main() {
 
   load_precompute_files();
- 
+
   time_t start_time, end_time;
   start_time=Clock::to_time_t(Clock::now());
   srand(time(NULL));
 
-  board_t board;
-
-  int num_tiles = 2;
-  cout<<"Input "<<num_tiles<<" tiles"<<endl;
-  for(int i = 0; i < num_tiles; ++i){
-    Block new_block = input_block();
-    assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
-    assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
-    board.set_val(new_block.x-1, new_block.y-1, new_block.val);
-    cout<<endl;
-  }
+  board_t board = input_board();
 
   int round_num = 0;
   while(1) {
     cout<<"###############Round "<<++round_num<<endl;
     print_board(board);
-    
-    // Up move
-    up_combo_val = 0;
-    Move_Result up_result = up_move(board);
-    // Down move
-    down_combo_val = 0;
-    Move_Result down_result = down_move(board);
-    // Left move
-    left_combo_val = 0;
-    Move_Result left_result = left_move(board);
-    // Right move
-    right_combo_val = 0;
-    Move_Result right_result = right_move(board);
 
-    if(board_full(up_result.board) &&
-        board_full(down_result.board) &&
-        board_full(left_result.board) &&
-        board_full(right_result.board)) {
+    Direction move_decision = decide_move(board);
+
+    board = apply_move(move_decision, board, score);
+
+    if(move_decision == NONE) {
       cout<<"Game Over"<<endl;
       end_time=Clock::to_time_t(Clock::now());
       cerr<<"Score: "<<score<<endl;
@@ -151,51 +164,12 @@ int main() {
       return 0;
     }
 
-     Direction choice = advice(board,
-                               up_result.board,
-                               down_result.board, 
-                               left_result.board,
-                               right_result.board);
-    cout<<"\n********Move "<<direction_names[choice];
-    cout<<"********"<<endl;
-
-    switch(choice) {
-      case UP:
-        board = up_result.board;
-        score += up_result.combos_val;
-        break;
-      case DOWN:
-        board = down_result.board;
-        score += down_result.combos_val;
-        break;
-      case LEFT:
-        board = left_result.board;
-        score += left_result.combos_val;
-        break;
-      case RIGHT:
-        board = right_result.board;
-        score += right_result.combos_val;
-        break;
-    }
+    cout<<"\n********Move "<<direction_names[move_decision]<<"********"<<endl;
     cout<<"********Score: "<<score<<"********\n"<<endl;
-    cout<<"Input new tile"<<endl;
 
-    try {
-      add_new_tile(board, false);
-    } catch(...) {
-      end_time=Clock::to_time_t(Clock::now());
-      cout<<"Game OOOver!!!"<<endl;
-      cerr<<"Score: "<<score<<endl;
-      cerr<<"Time: "<<end_time - start_time<<endl;
-      if(end_time - start_time != 0) {
-        cerr<<"Points/sec: "<<score / (end_time - start_time)<<endl;
-      }
-      return 0;
-    }
+    add_new_tile(board, false);
     cout<<endl;
-    
   }
-
 }
 
 void load_precompute_files() {
@@ -220,12 +194,55 @@ void load_precompute_files() {
   else {
     cout<<"Loaded empty tile precompute files"<<endl;
   }
-  
+
   for(int i = 0; i < NUM_TRANSFORMS; ++i) {
     leftFile.read((char*)&left_move_transforms[i], 4);
     rightFile.read((char*)&right_move_transforms[i], 4);
     emptyFile.read((char*)&empty_vals[i], sizeof(int));
   }
+}
+
+
+board_t apply_move(Direction move_direction, const board_t &board, int& score) {
+  board_t return_board;
+
+  //Move_Result up_move(const board_t& in_board);
+  Move_Result (*move_fn)(const board_t&) = NULL;
+  switch(move_direction) {
+    case UP:
+      move_fn = up_move;
+      break;
+    case DOWN:
+      move_fn = down_move;
+      break;
+    case LEFT:
+      move_fn = left_move;
+      break;
+    case RIGHT:
+      move_fn = right_move;
+      break;
+    case NONE:
+      return board;
+      break;
+  }
+
+  Move_Result moveResult = move_fn(board);
+  score += moveResult.combos_val;
+  return moveResult.board;
+}
+
+board_t input_board() {
+  board_t board;
+  const int num_tiles = 2;
+  cout<<"Input "<<num_tiles<<" tiles"<<endl;
+  for(int i = 0; i < num_tiles; ++i){
+    Block new_block = input_block();
+    assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
+    assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
+    board.set_val(new_block.x-1, new_block.y-1, new_block.val);
+    cout<<endl;
+  }
+  return board;
 }
 
 //returns some evaluation of this board based on number of tiles,
@@ -396,9 +413,8 @@ void add_new_tile(board_t& board, bool user_in) {
       }
     } 
   }
-  if(empty_blocks.empty()) {
-    throw "Board full";
-  }
+  assert(!empty_blocks.empty());
+
   Block block_to_fill;
   if (user_in) {
     block_to_fill= input_block();
