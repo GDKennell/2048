@@ -3,7 +3,7 @@
 
 using namespace std;
 
-int main() {
+void create_heur_precompute_file() {
   ofstream out_file("numempty.bin", ios::out | ios::binary);
 
   for(int row = 0; row < (uint64_t)pow(2,16); ++row) {

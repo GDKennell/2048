@@ -1,4 +1,5 @@
 #include "SmallBoard.h"
+#include "precompute.h"
 
 #include <algorithm>
 #include <cassert>
@@ -96,20 +97,11 @@ transform_t right_move_transforms[NUM_TRANSFORMS];
 
 int empty_vals[NUM_TRANSFORMS];
 
+void load_precompute_files();
+
 int main() {
 
-  fstream leftFile ("left.bin", ios::in | ios::binary);
-  assert(leftFile.good());
-  fstream rightFile ("right.bin", ios::in | ios::binary);
-  assert(rightFile.good());
-  fstream emptyFile ("numempty.bin", ios::in | ios::binary);
-  assert(emptyFile.good());
-  for(int i = 0; i < NUM_TRANSFORMS; ++i) {
-    leftFile.read((char*)&left_move_transforms[i], 4);
-    rightFile.read((char*)&right_move_transforms[i], 4);
-    emptyFile.read((char*)&empty_vals[i], sizeof(int));
-  }
-
+  load_precompute_files();
  
   time_t start_time, end_time;
   start_time=Clock::to_time_t(Clock::now());
@@ -204,6 +196,36 @@ int main() {
     
   }
 
+}
+
+void load_precompute_files() {
+  fstream leftFile ("left.bin", ios::in | ios::binary);
+  fstream rightFile ("right.bin", ios::in | ios::binary);
+  if (!leftFile.good() || !rightFile.good()) {
+    create_move_precompute_files();
+    cout<<"Re-creating move precompute files"<<endl;
+    leftFile = fstream("left.bin", ios::in | ios::binary);
+    rightFile = fstream("right.bin", ios::in | ios::binary);
+  }
+  else {
+    cout<<"Loaded move precompute files"<<endl;
+  }
+
+  fstream emptyFile ("numempty.bin", ios::in | ios::binary);
+  if (!emptyFile.good()) {
+    create_heur_precompute_file();
+    cout<<"Re-creating empty tile precompute files"<<endl;
+    emptyFile = fstream("numempty.bin", ios::in | ios::binary);
+  }
+  else {
+    cout<<"Loaded empty tile precompute files"<<endl;
+  }
+  
+  for(int i = 0; i < NUM_TRANSFORMS; ++i) {
+    leftFile.read((char*)&left_move_transforms[i], 4);
+    rightFile.read((char*)&right_move_transforms[i], 4);
+    emptyFile.read((char*)&empty_vals[i], sizeof(int));
+  }
 }
 
 //returns some evaluation of this board based on number of tiles,
