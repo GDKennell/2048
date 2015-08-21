@@ -8,7 +8,7 @@ Branches:
     There are many branches on this repository from different algorithms and optimizations which I have tried to
     implement previously. The most successful branch and the one that is currently being maintained is called 
     expectimax_refactor because it uses the expectimax algorithm and I am in the process of refactoring it for
-    readability.
+    readability. The master branch is now being updated based on that branch.
     
 Credit:
     Throughout the development of this project I consulted descriptions of other solutions that have been written for
