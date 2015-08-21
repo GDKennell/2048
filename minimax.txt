@@ -1,0 +1,74 @@
+General idea:
+  Create a single heuristic function which returns some positive value given a board.
+    Things to base the heuristic off of (+ for maximizing, - for minimizing):
+      + number of available combos
+      - number of tiles
+
+  To compute the heuristic value of a move, compute all possible resulting boards from the
+    possible additions of the next random tile, and use the minimum heuristic evaluation of all of them.
+
+Pseudocode:
+  - compute resulting board from each of four moves (eliminating invalid moves)
+  - 
+
+Farther future:
+  Eventually make this able to make the heuristic function recursive to an arbitrary depth
+    so given a board we compute its heursitic value by taking the minimum of the heuristic values
+    of all possible moves from that board, etc. e.g.:
+        Direction advice(board_t board) {
+          int up_val;
+          int down_val;
+          int left_val;
+          int right_val;
+
+          up_val = eval_board(up_move(board).board);
+          down_val = eval_board(down_move(board).board);
+          left_val = eval_board(left_move(board).board);
+          right_val = eval_board(right_move(board).board);
+          max_val = max(up_vale, down_val, left_val, right_val);
+          if(max_val == up_val) {
+            return UP;
+          }
+          else if (max_val == down_val) {
+            return DOWN;
+          }
+          else if(max_val == left_val) {
+            return LEFT;
+          }
+          else {
+            return RIGHT;
+          }
+        }
+ 
+        // Returns estimated worst case heuristic evaluation of a board
+        // recursing MAX_DEPTH moves
+        int eval_board(board_t board) {
+          static int depth = 0;
+          if (depth >= MAX_DEPTH) {
+            depth--;
+            deque<board_t> possible_outcomes;
+            for(all empty board positions in board) {
+              possible_outcomes.push_back(board + 2 in spot);
+              possible_outcomes.push_back(board + 4 in spot);
+            }
+            int min_val = MAX_INT;
+            for(all outcomes in possible_outcomes) {
+              int outcome_val = heuristic(outcome);
+              if (outcome_val < min_val)
+                min_val = outcome_val;
+            }
+           reutrn min_val;
+          }
+          depth++;
+          int up_eval = eval_board(up_move(board).board);
+          int down_eval = eval_board(down_move(board).board);
+          int left_eval = eval_board(left_move(board).board);
+          int right_eval = eval_board(right_move(board).board);
+          return min(up_eval, down_eval, left_eval, right_eval);
+        }
+
+        int heuristic(board_t board) {
+            return some evaluation of this board based on number of tiles,
+                number of combos available, highest tile value
+        }
+      
