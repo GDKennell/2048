@@ -15,6 +15,8 @@
 
 using namespace std;
 
+dispatch_queue_t cout_queue;
+
 struct Block;
 
 typedef SmallBoard board_t;
@@ -134,7 +136,7 @@ Direction decide_move(const board_t &board) {
 board_t apply_move(Direction move_direction, const board_t &board, int& score);
 
 int main() {
-
+  cout_queue = dispatch_queue_create("com.example.MyQueue", NULL);
   load_precompute_files();
 
   time_t start_time, end_time;
@@ -263,8 +265,10 @@ int64_t eval_board_outcomes(const board_t& board, int depth);
 
 int64_t eval_board_moves(const board_t& board, int depth) {
   if (verbose_logs) {
-    for (int i = 0; i < depth; ++i) {cout<<"  ";}
-    cout<<"Eval moves (d="<<depth<<") start"<<endl;
+    dispatch_async(cout_queue, ^{
+      for (int i = 0; i < depth; ++i) {cout<<"  ";}
+      cout<<"Eval moves (d="<<depth<<") start"<<endl;
+    });
   }
 
   Move_Result up_result = up_move(board);
@@ -292,19 +296,17 @@ int64_t eval_board_moves(const board_t& board, int depth) {
     right_eval = right_valid ? 10000000 * heuristic(right_result.board) : INVALID_MOVE_WEIGHT;
   }
   if (verbose_logs) {
-    for (int i = 0; i < depth; ++i) {cout<<"  ";}
-    cout<<"Eval moves (d="<<depth<<") got best move result of "<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+    dispatch_async(cout_queue, ^{
+      for (int i = 0; i < depth; ++i) {cout<<"  ";}
+      cout<<"Eval moves (d="<<depth<<") got best move result of "<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
+    });
   }
 
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
 int64_t eval_board_outcomes(const board_t& board, int depth) {
-  if (verbose_logs) {
-    for (int i = 0; i < depth; ++i) {cout<<"  ";}
-    cout<<"Eval outcomes (d="<<depth<<") start"<<endl;
-  }
-  board_t possible_outcomes[30];
+  __block board_t *possible_outcomes = new board_t[30];
   int num_outcomes = 0;
 
   for(int x = 0; x < 4; ++x) {
@@ -327,27 +329,45 @@ int64_t eval_board_outcomes(const board_t& board, int depth) {
   // 2's are weighted as 1.8 while 4's are weighted as 0.2
   int64_t prob2_num = 9;
   int64_t prob4_num = 1;
-  int64_t tot_prob = 0;
-  for(int i = 0; i < num_outcomes; ++i) {
-    int64_t outcome_val = eval_board_moves(possible_outcomes[i], depth + 1);
-    if (verbose_logs) {
+  __block int64_t tot_prob = 0;
+
+  if (verbose_logs) {
+    dispatch_async(cout_queue, ^{
+
       for (int i = 0; i < depth; ++i) {cout<<"  ";}
-      cout<<"Eval outcomes (d="<<depth<<") got outcome_val "<<outcome_val<<endl;
+      cout<<"Eval outcomes (d="<<depth<<") start with "<<num_outcomes<<" outcomes"<<endl;
+    });
+  }
+
+  dispatch_apply(num_outcomes, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(size_t i) {
+    board_t this_outcome = possible_outcomes[i];
+    int64_t outcome_val = eval_board_moves(this_outcome, depth + 1);
+
+    if (verbose_logs) {
+      dispatch_async(cout_queue, ^{
+
+        for (int i = 0; i < depth; ++i) {cout<<"  ";}
+        cout<<"Eval outcomes ["<<i<<"/"<<num_outcomes<<"] (d="<<depth<<") got outcome_val "<<outcome_val<<endl;
+      });
     }
 
     if(i % 2 == 0)
       tot_prob += prob2_num * outcome_val;
     else
       tot_prob += prob4_num * outcome_val;
-  }
-  if (verbose_logs) {
-    for (int i = 0; i < depth; ++i) {cout<<"  ";}
-    cout<<"Eval outcomes (d="<<depth<<"): returning tot_prob("<<tot_prob<<")/num_outcomes("<<num_outcomes<<") = "<<tot_prob/num_outcomes<<endl;
-  }
+  });
 
+  if (verbose_logs) {
+    dispatch_async(cout_queue, ^{
+
+      for (int i = 0; i < depth; ++i) {cout<<"  ";}
+      cout<<"Eval outcomes (d="<<depth<<"): returning tot_prob("<<tot_prob<<")/num_outcomes("<<num_outcomes<<") = "<<tot_prob/num_outcomes<<endl;
+    });
+  }
+  
 
   tot_prob = tot_prob / (10 * num_outcomes);
-
+  delete[] possible_outcomes;
   return tot_prob;
 }
 
@@ -387,7 +407,6 @@ Direction advice(const board_t& board,
 
   dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
   dispatch_group_t outcome_dispatch_group = dispatch_group_create();
-
 
   dispatch_group_async(outcome_dispatch_group, global_queue,  ^{
     up_val = up_valid ? eval_board_outcomes(up_result, 1) : -1;
