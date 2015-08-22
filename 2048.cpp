@@ -23,6 +23,8 @@ enum Direction {UP, DOWN, LEFT, RIGHT, NONE};
 
 const char* direction_names[] = {"up", "down", "left", "right", "none"};
 
+const bool verbose_logs = false;
+
 struct Block {
   int val;
   int x,y;
@@ -262,6 +264,11 @@ int64_t eval_board_outcomes(const board_t& board);
 
 int64_t eval_board_moves(const board_t& board) {
   ++depth;
+  if (verbose_logs) {
+    for (int i = 0; i < depth; ++i) {cout<<"  ";}
+    cout<<"Eval moves (d="<<depth<<") start"<<endl;
+  }
+
   Move_Result up_result = up_move(board);
   Move_Result down_result = down_move(board);
   Move_Result left_result = left_move(board);
@@ -281,10 +288,14 @@ int64_t eval_board_moves(const board_t& board) {
     right_eval = right_valid ? eval_board_outcomes(right_result.board) : INVALID_MOVE_WEIGHT;
   }
   else {
-    up_eval = up_valid ? heuristic(up_result.board) : INVALID_MOVE_WEIGHT;
-    down_eval = down_valid ? heuristic(down_result.board) : INVALID_MOVE_WEIGHT;
-    left_eval = left_valid ? heuristic(left_result.board) : INVALID_MOVE_WEIGHT;
-    right_eval = right_valid ? heuristic(right_result.board) : INVALID_MOVE_WEIGHT;
+    up_eval = up_valid ? 10000000 * heuristic(up_result.board) : INVALID_MOVE_WEIGHT;
+    down_eval = down_valid ? 10000000 * heuristic(down_result.board) : INVALID_MOVE_WEIGHT;
+    left_eval = left_valid ? 10000000 * heuristic(left_result.board) : INVALID_MOVE_WEIGHT;
+    right_eval = right_valid ? 10000000 * heuristic(right_result.board) : INVALID_MOVE_WEIGHT;
+  }
+  if (verbose_logs) {
+    for (int i = 0; i < depth; ++i) {cout<<"  ";}
+    cout<<"Eval moves (d="<<depth<<") got best move result of "<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
   }
   --depth;
   return max(up_eval, down_eval, left_eval, right_eval);
@@ -292,6 +303,10 @@ int64_t eval_board_moves(const board_t& board) {
 
 int64_t eval_board_outcomes(const board_t& board) {
   ++depth;
+  if (verbose_logs) {
+    for (int i = 0; i < depth; ++i) {cout<<"  ";}
+    cout<<"Eval outcomes (d="<<depth<<") start"<<endl;
+  }
   board_t possible_outcomes[30];
   int num_outcomes = 0;
 
@@ -314,18 +329,28 @@ int64_t eval_board_outcomes(const board_t& board) {
   }
 
   // 2's are weighted as 1.8 while 4's are weighted as 0.2
-  int64_t prob2_num = 900;
-  int64_t prob4_num = 100;
+  int64_t prob2_num = 9;
+  int64_t prob4_num = 1;
   int64_t tot_prob = 0;
   for(int i = 0; i < num_outcomes; ++i) {
     int64_t outcome_val = eval_board_moves(possible_outcomes[i]);
+    if (verbose_logs) {
+      for (int i = 0; i < depth; ++i) {cout<<"  ";}
+      cout<<"Eval outcomes (d="<<depth<<") got outcome_val "<<outcome_val<<endl;
+    }
+
     if(i % 2 == 0)
       tot_prob += prob2_num * outcome_val;
     else
       tot_prob += prob4_num * outcome_val;
   }
+  if (verbose_logs) {
+    for (int i = 0; i < depth; ++i) {cout<<"  ";}
+    cout<<"Eval outcomes (d="<<depth<<"): returning tot_prob("<<tot_prob<<")/num_outcomes("<<num_outcomes<<") = "<<tot_prob/num_outcomes<<endl;
+  }
+
   --depth;
-  tot_prob /= num_outcomes;
+  tot_prob = tot_prob / (10 * num_outcomes);
   return tot_prob;
 }
 
@@ -334,6 +359,7 @@ Direction advice(const board_t& board,
                  const board_t& down_result,
                  const board_t& left_result,
                  const board_t& right_result) {
+  if (verbose_logs)cout<<"\n----------ADVICE--------\n";
   int64_t up_val;
   int64_t down_val;
   int64_t left_val;
@@ -341,19 +367,19 @@ Direction advice(const board_t& board,
 
   int num_empty = heuristic(board);
   if(num_empty < 2) {
-    TOLERANCE = 5;
+    TOLERANCE = 50000;
     MAX_DEPTH = 10;
   }
   else if(num_empty < 4) {
-    TOLERANCE = 10;
+    TOLERANCE = 100000;
     MAX_DEPTH = 8;
   }
   else if(num_empty < 7) {
-    TOLERANCE = 20;
+    TOLERANCE = 200000;
     MAX_DEPTH = 6;
   }
   else {
-    TOLERANCE = 50;
+    TOLERANCE = 500000;
     MAX_DEPTH = 4; 
   }
 
@@ -373,13 +399,13 @@ Direction advice(const board_t& board,
   if (!up_valid && !down_valid && !left_valid && !right_valid) {
     return NONE;
   }
-  else if(max_val - up_val < TOLERANCE && max_val - up_val > -TOLERANCE) {
+  else if(up_valid && max_val - up_val < TOLERANCE && max_val - up_val > -TOLERANCE) {
     return UP;
   }
-  else if(max_val - right_val < TOLERANCE && max_val - right_val > -TOLERANCE) {
+  else if(right_valid && max_val - right_val < TOLERANCE && max_val - right_val > -TOLERANCE) {
     return RIGHT;
   }
-  else if (max_val - down_val < TOLERANCE && max_val - down_val > -TOLERANCE) {
+  else if (down_valid && max_val - down_val < TOLERANCE && max_val - down_val > -TOLERANCE) {
     return DOWN;
   }
   else {
