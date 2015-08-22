@@ -1,6 +1,7 @@
 #include "SmallBoard.h"
 #include "precompute.h"
 
+#include <dispatch/dispatch.h>
 #include <algorithm>
 #include <cassert>
 #include <deque>
@@ -258,12 +259,9 @@ int MAX_DEPTH = 6;
 const int INVALID_MOVE_WEIGHT = 0.0;
 int TOLERANCE = 10;
 
-int depth = 0;
+int64_t eval_board_outcomes(const board_t& board, int depth);
 
-int64_t eval_board_outcomes(const board_t& board);
-
-int64_t eval_board_moves(const board_t& board) {
-  ++depth;
+int64_t eval_board_moves(const board_t& board, int depth) {
   if (verbose_logs) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
     cout<<"Eval moves (d="<<depth<<") start"<<endl;
@@ -282,10 +280,10 @@ int64_t eval_board_moves(const board_t& board) {
   int64_t up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
-    up_eval = up_valid ? eval_board_outcomes(up_result.board) : INVALID_MOVE_WEIGHT;
-    down_eval = down_valid ? eval_board_outcomes(down_result.board) : INVALID_MOVE_WEIGHT;
-    left_eval = left_valid ? eval_board_outcomes(left_result.board) : INVALID_MOVE_WEIGHT;
-    right_eval = right_valid ? eval_board_outcomes(right_result.board) : INVALID_MOVE_WEIGHT;
+    up_eval = up_valid ? eval_board_outcomes(up_result.board, depth + 1) : INVALID_MOVE_WEIGHT;
+    down_eval = down_valid ? eval_board_outcomes(down_result.board, depth + 1) : INVALID_MOVE_WEIGHT;
+    left_eval = left_valid ? eval_board_outcomes(left_result.board, depth + 1) : INVALID_MOVE_WEIGHT;
+    right_eval = right_valid ? eval_board_outcomes(right_result.board, depth + 1) : INVALID_MOVE_WEIGHT;
   }
   else {
     up_eval = up_valid ? 10000000 * heuristic(up_result.board) : INVALID_MOVE_WEIGHT;
@@ -297,12 +295,11 @@ int64_t eval_board_moves(const board_t& board) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
     cout<<"Eval moves (d="<<depth<<") got best move result of "<<max(up_eval, down_eval, left_eval, right_eval)<<endl;
   }
-  --depth;
+
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
-int64_t eval_board_outcomes(const board_t& board) {
-  ++depth;
+int64_t eval_board_outcomes(const board_t& board, int depth) {
   if (verbose_logs) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
     cout<<"Eval outcomes (d="<<depth<<") start"<<endl;
@@ -324,7 +321,6 @@ int64_t eval_board_outcomes(const board_t& board) {
     }
   }
   if(num_outcomes == 0) {
-    --depth;
     return 0.0;
   }
 
@@ -333,7 +329,7 @@ int64_t eval_board_outcomes(const board_t& board) {
   int64_t prob4_num = 1;
   int64_t tot_prob = 0;
   for(int i = 0; i < num_outcomes; ++i) {
-    int64_t outcome_val = eval_board_moves(possible_outcomes[i]);
+    int64_t outcome_val = eval_board_moves(possible_outcomes[i], depth + 1);
     if (verbose_logs) {
       for (int i = 0; i < depth; ++i) {cout<<"  ";}
       cout<<"Eval outcomes (d="<<depth<<") got outcome_val "<<outcome_val<<endl;
@@ -349,8 +345,9 @@ int64_t eval_board_outcomes(const board_t& board) {
     cout<<"Eval outcomes (d="<<depth<<"): returning tot_prob("<<tot_prob<<")/num_outcomes("<<num_outcomes<<") = "<<tot_prob/num_outcomes<<endl;
   }
 
-  --depth;
+
   tot_prob = tot_prob / (10 * num_outcomes);
+
   return tot_prob;
 }
 
@@ -360,10 +357,10 @@ Direction advice(const board_t& board,
                  const board_t& left_result,
                  const board_t& right_result) {
   if (verbose_logs)cout<<"\n----------ADVICE--------\n";
-  int64_t up_val;
-  int64_t down_val;
-  int64_t left_val;
-  int64_t right_val;
+  __block int64_t up_val;
+  __block int64_t down_val;
+  __block int64_t left_val;
+  __block int64_t right_val;
 
   int num_empty = heuristic(board);
   if(num_empty < 2) {
@@ -388,10 +385,23 @@ Direction advice(const board_t& board,
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
 
-  up_val = up_valid ? eval_board_outcomes(up_result) : -1;
-  down_val = down_valid ? eval_board_outcomes(down_result) : -1;
-  left_val = left_valid ? eval_board_outcomes(left_result) : -1;
-  right_val = right_valid ? eval_board_outcomes(right_result) : -1;
+  dispatch_queue_t global_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+  dispatch_group_t outcome_dispatch_group = dispatch_group_create();
+
+
+  dispatch_group_async(outcome_dispatch_group, global_queue,  ^{
+    up_val = up_valid ? eval_board_outcomes(up_result, 1) : -1;
+  });
+  dispatch_group_async(outcome_dispatch_group, global_queue,  ^{
+    down_val = down_valid ? eval_board_outcomes(down_result, 1) : -1;
+  });
+  dispatch_group_async(outcome_dispatch_group, global_queue,  ^{
+    left_val = left_valid ? eval_board_outcomes(left_result, 1) : -1;
+  });
+  dispatch_group_async(outcome_dispatch_group, global_queue,  ^{
+    right_val = right_valid ? eval_board_outcomes(right_result, 1) : -1;
+  });
+  dispatch_group_wait(outcome_dispatch_group, DISPATCH_TIME_FOREVER);
 
   int64_t max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
