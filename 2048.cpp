@@ -65,15 +65,11 @@ Move_Result down_move(const board_t& in_board);
 Move_Result left_move(const board_t& in_board);
 Move_Result right_move(const board_t& in_board);
 
-int min(int x1, int x2, int x3, int x4) {
+int64_t min(int64_t x1, int64_t x2, int64_t x3, int64_t x4) {
   return min(x1, min(x2, min(x3, x4) ) );
 }
 
-int max(int x1, int x2, int x3, int x4) {
-  return max(x1, max(x2, max(x3, x4) ) );
-}
-
-double max(double x1, double x2, double x3, double x4) {
+int64_t max(int64_t x1, int64_t x2, int64_t x3, int64_t x4) {
   return max(x1, max(x2, max(x3, x4) ) );
 }
 
@@ -233,7 +229,7 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score) {
 
 board_t input_board() {
   board_t board;
-  const int num_tiles = 2;
+  const int num_tiles = 6;
   cout<<"Input "<<num_tiles<<" tiles"<<endl;
   for(int i = 0; i < num_tiles; ++i){
     Block new_block = input_block();
@@ -247,29 +243,24 @@ board_t input_board() {
 
 //returns some evaluation of this board based on number of tiles,
 //    number of combos available, highest tile value
-int heuristic(const board_t& board) {
-  int num_empty = 0;
-  for(int c = 0; c < 4; ++c) {
-    int column = board.raw_col(c);
+int64_t heuristic(const board_t& board) {
+  int64_t num_empty = 0;
+  for(int64_t c = 0; c < 4; ++c) {
+    int64_t column = board.raw_col(c);
     num_empty += empty_vals[column];
   }
   return num_empty;
 }
 
 int MAX_DEPTH = 6;
-const double INVALID_MOVE_WEIGHT = 0.0;
-double TOLERANCE = 0.01;
-
-const double up_weight = 1.0;
-const double right_weight = 1.0;
-const double down_weight = 1.0;
-const double left_weight = 1.0;
+const int INVALID_MOVE_WEIGHT = 0.0;
+int TOLERANCE = 10;
 
 int depth = 0;
 
-double eval_board_outcomes(const board_t& board);
+int64_t eval_board_outcomes(const board_t& board);
 
-double eval_board_moves(const board_t& board) {
+int64_t eval_board_moves(const board_t& board) {
   ++depth;
   Move_Result up_result = up_move(board);
   Move_Result down_result = down_move(board);
@@ -281,7 +272,7 @@ double eval_board_moves(const board_t& board) {
   bool left_valid = (board != left_result.board);
   bool right_valid = (board != right_result.board);
 
-  double up_eval, down_eval, left_eval, right_eval;
+  int64_t up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
     up_eval = up_valid ? eval_board_outcomes(up_result.board) : INVALID_MOVE_WEIGHT;
@@ -299,7 +290,7 @@ double eval_board_moves(const board_t& board) {
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
-double eval_board_outcomes(const board_t& board) {
+int64_t eval_board_outcomes(const board_t& board) {
   ++depth;
   board_t possible_outcomes[30];
   int num_outcomes = 0;
@@ -321,18 +312,20 @@ double eval_board_outcomes(const board_t& board) {
     --depth;
     return 0.0;
   }
- 
-  double prob2 = (9.0/10.0) * (1.0 / (double)num_outcomes); 
-  double prob4 = (1.0/10.0) * (1.0 / (double)num_outcomes); 
-  double tot_prob = 0.0;
+
+  // 2's are weighted as 1.8 while 4's are weighted as 0.2
+  int64_t prob2_num = 900;
+  int64_t prob4_num = 100;
+  int64_t tot_prob = 0;
   for(int i = 0; i < num_outcomes; ++i) {
-    double outcome_val = eval_board_moves(possible_outcomes[i]);
+    int64_t outcome_val = eval_board_moves(possible_outcomes[i]);
     if(i % 2 == 0)
-      tot_prob += (prob2 * outcome_val);
+      tot_prob += prob2_num * outcome_val;
     else
-      tot_prob += (prob4 * outcome_val);
+      tot_prob += prob4_num * outcome_val;
   }
   --depth;
+  tot_prob /= num_outcomes;
   return tot_prob;
 }
 
@@ -341,26 +334,26 @@ Direction advice(const board_t& board,
                  const board_t& down_result,
                  const board_t& left_result,
                  const board_t& right_result) {
-  double up_val;
-  double down_val;
-  double left_val;
-  double right_val;
+  int64_t up_val;
+  int64_t down_val;
+  int64_t left_val;
+  int64_t right_val;
 
   int num_empty = heuristic(board);
   if(num_empty < 2) {
-    TOLERANCE = 0.005;
+    TOLERANCE = 5;
     MAX_DEPTH = 10;
   }
   else if(num_empty < 4) {
-    TOLERANCE = 0.01;
+    TOLERANCE = 10;
     MAX_DEPTH = 8;
   }
   else if(num_empty < 7) {
-    TOLERANCE = 0.02;
+    TOLERANCE = 20;
     MAX_DEPTH = 6;
   }
   else {
-    TOLERANCE = 0.05;
+    TOLERANCE = 50;
     MAX_DEPTH = 4; 
   }
 
@@ -369,15 +362,18 @@ Direction advice(const board_t& board,
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
 
-  up_val = up_valid ? eval_board_outcomes(up_result) * up_weight : -1.0;
-  down_val = down_valid ? eval_board_outcomes(down_result) * down_weight : -1.0;
-  left_val = left_valid ? eval_board_outcomes(left_result) * left_weight : -1.0;
-  right_val = right_valid ? eval_board_outcomes(right_result) * right_weight : -1.0;
+  up_val = up_valid ? eval_board_outcomes(up_result) : -1;
+  down_val = down_valid ? eval_board_outcomes(down_result) : -1;
+  left_val = left_valid ? eval_board_outcomes(left_result) : -1;
+  right_val = right_valid ? eval_board_outcomes(right_result) : -1;
 
-  double max_val = max(up_val, down_val, left_val, right_val);
+  int64_t max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
 
-  if(max_val - up_val < TOLERANCE && max_val - up_val > -TOLERANCE) {
+  if (!up_valid && !down_valid && !left_valid && !right_valid) {
+    return NONE;
+  }
+  else if(max_val - up_val < TOLERANCE && max_val - up_val > -TOLERANCE) {
     return UP;
   }
   else if(max_val - right_val < TOLERANCE && max_val - right_val > -TOLERANCE) {
@@ -422,8 +418,10 @@ void add_new_tile(board_t& board, bool user_in) {
     block_to_fill.y--;
   }
   else {
-    block_to_fill = empty_blocks[rand() % empty_blocks.size()];
-    block_to_fill.val = (rand() % 100 <= 10) ? 4 : 2;
+    block_to_fill = empty_blocks[0];
+    block_to_fill.val = 2;
+//    block_to_fill = empty_blocks[rand() % empty_blocks.size()];
+//    block_to_fill.val = (rand() % 100 <= 10) ? 4 : 2;
   }
   cout<<"New block at ("<<block_to_fill.x+1<<',';
   cout<<block_to_fill.y+1<<") with value "<<block_to_fill.val<<endl;
