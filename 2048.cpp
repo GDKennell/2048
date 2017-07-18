@@ -154,10 +154,10 @@ int main() {
 
   board_t board;// = input_board();
   board.set_val(0,0,2);
-  board.set_val(1,0,4);
-//  board.set_val(2,0,4);
-//  board.set_val(3,0,8);
-//  board.set_val(3,1,2);
+  board.set_val(1,0,2);
+  board.set_val(2,0,4);
+  board.set_val(3,0,32);
+  board.set_val(3,1,2);
 
   int round_num = 0;
   while(1) {
@@ -292,7 +292,7 @@ void setupIdealSquares() {
 }
 
 bool compareBlocksByValue(Block b1, Block b2) {
-  if (b2.val == b1.val) {
+  if (b2.val == b1.val && b1.val > 4) {
     // in case of tie in value, sort by which comes in order in ideal squares
     // so if we have a tie for first, they get labeled as both correct on the first
     // two squares rather than both being one off.
@@ -314,7 +314,8 @@ bool compareBlocksByValue(Block b1, Block b2) {
 int64_t heuristic(const board_t& board) {
   setupIdealSquares();
 
-  vector<Block> allBlocks;
+  Block blocksArray[NUM_TILES];
+  int blockCount = 0;
   for (int x = 0; x < 4; ++x) {
     for (int y = 0; y < 4; ++y) {
       int value = board.val_at(x,y);
@@ -324,23 +325,27 @@ int64_t heuristic(const board_t& board) {
       block.val = value;
       block.empty = false;
 
-      allBlocks.push_back(block);
+      if (value > 2) {
+        blocksArray[blockCount] = block;
+      }
     }
   }
+  vector<Block> allBlocks(blocksArray,blocksArray + sizeof(blocksArray[0]));
+
   sort(allBlocks.begin(),allBlocks.end(), compareBlocksByValue);
 
   int totalHeuristic = 0;
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < allBlocks.size(); ++i) {
     Block realBlock = allBlocks[i];
     Block idealBlock = IdealSquares[i];
     int distanceToIdeal = distanceBetween(realBlock,idealBlock);
-    totalHeuristic += pow(MAX_DISTANCE - distanceToIdeal,2) * allBlocks[i].val;
+    totalHeuristic += pow(MAX_DISTANCE - distanceToIdeal,4) * pow(allBlocks[i].val,2);
   }
   return totalHeuristic;
   // return get_num_empty(board);
 }
 
-int MAX_DEPTH = 6;
+const int MAX_DEPTH = 4;
 const int INVALID_MOVE_WEIGHT = 0.0;
 int TOLERANCE = 10;
 
@@ -455,7 +460,6 @@ Direction advice(const board_t& board,
 
   int num_empty = get_num_empty(board);
   TOLERANCE = 0;
-  MAX_DEPTH = 1;
 
   bool up_valid = (board != up_result);
   bool right_valid = (board != right_result);
@@ -464,19 +468,19 @@ Direction advice(const board_t& board,
 
 //  cout<<"\nevaluating up move. board:\n";
 //  print_board(up_result);
-  up_val = up_valid ? heuristic(up_result) : -1;
+  up_val = up_valid ? eval_board_outcomes(up_result) : -1;
 
 //  cout<<"\nevaluating down move. board:\n";
 //  print_board(down_result);
-  down_val = down_valid ? heuristic(down_result) : -1;
+  down_val = down_valid ? eval_board_outcomes(down_result) : -1;
 
 //  cout<<"\nevaluating left move. board:\n";
 //  print_board(left_result);
-  left_val = left_valid ? heuristic(left_result) : -1;
+  left_val = left_valid ? eval_board_outcomes(left_result) : -1;
 
 //  cout<<"\nevaluating right move. board:\n";
 //  print_board(right_result);
-  right_val = right_valid ? heuristic(right_result) : -1;
+  right_val = right_valid ? eval_board_outcomes(right_result) : -1;
 
   int64_t max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
