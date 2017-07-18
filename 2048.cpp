@@ -11,6 +11,7 @@
 #include <chrono>
 #include <ctime>
 #include <math.h>
+#include <vector>
 
 using namespace std;
 
@@ -25,6 +26,9 @@ const char* direction_names[] = {"up", "down", "left", "right", "none"};
 
 const bool verbose_logs = false;
 
+const unsigned int NUM_TILES = 16;
+const unsigned int MAX_DISTANCE = 6;
+
 struct Block {
   int val;
   int x,y;
@@ -38,7 +42,14 @@ struct Block {
     else if(val < 1000) output<<val<<' ';
     else output<<val;
   }
+  int distanceToBlock(const Block &other) const {
+    return abs(other.x - x );
+  }
 };
+
+int distanceBetween(const Block& b1, const Block& b2) {
+  return abs(b1.x - b2.x) + abs(b1.y - b2.y);
+}
 
 Block input_block();
 
@@ -138,9 +149,15 @@ int main() {
 
   time_t start_time, end_time;
   start_time=Clock::to_time_t(Clock::now());
+  cout<<"seeding with time "<<time(NULL)<<endl;
   srand(time(NULL));
 
-  board_t board = input_board();
+  board_t board;// = input_board();
+  board.set_val(0,0,2);
+  board.set_val(1,0,4);
+//  board.set_val(2,0,4);
+//  board.set_val(3,0,8);
+//  board.set_val(3,1,2);
 
   int round_num = 0;
   while(1) {
@@ -231,7 +248,7 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score) {
 
 board_t input_board() {
   board_t board;
-  const int num_tiles = 6;
+  const int num_tiles = 2;
   cout<<"Input "<<num_tiles<<" tiles"<<endl;
   for(int i = 0; i < num_tiles; ++i){
     Block new_block = input_block();
@@ -243,15 +260,84 @@ board_t input_board() {
   return board;
 }
 
+int get_num_empty(const board_t& board) {
+    int num_empty = 0;
+    for(int64_t c = 0; c < 4; ++c) {
+        int64_t column = board.raw_col(c);
+        num_empty += empty_vals[column];
+    }
+    return num_empty;
+}
+
+// array of ideal squares
+Block* IdealSquares = NULL;
+
+// Use these tos et order for ideal squares
+// e.g. first left, then up would mean biggest tile in bottom right
+// second biggest to its left, etc
+const Direction FirstDirection = LEFT;
+const Direction SecondDirection = UP;
+
+int xsquares[] = {3,2,1,0,0,1,2,3,3,2,1,0,0,1,2,3};
+int ysquares[] =  {0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3};
+
+void setupIdealSquares() {
+  if (!IdealSquares) {
+    IdealSquares = new Block[16];
+    for (int i = 0; i < 16; ++i) {
+      IdealSquares[i].x = xsquares[i];
+      IdealSquares[i].y = ysquares[i];
+    }
+  }
+}
+
+bool compareBlocksByValue(Block b1, Block b2) {
+  if (b2.val == b1.val) {
+    // in case of tie in value, sort by which comes in order in ideal squares
+    // so if we have a tie for first, they get labeled as both correct on the first
+    // two squares rather than both being one off.
+    for (int i = 0; i < NUM_TILES; ++i) {
+      if (b1.x == xsquares[i] && b1.y == ysquares[i]) {
+        return true;
+      }
+      else if (b2.x == xsquares[i] && b2.y == ysquares[i]) {
+        return false;
+      }
+    }
+  }
+
+  return b1.val > b2.val;
+}
+
 //returns some evaluation of this board based on number of tiles,
 //    number of combos available, highest tile value
 int64_t heuristic(const board_t& board) {
-  int64_t num_empty = 0;
-  for(int64_t c = 0; c < 4; ++c) {
-    int64_t column = board.raw_col(c);
-    num_empty += empty_vals[column];
+  setupIdealSquares();
+
+  vector<Block> allBlocks;
+  for (int x = 0; x < 4; ++x) {
+    for (int y = 0; y < 4; ++y) {
+      int value = board.val_at(x,y);
+      Block block;
+      block.x = x;
+      block.y = y;
+      block.val = value;
+      block.empty = false;
+
+      allBlocks.push_back(block);
+    }
   }
-  return num_empty;
+  sort(allBlocks.begin(),allBlocks.end(), compareBlocksByValue);
+
+  int totalHeuristic = 0;
+  for (int i = 0; i < 6; ++i) {
+    Block realBlock = allBlocks[i];
+    Block idealBlock = IdealSquares[i];
+    int distanceToIdeal = distanceBetween(realBlock,idealBlock);
+    totalHeuristic += pow(MAX_DISTANCE - distanceToIdeal,2) * allBlocks[i].val;
+  }
+  return totalHeuristic;
+  // return get_num_empty(board);
 }
 
 int MAX_DEPTH = 6;
@@ -261,6 +347,8 @@ int TOLERANCE = 10;
 int depth = 0;
 
 int64_t eval_board_outcomes(const board_t& board);
+
+const int HEUR_MULTIPLIER = 1;
 
 int64_t eval_board_moves(const board_t& board) {
   ++depth;
@@ -288,10 +376,10 @@ int64_t eval_board_moves(const board_t& board) {
     right_eval = right_valid ? eval_board_outcomes(right_result.board) : INVALID_MOVE_WEIGHT;
   }
   else {
-    up_eval = up_valid ? 10000000 * heuristic(up_result.board) : INVALID_MOVE_WEIGHT;
-    down_eval = down_valid ? 10000000 * heuristic(down_result.board) : INVALID_MOVE_WEIGHT;
-    left_eval = left_valid ? 10000000 * heuristic(left_result.board) : INVALID_MOVE_WEIGHT;
-    right_eval = right_valid ? 10000000 * heuristic(right_result.board) : INVALID_MOVE_WEIGHT;
+    up_eval = up_valid ? HEUR_MULTIPLIER * heuristic(up_result.board) : INVALID_MOVE_WEIGHT;
+    down_eval = down_valid ? HEUR_MULTIPLIER * heuristic(down_result.board) : INVALID_MOVE_WEIGHT;
+    left_eval = left_valid ? HEUR_MULTIPLIER * heuristic(left_result.board) : INVALID_MOVE_WEIGHT;
+    right_eval = right_valid ? HEUR_MULTIPLIER * heuristic(right_result.board) : INVALID_MOVE_WEIGHT;
   }
   if (verbose_logs) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
@@ -365,52 +453,35 @@ Direction advice(const board_t& board,
   int64_t left_val;
   int64_t right_val;
 
-  int num_empty = heuristic(board);
-  if(num_empty < 2) {
-    TOLERANCE = 50000;
-    MAX_DEPTH = 10;
-  }
-  else if(num_empty < 4) {
-    TOLERANCE = 100000;
-    MAX_DEPTH = 8;
-  }
-  else if(num_empty < 7) {
-    TOLERANCE = 200000;
-    MAX_DEPTH = 6;
-  }
-  else {
-    TOLERANCE = 500000;
-    MAX_DEPTH = 4; 
-  }
+  int num_empty = get_num_empty(board);
+  TOLERANCE = 0;
+  MAX_DEPTH = 1;
 
   bool up_valid = (board != up_result);
   bool right_valid = (board != right_result);
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
 
-  up_val = up_valid ? eval_board_outcomes(up_result) : -1;
-  down_val = down_valid ? eval_board_outcomes(down_result) : -1;
-  left_val = left_valid ? eval_board_outcomes(left_result) : -1;
-  right_val = right_valid ? eval_board_outcomes(right_result) : -1;
+//  cout<<"\nevaluating up move. board:\n";
+//  print_board(up_result);
+  up_val = up_valid ? heuristic(up_result) : -1;
+
+//  cout<<"\nevaluating down move. board:\n";
+//  print_board(down_result);
+  down_val = down_valid ? heuristic(down_result) : -1;
+
+//  cout<<"\nevaluating left move. board:\n";
+//  print_board(left_result);
+  left_val = left_valid ? heuristic(left_result) : -1;
+
+//  cout<<"\nevaluating right move. board:\n";
+//  print_board(right_result);
+  right_val = right_valid ? heuristic(right_result) : -1;
 
   int64_t max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
 
-  if (!up_valid && !down_valid && !left_valid && !right_valid) {
-    return NONE;
-  }
-  else if(up_valid && max_val - up_val < TOLERANCE && max_val - up_val > -TOLERANCE) {
-    return UP;
-  }
-  else if(right_valid && max_val - right_val < TOLERANCE && max_val - right_val > -TOLERANCE) {
-    return RIGHT;
-  }
-  else if (down_valid && max_val - down_val < TOLERANCE && max_val - down_val > -TOLERANCE) {
-    return DOWN;
-  }
-  else {
-    return LEFT;
-  }
+  return max_val == up_val ? UP : max_val == down_val ? DOWN : max_val == right_val ? RIGHT : LEFT;
 }
 
 bool board_full(const board_t& board) {
@@ -433,7 +504,7 @@ void add_new_tile(board_t& board, bool user_in) {
         next_block.val = board.val_at(x,y);
         empty_blocks.push_back(next_block);
       }
-    } 
+    }
   }
   assert(!empty_blocks.empty());
 
@@ -462,7 +533,7 @@ Block input_block() {
   cin >> return_block.val;
   assert(return_block.val % 2 == 0);
 
-  cout<<"New block coords(x,y): ";
+  cout<<"New block coords(x y): ";
   cin >> return_block.x >> return_block.y;
   assert(return_block.x > 0 && return_block.x <= 4);
   assert(return_block.y > 0 && return_block.y <= 4);
@@ -472,7 +543,7 @@ Block input_block() {
 Move_Result up_move(const board_t& in_board) {
   Move_Result result;
   result.board = in_board;
- 
+
   for(int c = 0; c < 4; ++c) {
     int col = in_board.raw_col(c);
     assert(col < NUM_TRANSFORMS);
