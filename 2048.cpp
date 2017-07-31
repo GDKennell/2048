@@ -33,6 +33,7 @@ struct Block {
   int val;
   int x,y;
   bool empty;
+  Block(int x_, int y_, int val_) { x = x_, y = y_, val = val_;}
   Block() : val(0), x(0), y(0), empty(true){ }
   void print() const {
     ostream& output = cout;
@@ -82,7 +83,7 @@ int64_t min(int64_t x1, int64_t x2, int64_t x3, int64_t x4) {
   return min(x1, min(x2, min(x3, x4) ) );
 }
 
-int64_t max(int64_t x1, int64_t x2, int64_t x3, int64_t x4) {
+float max(float x1, float x2, float x3, float x4) {
   return max(x1, max(x2, max(x3, x4) ) );
 }
 
@@ -155,9 +156,9 @@ int main() {
   board_t board;// = input_board();
   board.set_val(0,0,2);
   board.set_val(1,0,2);
-  board.set_val(2,0,4);
-  board.set_val(3,0,32);
-  board.set_val(3,1,2);
+//  board.set_val(2,0,4);
+//  board.set_val(3,0,32);
+//  board.set_val(3,1,2);
 
   int round_num = 0;
   while(1) {
@@ -272,48 +273,61 @@ int get_num_empty(const board_t& board) {
 // array of ideal squares
 Block* IdealSquares = NULL;
 
-// Use these tos et order for ideal squares
-// e.g. first left, then up would mean biggest tile in bottom right
-// second biggest to its left, etc
-const Direction FirstDirection = LEFT;
-const Direction SecondDirection = UP;
-
-int xsquares[] = {3,2,1,0,0,1,2,3,3,2,1,0,0,1,2,3};
-int ysquares[] =  {0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3};
-
-void setupIdealSquares() {
-  if (!IdealSquares) {
-    IdealSquares = new Block[16];
-    for (int i = 0; i < 16; ++i) {
-      IdealSquares[i].x = xsquares[i];
-      IdealSquares[i].y = ysquares[i];
-    }
-  }
+bool compareBlocksByValue(Block b1, Block b2) {
+  return b1.val > b2.val;
 }
 
-bool compareBlocksByValue(Block b1, Block b2) {
-  if (b2.val == b1.val && b1.val > 4) {
-    // in case of tie in value, sort by which comes in order in ideal squares
-    // so if we have a tie for first, they get labeled as both correct on the first
-    // two squares rather than both being one off.
-    for (int i = 0; i < NUM_TILES; ++i) {
-      if (b1.x == xsquares[i] && b1.y == ysquares[i]) {
-        return true;
+
+class IsCloserToBlock
+{
+public:
+  Block comparisonBlock;
+  IsCloserToBlock(const Block &block) {
+    comparisonBlock = block;
+  }
+  bool operator()(Block b1, Block b2) {
+    return distanceBetween(b1,comparisonBlock) < distanceBetween(b2, comparisonBlock);
+  }
+};
+
+// Takes an array of blocks sorted by value
+// Does secondary sort within groups of tiles with same value
+// Sorting by closeness to next higher tile
+// e.g. in a group of 16's, the top sorted will be the one that's closes to a 32
+void fix_sort_by_nearest_neighbor(vector<Block> &blocks) {
+  int blocksCount = 0, blocksStart = 0;
+  Block equalBlocks[NUM_TILES];
+  for (int i = 0; i < blocks.size(); ++i) {
+    if (blocks[i].val == 0) {
+      if (blocksCount > 1) {
+        Block nextHighestIndex = blocksStart == 0 ? Block(0, 0, 0) : blocks[blocksStart - 1];
+        sort(blocks.begin() + blocksStart, blocks.begin() + blocksStart + blocksCount, IsCloserToBlock(nextHighestIndex));
       }
-      else if (b2.x == xsquares[i] && b2.y == ysquares[i]) {
-        return false;
-      }
+      break;
+    }
+    if (blocksCount == 0) {
+      equalBlocks[blocksCount++] = blocks[i];
+      blocksStart = i;
+    }
+    else if (blocks[i].val == equalBlocks[0].val) {
+      equalBlocks[blocksCount++] = blocks[i];
+    }
+    else if (blocksCount == 1){
+      blocksStart = i;
+      blocksCount = 0;
+      equalBlocks[blocksCount++] = blocks[i];
+    }
+    else {
+      Block nextHighestIndex = blocksStart == 0 ? Block(0, 0, 0) : blocks[blocksStart - 1];
+      sort(blocks.begin() + blocksStart, blocks.begin() + blocksStart + blocksCount, IsCloserToBlock(nextHighestIndex));
+      // Sort equalBlocks by
     }
   }
-
-  return b1.val > b2.val;
 }
 
 //returns some evaluation of this board based on number of tiles,
 //    number of combos available, highest tile value
-int64_t heuristic(const board_t& board) {
-  setupIdealSquares();
-
+float heuristic(const board_t& board) {
   Block blocksArray[NUM_TILES];
   int blockCount = 0;
   for (int x = 0; x < 4; ++x) {
@@ -325,22 +339,28 @@ int64_t heuristic(const board_t& board) {
       block.val = value;
       block.empty = false;
 
-      if (value > 2) {
-        blocksArray[blockCount] = block;
+      if (value > 0) {
+        blocksArray[blockCount++] = block;
       }
     }
   }
   vector<Block> allBlocks(blocksArray,blocksArray + sizeof(blocksArray[0]));
 
-  sort(allBlocks.begin(),allBlocks.end(), compareBlocksByValue);
+  sort(allBlocks.begin(),allBlocks.begin() + blockCount, compareBlocksByValue);
 
-  int totalHeuristic = 0;
+  fix_sort_by_nearest_neighbor(allBlocks);
+
+  float totalHeuristic = 0.0;
   for (int i = 0; i < allBlocks.size(); ++i) {
     Block realBlock = allBlocks[i];
-    Block idealBlock = IdealSquares[i];
+    Block idealBlock = i == 0 ? Block(0, 0, 0) : allBlocks[i-1];
     int distanceToIdeal = distanceBetween(realBlock,idealBlock);
-    totalHeuristic += pow(MAX_DISTANCE - distanceToIdeal,4) * pow(allBlocks[i].val,2);
+    float dist_heur = pow((float)(MAX_DISTANCE - distanceToIdeal), 4.0);
+    float val_heur = pow((float)allBlocks[i].val, 4.0);
+    totalHeuristic += dist_heur * val_heur;
   }
+  int totalNumEmpty = get_num_empty(board);
+  totalHeuristic *= ((float)totalNumEmpty / (float)NUM_TILES);
   return totalHeuristic;
   // return get_num_empty(board);
 }
@@ -351,11 +371,11 @@ int TOLERANCE = 10;
 
 int depth = 0;
 
-int64_t eval_board_outcomes(const board_t& board);
+float eval_board_outcomes(const board_t& board);
 
 const int HEUR_MULTIPLIER = 1;
 
-int64_t eval_board_moves(const board_t& board) {
+float eval_board_moves(const board_t& board) {
   ++depth;
   if (verbose_logs) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
@@ -372,7 +392,7 @@ int64_t eval_board_moves(const board_t& board) {
   bool left_valid = (board != left_result.board);
   bool right_valid = (board != right_result.board);
 
-  int64_t up_eval, down_eval, left_eval, right_eval;
+  float up_eval, down_eval, left_eval, right_eval;
 
   if (depth < MAX_DEPTH) {
     up_eval = up_valid ? eval_board_outcomes(up_result.board) : INVALID_MOVE_WEIGHT;
@@ -394,7 +414,7 @@ int64_t eval_board_moves(const board_t& board) {
   return max(up_eval, down_eval, left_eval, right_eval);
 }
 
-int64_t eval_board_outcomes(const board_t& board) {
+float eval_board_outcomes(const board_t& board) {
   ++depth;
   if (verbose_logs) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
@@ -426,7 +446,7 @@ int64_t eval_board_outcomes(const board_t& board) {
   int64_t prob4_num = 1;
   int64_t tot_prob = 0;
   for(int i = 0; i < num_outcomes; ++i) {
-    int64_t outcome_val = eval_board_moves(possible_outcomes[i]);
+    float outcome_val = eval_board_moves(possible_outcomes[i]);
     if (verbose_logs) {
       for (int i = 0; i < depth; ++i) {cout<<"  ";}
       cout<<"Eval outcomes (d="<<depth<<") got outcome_val "<<outcome_val<<endl;
@@ -453,10 +473,10 @@ Direction advice(const board_t& board,
                  const board_t& left_result,
                  const board_t& right_result) {
   if (verbose_logs)cout<<"\n----------ADVICE--------\n";
-  int64_t up_val;
-  int64_t down_val;
-  int64_t left_val;
-  int64_t right_val;
+  float up_val;
+  float down_val;
+  float left_val;
+  float right_val;
 
   int num_empty = get_num_empty(board);
   TOLERANCE = 0;
@@ -468,24 +488,25 @@ Direction advice(const board_t& board,
 
 //  cout<<"\nevaluating up move. board:\n";
 //  print_board(up_result);
-  up_val = up_valid ? eval_board_outcomes(up_result) : -1;
+  up_val = up_valid ? heuristic(up_result) : -1;
 
 //  cout<<"\nevaluating down move. board:\n";
 //  print_board(down_result);
-  down_val = down_valid ? eval_board_outcomes(down_result) : -1;
+  down_val = down_valid ? heuristic(down_result) : -1;
 
 //  cout<<"\nevaluating left move. board:\n";
 //  print_board(left_result);
-  left_val = left_valid ? eval_board_outcomes(left_result) : -1;
+  left_val = left_valid ? heuristic(left_result) : -1;
 
 //  cout<<"\nevaluating right move. board:\n";
 //  print_board(right_result);
-  right_val = right_valid ? eval_board_outcomes(right_result) : -1;
+  right_val = right_valid ? heuristic(right_result) : -1;
 
-  int64_t max_val = max(up_val, down_val, left_val, right_val);
+  float max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
 
-  return max_val == up_val ? UP : max_val == down_val ? DOWN : max_val == right_val ? RIGHT : LEFT;
+  Direction ret = max_val == up_val ? UP : max_val == down_val ? DOWN : max_val == right_val ? RIGHT : LEFT;
+  return ret;
 }
 
 bool board_full(const board_t& board) {
@@ -519,7 +540,7 @@ void add_new_tile(board_t& board, bool user_in) {
     block_to_fill.y--;
   }
   else {
-    block_to_fill = empty_blocks[0];
+    block_to_fill = empty_blocks[empty_blocks.size() / 2];
     block_to_fill.val = 2;
 //    block_to_fill = empty_blocks[rand() % empty_blocks.size()];
 //    block_to_fill.val = (rand() % 100 <= 10) ? 4 : 2;
