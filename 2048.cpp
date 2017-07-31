@@ -360,7 +360,7 @@ float heuristic(const board_t& board) {
     totalHeuristic += dist_heur * val_heur;
   }
   int totalNumEmpty = get_num_empty(board);
-  totalHeuristic *= ((float)totalNumEmpty / (float)NUM_TILES);
+  totalHeuristic *= (pow((float)totalNumEmpty,2) / pow((float)NUM_TILES,2));
   return totalHeuristic;
   // return get_num_empty(board);
 }
@@ -488,19 +488,19 @@ Direction advice(const board_t& board,
 
 //  cout<<"\nevaluating up move. board:\n";
 //  print_board(up_result);
-  up_val = up_valid ? heuristic(up_result) : -1;
+  up_val = up_valid ? eval_board_outcomes(up_result) : -1;
 
 //  cout<<"\nevaluating down move. board:\n";
 //  print_board(down_result);
-  down_val = down_valid ? heuristic(down_result) : -1;
+  down_val = down_valid ? eval_board_outcomes(down_result) : -1;
 
 //  cout<<"\nevaluating left move. board:\n";
 //  print_board(left_result);
-  left_val = left_valid ? heuristic(left_result) : -1;
+  left_val = left_valid ? eval_board_outcomes(left_result) : -1;
 
 //  cout<<"\nevaluating right move. board:\n";
 //  print_board(right_result);
-  right_val = right_valid ? heuristic(right_result) : -1;
+  right_val = right_valid ? eval_board_outcomes(right_result) : -1;
 
   float max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
@@ -540,10 +540,10 @@ void add_new_tile(board_t& board, bool user_in) {
     block_to_fill.y--;
   }
   else {
-    block_to_fill = empty_blocks[empty_blocks.size() / 2];
-    block_to_fill.val = 2;
-//    block_to_fill = empty_blocks[rand() % empty_blocks.size()];
-//    block_to_fill.val = (rand() % 100 <= 10) ? 4 : 2;
+//    block_to_fill = empty_blocks[empty_blocks.size() / 2];
+//    block_to_fill.val = 2;
+    block_to_fill = empty_blocks[rand() % empty_blocks.size()];
+    block_to_fill.val = (rand() % 100 <= 10) ? 4 : 2;
   }
   cout<<"New block at ("<<block_to_fill.x+1<<',';
   cout<<block_to_fill.y+1<<") with value "<<block_to_fill.val<<endl;
