@@ -407,31 +407,34 @@ float eval_board_moves(const board_t& board) {
 
   // If largest tile is on an edge
   Block highestTile = find_highest_tile(board);
+
+  int highestTileRow = board.raw_row(highestTile.y);
+  int highestTileCol = board.raw_col(highestTile.x);
   // on left
   if (highestTile.x == 0 && left_valid) {
-    Block rightHighestTile = find_highest_tile(right_result.board);
-    if (rightHighestTile.x > 0) {
+    transform_t right_move_row = right_move_transforms[highestTileRow] & 0xffff;
+    if (right_move_row != highestTileRow) {
       right_valid = false;
     }
   }
   // on right
   if (highestTile.x == 3  && right_valid) {
-    Block leftHighestTile = find_highest_tile(left_result.board);
-    if (leftHighestTile.x < 3) {
+    transform_t left_move_row = left_move_transforms[highestTileRow] & 0xffff;
+    if (left_move_row != highestTileRow) {
       left_valid = false;
     }
   }
   // on top
   if (highestTile.y == 3  && up_valid) {
-    Block downHighestTile = find_highest_tile(down_result.board);
-    if (downHighestTile.y < 3) {
+    transform_t down_move_col = left_move_transforms[highestTileCol] & 0xffff;
+    if (down_move_col != highestTileCol) {
       down_valid = false;
     }
   }
   // on bottom
   if (highestTile.y == 0  && down_valid) {
-    Block upHighestTile = find_highest_tile(up_result.board);
-    if (upHighestTile.y > 0) {
+    transform_t up_move_col = right_move_transforms[highestTileCol] & 0xffff;
+    if (up_move_col != highestTileCol) {
       up_valid = false;
     }
   }
