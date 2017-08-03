@@ -143,6 +143,7 @@ Direction decide_move(const board_t &board) {
 }
 
 board_t apply_move(Direction move_direction, const board_t &board, int& score);
+vector<Block> get_all_blocks(const board_t& board);
 
 int main() {
 
@@ -328,25 +329,9 @@ void fix_sort_by_nearest_neighbor(vector<Block> &blocks) {
 //returns some evaluation of this board based on number of tiles,
 //    number of combos available, highest tile value
 float heuristic(const board_t& board) {
-  Block blocksArray[NUM_TILES];
-  int blockCount = 0;
-  for (int x = 0; x < 4; ++x) {
-    for (int y = 0; y < 4; ++y) {
-      int value = board.val_at(x,y);
-      Block block;
-      block.x = x;
-      block.y = y;
-      block.val = value;
-      block.empty = false;
+  vector<Block> allBlocks = get_all_blocks(board);
 
-      if (value > 0) {
-        blocksArray[blockCount++] = block;
-      }
-    }
-  }
-  vector<Block> allBlocks(blocksArray,blocksArray + sizeof(blocksArray[0]));
-
-  sort(allBlocks.begin(),allBlocks.begin() + blockCount, compareBlocksByValue);
+  sort(allBlocks.begin(),allBlocks.begin() + allBlocks.size(), compareBlocksByValue);
 
   fix_sort_by_nearest_neighbor(allBlocks);
 
@@ -365,7 +350,7 @@ float heuristic(const board_t& board) {
   // return get_num_empty(board);
 }
 
-const int MAX_DEPTH = 4;
+int MAX_DEPTH = 4;
 const int INVALID_MOVE_WEIGHT = 0.0;
 int TOLERANCE = 10;
 
@@ -374,6 +359,34 @@ int depth = 0;
 float eval_board_outcomes(const board_t& board);
 
 const int HEUR_MULTIPLIER = 1;
+
+vector<Block> get_all_blocks(const board_t& board) {
+  Block blocksArray[NUM_TILES];
+  int blockCount = 0;
+  for (int x = 0; x < 4; ++x) {
+    for (int y = 0; y < 4; ++y) {
+      int value = board.val_at(x,y);
+      Block block;
+      block.x = x;
+      block.y = y;
+      block.val = value;
+      block.empty = false;
+
+      if (value > 0) {
+        blocksArray[blockCount++] = block;
+      }
+    }
+  }
+  vector<Block> allBlocks(blocksArray,blocksArray + blockCount);
+  return allBlocks;
+}
+
+Block find_highest_tile(const board_t& board) {
+  auto boardBlocks = get_all_blocks(board);
+  sort(boardBlocks.begin(),boardBlocks.end(), compareBlocksByValue);
+
+  return boardBlocks[0];
+}
 
 float eval_board_moves(const board_t& board) {
   ++depth;
@@ -391,6 +404,40 @@ float eval_board_moves(const board_t& board) {
   bool down_valid = (board != down_result.board);
   bool left_valid = (board != left_result.board);
   bool right_valid = (board != right_result.board);
+
+  // If largest tile is on an edge
+  Block highestTile = find_highest_tile(board);
+  // on left
+  if (highestTile.x == 0 && left_valid) {
+    Block rightHighestTile = find_highest_tile(right_result.board);
+    if (rightHighestTile.x > 0) {
+      right_valid = false;
+    }
+  }
+  // on right
+  if (highestTile.x == 3  && right_valid) {
+    Block leftHighestTile = find_highest_tile(left_result.board);
+    if (leftHighestTile.x < 3) {
+      left_valid = false;
+    }
+  }
+  // on top
+  if (highestTile.y == 3  && up_valid) {
+    Block downHighestTile = find_highest_tile(down_result.board);
+    if (downHighestTile.y < 3) {
+      down_valid = false;
+    }
+  }
+  // on bottom
+  if (highestTile.y == 0  && down_valid) {
+    Block upHighestTile = find_highest_tile(up_result.board);
+    if (upHighestTile.y > 0) {
+      up_valid = false;
+    }
+  }
+  // and moving away from that edge causes the largest tile to move
+  // and the opposite is valid
+  // - invalidate that move away from the edge
 
   float up_eval, down_eval, left_eval, right_eval;
 
@@ -480,6 +527,12 @@ Direction advice(const board_t& board,
 
   int num_empty = get_num_empty(board);
   TOLERANCE = 0;
+  if (num_empty > 6) {
+    MAX_DEPTH = 4;
+  }
+  else {
+    MAX_DEPTH = 6;
+  }
 
   bool up_valid = (board != up_result);
   bool right_valid = (board != right_result);
