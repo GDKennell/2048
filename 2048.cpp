@@ -339,13 +339,23 @@ float heuristic(const board_t& board) {
   for (int i = 0; i < allBlocks.size(); ++i) {
     Block realBlock = allBlocks[i];
     Block idealBlock = i == 0 ? Block(0, 0, 0) : allBlocks[i-1];
-    int distanceToIdeal = distanceBetween(realBlock,idealBlock);
+    int distanceToIdeal;
+
+    // for highest block, ideal is any corner
+    if (i == 0) {
+      int xDist = min(3 - realBlock.x, realBlock.x);
+      int yDist = min(3 - realBlock.y, realBlock.y);
+      distanceToIdeal = xDist + yDist;
+    }
+    else {
+      distanceToIdeal = distanceBetween(realBlock,idealBlock);
+    }
     float dist_heur = pow((float)(MAX_DISTANCE - distanceToIdeal), 4.0);
     float val_heur = pow((float)allBlocks[i].val, 4.0);
     totalHeuristic += dist_heur * val_heur;
   }
   int totalNumEmpty = get_num_empty(board);
-  totalHeuristic *= (pow((float)totalNumEmpty,2) / pow((float)NUM_TILES,2));
+  totalHeuristic *= (pow((float)totalNumEmpty,4) / pow((float)NUM_TILES,4));
   return totalHeuristic;
   // return get_num_empty(board);
 }
