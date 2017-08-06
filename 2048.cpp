@@ -29,25 +29,6 @@ const bool verbose_logs = false;
 const unsigned int NUM_TILES = 16;
 const unsigned int MAX_DISTANCE = 6;
 
-struct Block {
-  int val;
-  int x,y;
-  bool empty;
-  Block(int x_, int y_, int val_) { x = x_, y = y_, val = val_;}
-  Block() : val(0), x(0), y(0), empty(true){ }
-  void print() const {
-    ostream& output = cout;
-    if(empty) output<<"    ";
-    else if(val < 10) output<<" "<<val<<"  ";
-    else if(val < 100) output<<" "<<val<<" ";
-    else if(val < 1000) output<<val<<' ';
-    else output<<val;
-  }
-  int distanceToBlock(const Block &other) const {
-    return abs(other.x - x );
-  }
-};
-
 int distanceBetween(const Block& b1, const Block& b2) {
   return abs(b1.x - b2.x) + abs(b1.y - b2.y);
 }
@@ -326,6 +307,46 @@ void fix_sort_by_nearest_neighbor(vector<Block> &blocks) {
   }
 }
 
+vector<Block> immediate_neighbors(Block block, const board_t& board) {
+  vector<Block> neighbors;
+  if(block.x > 0) {
+    neighbors.push_back(board.block_at(block.x - 1, block.y));
+  }
+  if (block.x < 3) {
+    neighbors.push_back(board.block_at(block.x + 1, block.y));
+  }
+  if (block.y > 0) {
+    neighbors.push_back(board.block_at(block.x, block.y - 1));
+  }
+  if (block.y < 3) {
+    neighbors.push_back(board.block_at(block.x, block.y + 1));
+  }
+  return neighbors;
+}
+
+// Returns the number of 'orphaned' tiles
+// A tile is orphaned if it is surrounded by tiles of a larger value
+int num_orphans(const board_t& board) {
+  int orphanCount = 0;
+  auto blocks = get_all_blocks(board);
+  for (int i = 0; i < blocks.size(); ++i) {
+    if (blocks[i].val > 0) {
+      auto neighbors = immediate_neighbors(blocks[i], board);
+      bool isOrphan = true;
+      for (int j = 0; j < neighbors.size(); ++j) {
+        if (neighbors[j].val <= blocks[i].val) {
+          isOrphan = false;
+          break;
+        }
+      }
+      if (isOrphan) {
+        ++orphanCount;
+      }
+    }
+  }
+  return orphanCount;
+}
+
 //returns some evaluation of this board based on number of tiles,
 //    number of combos available, highest tile value
 float heuristic(const board_t& board) {
@@ -356,6 +377,11 @@ float heuristic(const board_t& board) {
   }
   int totalNumEmpty = get_num_empty(board);
   totalHeuristic *= (pow((float)totalNumEmpty,4) / pow((float)NUM_TILES,4));
+
+  int numOrphans = num_orphans(board);
+  float orphanMultiplier = numOrphans == 0 ? 1.0 : numOrphans == 1 ? 0.6 : 0.3;
+  totalHeuristic *= orphanMultiplier;
+
   return totalHeuristic;
   // return get_num_empty(board);
 }

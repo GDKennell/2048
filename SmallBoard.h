@@ -5,6 +5,26 @@
 
 using namespace std;
 
+struct Block {
+    int val;
+    int x,y;
+    bool empty;
+    Block(int x_, int y_, int val_) { x = x_, y = y_, val = val_;}
+    Block() : val(0), x(0), y(0), empty(true){ }
+    void print() const {
+        ostream& output = cout;
+        if(empty) output<<"    ";
+        else if(val < 10) output<<" "<<val<<"  ";
+        else if(val < 100) output<<" "<<val<<" ";
+        else if(val < 1000) output<<val<<' ';
+        else output<<val;
+    }
+    int distanceToBlock(const Block &other) const {
+        return abs(other.x - x );
+    }
+};
+
+
 class SmallBoard {
   uint64_t board;
 
@@ -37,6 +57,10 @@ public:
       int offset = 4 * (4 * x + y);
       int exp = (board >> offset) & (uint64_t)15;
       return exp;
+    }
+
+    Block block_at(int x, int y) const {
+        return Block(x,y,this->val_at(x,y));
     }
 
     void print(int x, int y) const {
