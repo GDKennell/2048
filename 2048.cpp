@@ -307,21 +307,21 @@ void fix_sort_by_nearest_neighbor(vector<Block> &blocks) {
   }
 }
 
-vector<Block> immediate_neighbors(Block block, const board_t& board) {
-  vector<Block> neighbors;
+int immediate_neighbors(Block block, const board_t& board, Block *outBlocks) {
+  int numBlocks = 0;
   if(block.x > 0) {
-    neighbors.push_back(board.block_at(block.x - 1, block.y));
+    outBlocks[numBlocks++] = board.block_at(block.x - 1, block.y);
   }
   if (block.x < 3) {
-    neighbors.push_back(board.block_at(block.x + 1, block.y));
+    outBlocks[numBlocks++] = board.block_at(block.x + 1, block.y);
   }
   if (block.y > 0) {
-    neighbors.push_back(board.block_at(block.x, block.y - 1));
+    outBlocks[numBlocks++] = board.block_at(block.x, block.y - 1);
   }
   if (block.y < 3) {
-    neighbors.push_back(board.block_at(block.x, block.y + 1));
+    outBlocks[numBlocks++] = board.block_at(block.x, block.y + 1);
   }
-  return neighbors;
+  return numBlocks;
 }
 
 // Returns the number of 'orphaned' tiles
@@ -331,9 +331,10 @@ int num_orphans(const board_t& board) {
   auto blocks = get_all_blocks(board);
   for (int i = 0; i < blocks.size(); ++i) {
     if (blocks[i].val > 0) {
-      auto neighbors = immediate_neighbors(blocks[i], board);
+      Block neighbors[4];
+      int numNeighbors = immediate_neighbors(blocks[i], board, neighbors);
       bool isOrphan = true;
-      for (int j = 0; j < neighbors.size(); ++j) {
+      for (int j = 0; j < numNeighbors; ++j) {
         if (neighbors[j].val <= blocks[i].val) {
           isOrphan = false;
           break;
