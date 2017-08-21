@@ -10,6 +10,7 @@
 #include <time.h>
 #include <chrono>
 #include <ctime>
+#include <vector>
 #include <math.h>
 
 using namespace std;
@@ -24,6 +25,7 @@ enum Direction {UP, DOWN, LEFT, RIGHT, NONE};
 const char* direction_names[] = {"up", "down", "left", "right", "none"};
 
 const bool verbose_logs = false;
+const int NUM_TILES = 16;
 
 struct Block {
   int val;
@@ -231,7 +233,7 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score) {
 
 board_t input_board() {
   board_t board;
-  const int num_tiles = 6;
+  const int num_tiles = 2;
   cout<<"Input "<<num_tiles<<" tiles"<<endl;
   for(int i = 0; i < num_tiles; ++i){
     Block new_block = input_block();
@@ -260,6 +262,23 @@ int TOLERANCE = 10;
 
 int depth = 0;
 
+
+Block find_highest_tile(const board_t& board) {
+  Block highest;
+  highest.val = -1;
+  for (int x = 0; x < 4; ++x) {
+    for (int y = 0; y < 4; ++y) {
+      int thisVal = board.val_at(x, y);
+      if (thisVal > highest. val) {
+        highest.x = x;
+        highest.y = y;
+        highest.val = thisVal;
+      }
+    }
+  }
+  return highest;
+}
+
 int64_t eval_board_outcomes(const board_t& board);
 
 int64_t eval_board_moves(const board_t& board) {
@@ -278,6 +297,42 @@ int64_t eval_board_moves(const board_t& board) {
   bool down_valid = (board != down_result.board);
   bool left_valid = (board != left_result.board);
   bool right_valid = (board != right_result.board);
+
+  // If largest tile is on an edge
+  Block highestTile = find_highest_tile(board);
+  int highestTileRow = board.raw_row(highestTile.y);
+  int highestTileCol = board.raw_col(highestTile.x);
+  // on left
+  if (highestTile.x == 0 && left_valid) {
+    transform_t right_move_row = right_move_transforms[highestTileRow] & 0xffff;
+    if (right_move_row != highestTileRow) {
+      right_valid = false;
+    }
+  }
+  // on right
+  if (highestTile.x == 3  && right_valid) {
+    transform_t left_move_row = left_move_transforms[highestTileRow] & 0xffff;
+    if (left_move_row != highestTileRow) {
+      left_valid = false;
+    }
+  }
+  // on top
+  if (highestTile.y == 3  && up_valid) {
+    transform_t down_move_col = left_move_transforms[highestTileCol] & 0xffff;
+    if (down_move_col != highestTileCol) {
+      down_valid = false;
+    }
+  }
+  // on bottom
+  if (highestTile.y == 0  && down_valid) {
+    transform_t up_move_col = right_move_transforms[highestTileCol] & 0xffff;
+    if (up_move_col != highestTileCol) {
+      up_valid = false;
+    }
+  }
+  // and moving away from that edge causes the largest tile to move
+  // and the opposite is valid
+  // - invalidate that move away from the edge
 
   int64_t up_eval, down_eval, left_eval, right_eval;
 
