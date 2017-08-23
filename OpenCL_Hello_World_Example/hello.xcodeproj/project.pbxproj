@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		86D1E9661F4CAEAC003B924B /* board.c in Sources */ = {isa = PBXBuildFile; fileRef = 86D1E9641F4CAEAC003B924B /* board.c */; };
+		86D1E96B1F4D0852003B924B /* move.c in Sources */ = {isa = PBXBuildFile; fileRef = 86D1E9691F4D0852003B924B /* move.c */; };
 		C3770EFB0E6F1121009A5A77 /* hello.c in Sources */ = {isa = PBXBuildFile; fileRef = C3770EFA0E6F1121009A5A77 /* hello.c */; };
 		C3770EFD0E6F1138009A5A77 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3770EFC0E6F1138009A5A77 /* OpenCL.framework */; };
 /* End PBXBuildFile section */
@@ -29,6 +30,9 @@
 		86D1E9641F4CAEAC003B924B /* board.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = board.c; sourceTree = "<group>"; };
 		86D1E9651F4CAEAC003B924B /* board.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = board.h; sourceTree = "<group>"; };
 		86D1E9671F4CFD77003B924B /* numempty.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = numempty.bin; sourceTree = "<group>"; };
+		86D1E9681F4D0057003B924B /* heuristic_opencl.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = heuristic_opencl.c; sourceTree = "<group>"; };
+		86D1E9691F4D0852003B924B /* move.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = move.c; sourceTree = "<group>"; };
+		86D1E96A1F4D0852003B924B /* move.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = move.h; sourceTree = "<group>"; };
 		C3770EFA0E6F1121009A5A77 /* hello.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hello.c; sourceTree = "<group>"; };
 		C3770EFC0E6F1138009A5A77 /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = /System/Library/Frameworks/OpenCL.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
@@ -65,10 +69,13 @@
 		C3770EF10E6F10BB009A5A77 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				86D1E9681F4D0057003B924B /* heuristic_opencl.c */,
 				86D1E9671F4CFD77003B924B /* numempty.bin */,
 				C3770EFA0E6F1121009A5A77 /* hello.c */,
 				86D1E9641F4CAEAC003B924B /* board.c */,
 				86D1E9651F4CAEAC003B924B /* board.h */,
+				86D1E9691F4D0852003B924B /* move.c */,
+				86D1E96A1F4D0852003B924B /* move.h */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -134,6 +141,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				86D1E9661F4CAEAC003B924B /* board.c in Sources */,
+				86D1E96B1F4D0852003B924B /* move.c in Sources */,
 				C3770EFB0E6F1121009A5A77 /* hello.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

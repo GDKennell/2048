@@ -60,49 +60,80 @@
 #include <sys/stat.h>
 #include <OpenCL/opencl.h>
 #include "board.h"
+#include "move.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Use a static data size for simplicity
 //
-#define DATA_SIZE (1024)
+#define DATA_SIZE (4)
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // Simple compute kernel which computes the square of an input array 
 //
-const char *KernelSource = "\n" \
-"__constant int NOT_THIS_ONE =  50000;\n"\
-"float multiply(float a, float b) { return a * b; }\n"\
-"__kernel void square(                                                       \n" \
-"   __global float* input,                                              \n" \
-"   __global float* output,                                             \n" \
-"   const unsigned int count)                                           \n" \
-"{                                                                      \n" \
-"   int i = get_global_id(0);                                           \n" \
-"   if(i < count && i != NOT_THIS_ONE)                                                       \n" \
-"       output[i] = multiply(input[i], input[i]);                                \n" \
-"}                                                                      \n" \
-"\n";
+const char *KernelSource = "__constant int NUM_TRANSFORMS = 65536;  \n"\
+"  \n"\
+"int64_t raw_column(__global uint64_t board, int col_num)  \n"\
+"{  \n"\
+"    int offset = 16 * col_num;  \n"\
+"    return (board >> offset) & 0xffff;  \n"\
+"}  \n"\
+"  \n"\
+"uint64_t heuristic(__global uint64_t board, __global int* empty_vals)  \n"\
+"{  \n"\
+"  int64_t num_empty = 0;  \n"\
+"  for(int64_t c = 0; c < 4; ++c) {  \n"\
+"    int64_t column = raw_column(board,c);  \n"\
+"    num_empty += empty_vals[column];  \n"\
+"  }  \n"\
+"  return num_empty;  \n"\
+"}  \n"\
+"  \n"\
+"__kernel void calculate_heuristics (__global uint64_t* boards,  \n"\
+"                                    __global int* empty_vals,  \n"\
+"                                    __global uint64_t* output,  \n"\
+"                                    const unsigned int count)  \n"\
+"{  \n"\
+"    int i = get_global_id(0);  \n"\
+"    if(i < count)  \n"\
+"        output[i] = heuristic(input[i], empty_vals);  \n"\
+"}  \n";
 
-////////////////////////////////////////////////////////////////////////////////
+static const int NUM_TRANSFORMS = 65536;
 
+int empty_vals[NUM_TRANSFORMS];
 
-
-int main(int argc, char** argv)
+uint64_t heuristic( uint64_t board)
 {
-    unsigned char buffer[10];
+    int64_t num_empty = 0;
+    for(int64_t c = 0; c < 4; ++c) {
+        int64_t column = board_raw_column(board,c);
+        num_empty += empty_vals[column];
+    }
+    return num_empty;
+    
+}
+
+void setup_empty_vals();
+void setup_empty_vals()
+{
     FILE *ptr;
     ptr = fopen("/Users/grantke/Desktop/Stuff/2048/OpenCL_Hello_World_Example/numempty.bin","rb");  // r for read, b for binary
     fread(empty_vals, sizeof(int), NUM_TRANSFORMS, ptr);
 
-    uint64_t origBoard = 0;
+}
 
+int main(int argc, char** argv)
+{
+    setup_empty_vals();
+    setup_moves();
 
     int err;                            // error code returned from api calls
       
-    float data[DATA_SIZE];              // original data set given to device
-    float results[DATA_SIZE];           // results returned from device
+    board_t data[DATA_SIZE];              // original data set given to device
+    uint64_t correctResults[DATA_SIZE];
+    uint64_t results[DATA_SIZE];           // results returned from device
     unsigned int correct;               // number of correct results returned
 
     size_t global;                      // global domain size for our calculation
@@ -115,18 +146,36 @@ int main(int argc, char** argv)
     cl_kernel kernel;                   // compute kernel
     
     cl_mem input;                       // device memory used for the input array
+    cl_mem numEmptyInput;
     cl_mem output;                      // device memory used for the output array
     
     // Fill our data set with random float values
     //
-    int i = 0;
-    unsigned int count = DATA_SIZE;
-    for(i = 0; i < count; i++)
-        data[i] = rand() / (float)RAND_MAX;
-    
+
+    board_t origBoard;
+    board_set_value(&origBoard, 1, 1, 2);
+    board_set_value(&origBoard, 1, 2, 2);
+
+    struct Move_Result up_result = up_move(origBoard);
+    struct Move_Result down_result = down_move(origBoard);
+    struct Move_Result left_result = left_move(origBoard);
+    struct Move_Result right_result = right_move(origBoard);
+
+    data[0] = up_result.board;
+    correctResults[0] = heuristic(up_result.board);
+    data[1] = down_result.board;
+    correctResults[1] = heuristic(down_result.board);
+    data[2] = left_result.board;
+    correctResults[2] = heuristic(left_result.board);
+    data[3] = right_result.board;
+    correctResults[3] = heuristic(right_result.board);
+
+
+    const int count = 4;
+
     // Connect to a compute device
     //
-    int gpu = 0;
+    int gpu = 1;
     err = clGetDeviceIDs(NULL, gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU, 1, &device_id, NULL);
     if (err != CL_SUCCESS)
     {
@@ -177,7 +226,7 @@ int main(int argc, char** argv)
 
     // Create the compute kernel in the program we wish to run
     //
-    kernel = clCreateKernel(program, "square", &err);
+    kernel = clCreateKernel(program, "calculate_heuristics", &err);
     if (!kernel || err != CL_SUCCESS)
     {
         printf("Error: Failed to create compute kernel!\n");
@@ -186,9 +235,10 @@ int main(int argc, char** argv)
 
     // Create the input and output arrays in device memory for our calculation
     //
-    input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * count, NULL, NULL);
-    output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * count, NULL, NULL);
-    if (!input || !output)
+    input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(board_t) * count, NULL, NULL);
+    numEmptyInput = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(empty_vals), NULL, NULL);
+    output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(uint64_t) * count, NULL, NULL);
+    if (!input || !numEmptyInput || !output)
     {
         printf("Error: Failed to allocate device memory!\n");
         exit(1);
@@ -196,19 +246,30 @@ int main(int argc, char** argv)
     
     // Write our data set into the input array in device memory 
     //
-    err = clEnqueueWriteBuffer(commands, input, CL_TRUE, 0, sizeof(float) * count, data, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(commands, input, CL_TRUE, 0, sizeof(board_t) * count, data, 0, NULL, NULL);
     if (err != CL_SUCCESS)
     {
         printf("Error: Failed to write to source array!\n");
         exit(1);
     }
 
+    // Write our data set into the input array in device memory
+    //
+    err = clEnqueueWriteBuffer(commands, numEmptyInput, CL_TRUE, 0, sizeof(int) * NUM_TRANSFORMS, empty_vals, 0, NULL, NULL);
+    if (err != CL_SUCCESS)
+    {
+        printf("Error: Failed to write to source array!\n");
+        exit(1);
+    }
+
+
     // Set the arguments to our compute kernel
     //
     err = 0;
     err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input);
-    err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &output);
-    err |= clSetKernelArg(kernel, 2, sizeof(unsigned int), &count);
+    err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &numEmptyInput);
+    err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
+    err |= clSetKernelArg(kernel, 3, sizeof(unsigned int), &count);
     if (err != CL_SUCCESS)
     {
         printf("Error: Failed to set kernel arguments! %d\n", err);
@@ -241,7 +302,7 @@ int main(int argc, char** argv)
 
     // Read back the results from the device to verify the output
     //
-    err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float) * count, results, 0, NULL, NULL );  
+    err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(uint64_t) * count, results, 0, NULL, NULL );
     if (err != CL_SUCCESS)
     {
         printf("Error: Failed to read output array! %d\n", err);
@@ -251,9 +312,9 @@ int main(int argc, char** argv)
     // Validate our results
     //
     correct = 0;
-    for(i = 0; i < count; i++)
+    for(int i = 0; i < count; i++)
     {
-        if(results[i] == data[i] * data[i])
+        if(results[i] == correctResults[i])
             correct++;
     }
     
