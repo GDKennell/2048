@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		86D1E9661F4CAEAC003B924B /* board.c in Sources */ = {isa = PBXBuildFile; fileRef = 86D1E9641F4CAEAC003B924B /* board.c */; };
 		C3770EFB0E6F1121009A5A77 /* hello.c in Sources */ = {isa = PBXBuildFile; fileRef = C3770EFA0E6F1121009A5A77 /* hello.c */; };
 		C3770EFD0E6F1138009A5A77 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3770EFC0E6F1138009A5A77 /* OpenCL.framework */; };
 /* End PBXBuildFile section */
@@ -25,6 +26,9 @@
 
 /* Begin PBXFileReference section */
 		466E0F5F0C932E1A00ED01DB /* hello */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hello; sourceTree = BUILT_PRODUCTS_DIR; };
+		86D1E9641F4CAEAC003B924B /* board.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = board.c; sourceTree = "<group>"; };
+		86D1E9651F4CAEAC003B924B /* board.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = board.h; sourceTree = "<group>"; };
+		86D1E9671F4CFD77003B924B /* numempty.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = numempty.bin; sourceTree = "<group>"; };
 		C3770EFA0E6F1121009A5A77 /* hello.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hello.c; sourceTree = "<group>"; };
 		C3770EFC0E6F1138009A5A77 /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = /System/Library/Frameworks/OpenCL.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
@@ -61,7 +65,10 @@
 		C3770EF10E6F10BB009A5A77 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				86D1E9671F4CFD77003B924B /* numempty.bin */,
 				C3770EFA0E6F1121009A5A77 /* hello.c */,
+				86D1E9641F4CAEAC003B924B /* board.c */,
+				86D1E9651F4CAEAC003B924B /* board.h */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -126,6 +133,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				86D1E9661F4CAEAC003B924B /* board.c in Sources */,
 				C3770EFB0E6F1121009A5A77 /* hello.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

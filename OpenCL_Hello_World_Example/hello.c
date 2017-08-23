@@ -59,6 +59,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <OpenCL/opencl.h>
+#include "board.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -71,14 +72,16 @@
 // Simple compute kernel which computes the square of an input array 
 //
 const char *KernelSource = "\n" \
+"__constant int NOT_THIS_ONE =  50000;\n"\
+"float multiply(float a, float b) { return a * b; }\n"\
 "__kernel void square(                                                       \n" \
 "   __global float* input,                                              \n" \
 "   __global float* output,                                             \n" \
 "   const unsigned int count)                                           \n" \
 "{                                                                      \n" \
 "   int i = get_global_id(0);                                           \n" \
-"   if(i < count)                                                       \n" \
-"       output[i] = input[i] * input[i];                                \n" \
+"   if(i < count && i != NOT_THIS_ONE)                                                       \n" \
+"       output[i] = multiply(input[i], input[i]);                                \n" \
 "}                                                                      \n" \
 "\n";
 
@@ -88,6 +91,14 @@ const char *KernelSource = "\n" \
 
 int main(int argc, char** argv)
 {
+    unsigned char buffer[10];
+    FILE *ptr;
+    ptr = fopen("/Users/grantke/Desktop/Stuff/2048/OpenCL_Hello_World_Example/numempty.bin","rb");  // r for read, b for binary
+    fread(empty_vals, sizeof(int), NUM_TRANSFORMS, ptr);
+
+    uint64_t origBoard = 0;
+
+
     int err;                            // error code returned from api calls
       
     float data[DATA_SIZE];              // original data set given to device
