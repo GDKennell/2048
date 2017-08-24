@@ -73,31 +73,48 @@
 // Simple compute kernel which computes the square of an input array 
 // Start Kernel
 const char *KernelSource = "\n" \
+"typedef unsigned long board_t;\n" \
+"typedef unsigned long uint64_t;\n" \
 "\n" \
-"int64_t raw_column(__global uint64_t board, int col_num)\n" \
-"{\n" \
-"int offset = 16 * col_num;\n" \
-"return (board >> offset) & 0xffff;\n" \
-"}\n" \
 "\n" \
-"uint64_t heuristic(__global uint64_t board, __global int* empty_vals)\n" \
-"{\n" \
-"__int64_t num_empty = 0;\n" \
-"for(__int64_t c = 0; c < 4; ++c) {\n" \
-"__int64_t column = raw_column(board,c);\n" \
-"num_empty += empty_vals[column];\n" \
-"}\n" \
-"return num_empty;\n" \
-"}\n" \
+"//uint64_t raw_column( board_t board, int col_num);\n" \
+"//uint64_t raw_column( board_t board, int col_num)\n" \
+"//{\n" \
+"//    int offset = 16 * col_num;\n" \
+"//    return (board >> offset) & 0xffff;\n" \
+"//}\n" \
+"//\n" \
+"//\n" \
+"//uint64_t heuristic(board_t board, __global int* empty_vals);\n" \
+"//uint64_t heuristic(board_t board, __global int* empty_vals)\n" \
+"//{\n" \
+"//    uint64_t column = raw_column(board,0);\n" \
+"//    uint64_t col_num_empty = empty_vals[column];\n" \
+"//\n" \
+"//    uint64_t column1 = raw_column(board,1);\n" \
+"//    uint64_t col_num_empty1 = empty_vals[column1];\n" \
+"//\n" \
+"//    uint64_t column2 = raw_column(board,2);\n" \
+"//    uint64_t col_num_empty2 = empty_vals[column2];\n" \
+"//\n" \
+"//    uint64_t column3 = raw_column(board,3);\n" \
+"//    uint64_t col_num_empty3 = empty_vals[column3];\n" \
+"//\n" \
+"//    return 0;\n" \
+"//}\n" \
 "\n" \
-"__kernel void calculate_heuristics (__global uint64_t* boards,\n" \
+"\n" \
+"__kernel void calculate_heuristics (__global board_t* boards,\n" \
 "__global int* empty_vals,\n" \
 "__global uint64_t* output,\n" \
 "const unsigned int count)\n" \
 "{\n" \
-"int i = get_global_id(0);\n" \
+"unsigned int i = get_global_id(0);\n" \
 "if(i < count)\n" \
-"output[i] = heuristic(input[i], empty_vals);\n" \
+"{\n" \
+"output[i] = i;\n" \
+"//        output[i] = heuristic(boards[i], empty_vals);\n" \
+"}\n" \
 "}\n" \
 "\n";
 // End Kernel
