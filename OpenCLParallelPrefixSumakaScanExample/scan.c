@@ -592,7 +592,7 @@ void ScanReference( float* reference, float* input, const unsigned int count)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int main(int argc, char **argv)
+int not_main(int argc, char **argv)
 {
     int i;
     uint64_t         t0 = 0;

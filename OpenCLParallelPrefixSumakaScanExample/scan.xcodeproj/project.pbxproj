@@ -8,7 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		466E0F660C932ED500ED01DB /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 466E0F650C932ED500ED01DB /* OpenCL.framework */; };
-		466E0F6D0C932F0F00ED01DB /* scan.c in Sources */ = {isa = PBXBuildFile; fileRef = 466E0F5A0C93299100ED01DB /* scan.c */; };
+		86C87A861F4F7C0D0017396A /* new_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 86C87A851F4F7C0D0017396A /* new_main.c */; };
+		86C87A881F4F7D160017396A /* heuristic_opencl.cl in CopyFiles */ = {isa = PBXBuildFile; fileRef = 86C87A871F4F7D160017396A /* heuristic_opencl.cl */; };
 		C394446C0DAFF5B2008FFE68 /* scan_kernel.cl in CopyFiles */ = {isa = PBXBuildFile; fileRef = C394446B0DAFF5AE008FFE68 /* scan_kernel.cl */; };
 /* End PBXBuildFile section */
 
@@ -19,6 +20,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 16;
 			files = (
+				86C87A881F4F7D160017396A /* heuristic_opencl.cl in CopyFiles */,
 				C394446C0DAFF5B2008FFE68 /* scan_kernel.cl in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -30,6 +32,8 @@
 		466E0F5A0C93299100ED01DB /* scan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = scan.c; sourceTree = "<group>"; };
 		466E0F5F0C932E1A00ED01DB /* scan */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = scan; sourceTree = BUILT_PRODUCTS_DIR; };
 		466E0F650C932ED500ED01DB /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = /System/Library/Frameworks/OpenCL.framework; sourceTree = "<absolute>"; };
+		86C87A851F4F7C0D0017396A /* new_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = new_main.c; sourceTree = "<group>"; };
+		86C87A871F4F7D160017396A /* heuristic_opencl.cl */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.opencl; path = heuristic_opencl.cl; sourceTree = "<group>"; };
 		C394446B0DAFF5AE008FFE68 /* scan_kernel.cl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = scan_kernel.cl; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -75,6 +79,7 @@
 		C382C35E0ED6041B00C4C6E1 /* Compute Kernels */ = {
 			isa = PBXGroup;
 			children = (
+				86C87A871F4F7D160017396A /* heuristic_opencl.cl */,
 				C394446B0DAFF5AE008FFE68 /* scan_kernel.cl */,
 			);
 			name = "Compute Kernels";
@@ -84,6 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				466E0F5A0C93299100ED01DB /* scan.c */,
+				86C87A851F4F7C0D0017396A /* new_main.c */,
 			);
 			name = "Source Files";
 			sourceTree = "<group>";
@@ -137,7 +143,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				466E0F6D0C932F0F00ED01DB /* scan.c in Sources */,
+				86C87A861F4F7C0D0017396A /* new_main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -176,6 +182,7 @@
 					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 				);
 				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../lib\"";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PREBINDING = NO;
 				PRODUCT_NAME = scan;
 				ZERO_LINK = YES;
@@ -195,6 +202,7 @@
 					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 				);
 				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../lib\"";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PREBINDING = NO;
 				PRODUCT_NAME = scan;
 				ZERO_LINK = NO;
