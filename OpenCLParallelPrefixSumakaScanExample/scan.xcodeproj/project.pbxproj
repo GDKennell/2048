@@ -10,6 +10,8 @@
 		466E0F660C932ED500ED01DB /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 466E0F650C932ED500ED01DB /* OpenCL.framework */; };
 		86C87A861F4F7C0D0017396A /* new_main.c in Sources */ = {isa = PBXBuildFile; fileRef = 86C87A851F4F7C0D0017396A /* new_main.c */; };
 		86C87A881F4F7D160017396A /* heuristic_opencl.cl in CopyFiles */ = {isa = PBXBuildFile; fileRef = 86C87A871F4F7D160017396A /* heuristic_opencl.cl */; };
+		86C87A8D1F5053A70017396A /* board.c in Sources */ = {isa = PBXBuildFile; fileRef = 86C87A8A1F5053A70017396A /* board.c */; };
+		86C87A8E1F5053A70017396A /* move.c in Sources */ = {isa = PBXBuildFile; fileRef = 86C87A8C1F5053A70017396A /* move.c */; };
 		C394446C0DAFF5B2008FFE68 /* scan_kernel.cl in CopyFiles */ = {isa = PBXBuildFile; fileRef = C394446B0DAFF5AE008FFE68 /* scan_kernel.cl */; };
 /* End PBXBuildFile section */
 
@@ -34,6 +36,10 @@
 		466E0F650C932ED500ED01DB /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = /System/Library/Frameworks/OpenCL.framework; sourceTree = "<absolute>"; };
 		86C87A851F4F7C0D0017396A /* new_main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = new_main.c; sourceTree = "<group>"; };
 		86C87A871F4F7D160017396A /* heuristic_opencl.cl */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.opencl; path = heuristic_opencl.cl; sourceTree = "<group>"; };
+		86C87A891F5053A70017396A /* board.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = board.h; sourceTree = "<group>"; };
+		86C87A8A1F5053A70017396A /* board.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = board.c; sourceTree = "<group>"; };
+		86C87A8B1F5053A70017396A /* move.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = move.h; sourceTree = "<group>"; };
+		86C87A8C1F5053A70017396A /* move.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = move.c; sourceTree = "<group>"; };
 		C394446B0DAFF5AE008FFE68 /* scan_kernel.cl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = scan_kernel.cl; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -88,6 +94,10 @@
 		C382C3610ED6042D00C4C6E1 /* Source Files */ = {
 			isa = PBXGroup;
 			children = (
+				86C87A8A1F5053A70017396A /* board.c */,
+				86C87A891F5053A70017396A /* board.h */,
+				86C87A8C1F5053A70017396A /* move.c */,
+				86C87A8B1F5053A70017396A /* move.h */,
 				466E0F5A0C93299100ED01DB /* scan.c */,
 				86C87A851F4F7C0D0017396A /* new_main.c */,
 			);
@@ -143,6 +153,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				86C87A8D1F5053A70017396A /* board.c in Sources */,
+				86C87A8E1F5053A70017396A /* move.c in Sources */,
 				86C87A861F4F7C0D0017396A /* new_main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -14,10 +14,36 @@
 #include <stdlib.h>
 #include <mach/mach_time.h>
 #include <math.h>
-
 #include <OpenCL/opencl.h>
 
+#include "move.h"
+#include "board.h"
+
 #define DATA_SIZE (4)
+
+static const int NUM_TRANSFORMS = 65536;
+
+int empty_vals[NUM_TRANSFORMS];
+
+void setup_empty_vals();
+void setup_empty_vals()
+{
+    FILE *ptr;
+    ptr = fopen("/Users/grantke/Desktop/Stuff/2048/OpenCL_Hello_World_Example/numempty.bin","rb");  // r for read, b for binary
+    fread(empty_vals, sizeof(int), NUM_TRANSFORMS, ptr);
+
+}
+
+uint64_t heuristic( board_t board)
+{
+    int64_t num_empty = 0;
+    for(int64_t c = 0; c < 4; ++c) {
+        int64_t column = board_raw_column(board,c);
+        num_empty += empty_vals[column];
+    }
+    return num_empty;
+}
+
 
 static char *
 LoadProgramSourceFromFile(const char *filename)
@@ -41,21 +67,13 @@ LoadProgramSourceFromFile(const char *filename)
 
 int main(int argc, char** argv)
 {
-//    setup_empty_vals();
+    setup_empty_vals();
 //    setup_moves();
 
     int err;                            // error code returned from api calls
 
-    uint64_t input_data[DATA_SIZE];
-    uint64_t correct_doubled_data[DATA_SIZE];
-    for (int i = 0; i < DATA_SIZE; i++)
-    {
-        input_data[i] = (uint64_t)(10 * ((float) rand() / (float) RAND_MAX));
-        correct_doubled_data[i] = input_data[i] * 2;
-    }
+    board_t input_data[DATA_SIZE];
 
-//    board_t data[DATA_SIZE];              // original data set given to device
-//    uint64_t correctResults[DATA_SIZE];
     uint64_t results[DATA_SIZE];           // results returned from device
     unsigned int correct;               // number of correct results returned
 
@@ -72,27 +90,21 @@ int main(int argc, char** argv)
     cl_mem numEmptyInput;
     cl_mem output;                      // device memory used for the output array
 
-    // Fill our data set with random float values
-    //
 
-//    board_t origBoard;
-//    board_set_value(&origBoard, 1, 1, 2);
-//    board_set_value(&origBoard, 1, 2, 2);
-//
-//    struct Move_Result up_result = up_move(origBoard);
-//    struct Move_Result down_result = down_move(origBoard);
-//    struct Move_Result left_result = left_move(origBoard);
-//    struct Move_Result right_result = right_move(origBoard);
-//
-//    data[0] = up_result.board;
-//    correctResults[0] = heuristic(up_result.board);
-//    data[1] = down_result.board;
-//    correctResults[1] = heuristic(down_result.board);
-//    data[2] = left_result.board;
-//    correctResults[2] = heuristic(left_result.board);
-//    data[3] = right_result.board;
-//    correctResults[3] = heuristic(right_result.board);
-//
+    board_t origBoard;
+    board_set_value(&origBoard, 1, 1, 2);
+    board_set_value(&origBoard, 1, 2, 2);
+
+    struct Move_Result up_result = up_move(origBoard);
+    struct Move_Result down_result = down_move(origBoard);
+    struct Move_Result left_result = left_move(origBoard);
+    struct Move_Result right_result = right_move(origBoard);
+
+    input_data[0] = up_result.board;
+    input_data[1] = down_result.board;
+    input_data[2] = left_result.board;
+    input_data[3] = right_result.board;
+
 
     const int count = DATA_SIZE;
 
@@ -169,8 +181,8 @@ int main(int argc, char** argv)
     // Create the input and output arrays in device memory for our calculation
     //
     input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(uint64_t) * count, NULL, NULL);
-//    numEmptyInput = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(empty_vals), NULL, NULL);
-    output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(uint64_t) * count, NULL, NULL);
+    numEmptyInput = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(empty_vals), NULL, NULL);
+    output = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(uint64_t) * count, NULL, NULL);
     if (!input || !output)
     {
         printf("Error: Failed to allocate device memory!\n");
@@ -188,12 +200,12 @@ int main(int argc, char** argv)
 
     // Write our data set into the input array in device memory
     //
-//    err = clEnqueueWriteBuffer(commands, numEmptyInput, CL_TRUE, 0, sizeof(int) * NUM_TRANSFORMS, empty_vals, 0, NULL, NULL);
-//    if (err != CL_SUCCESS)
-//    {
-//        printf("Error: Failed to write to source array!\n");
-//        exit(1);
-//    }
+    err = clEnqueueWriteBuffer(commands, numEmptyInput, CL_TRUE, 0, sizeof(int) * NUM_TRANSFORMS, empty_vals, 0, NULL, NULL);
+    if (err != CL_SUCCESS)
+    {
+        printf("Error: Failed to write to source array!\n");
+        exit(1);
+    }
 
 
     // Set the arguments to our compute kernel
@@ -201,6 +213,7 @@ int main(int argc, char** argv)
     err = 0;
     int argNum = 0;
     err  = clSetKernelArg(kernel, argNum++, sizeof(cl_mem), &input);
+    err  = clSetKernelArg(kernel, argNum++, sizeof(cl_mem), &numEmptyInput);
     err |= clSetKernelArg(kernel, argNum++, sizeof(cl_mem), &output);
     err |= clSetKernelArg(kernel, argNum++, sizeof(unsigned int), &count);
     if (err != CL_SUCCESS)
@@ -247,7 +260,7 @@ int main(int argc, char** argv)
     correct = 0;
     for(int i = 0; i < count; i++)
     {
-        if(results[i] == correct_doubled_data[i])
+        if(results[i] == heuristic(input_data[i]))
             correct++;
     }
 
