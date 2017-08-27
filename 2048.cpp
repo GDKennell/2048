@@ -69,6 +69,7 @@ Move_Result up_move(const board_t& in_board);
 Move_Result down_move(const board_t& in_board);
 Move_Result left_move(const board_t& in_board);
 Move_Result right_move(const board_t& in_board);
+int64_t heuristic(const board_t& board);
 
 int64_t min(int64_t x1, int64_t x2, int64_t x3, int64_t x4) {
   return min(x1, min(x2, min(x3, x4) ) );
@@ -137,6 +138,7 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score);
 
 int MAX_DEPTH = 5;
 const uint64_t UNUSED_BOARD = 0;
+const uint64_t UNUSED_HEUR = 0xFFFFFFFFFFFFFFF;
 
 int size_of_tree(int tree_depth)
 {
@@ -151,6 +153,7 @@ int size_of_tree(int tree_depth)
 }
 
 uint64_t *entire_move_tree;
+float *evaluation_tree;
 int tree_size;
 
 int start_of_layer(int layer_num)
@@ -255,6 +258,103 @@ void compute_layer(int layerNum)
   }
 }
 
+void compute_tree(const board_t &startBoard)
+{
+  for (int i = 0; i < 4; ++i)
+  {
+    Direction move_dir = (Direction)i;
+    Move_Result move_res = move_in_direction(startBoard, move_dir);
+    int move_index = start_of_layer(0) + i;
+    entire_move_tree[move_index] = move_res.board.raw();
+  }
+
+  for (int depth = 1; depth <= MAX_DEPTH; ++ depth)
+  {
+    cout<<"computing layer "<<depth<<": "<<start_of_layer(depth)<<"-"<<start_of_layer(depth) + size_of_layer(depth)<<endl;
+    compute_layer(depth);
+  }
+}
+
+void evaluate_layer(int layerNum)
+{
+  int layerStart = start_of_layer(layerNum);
+  int layerSize = size_of_layer(layerNum);
+  for (int i = layerStart; i < layerStart + layerSize; ++i)
+  {
+    board_t thisBoard = entire_move_tree[i];
+    // Leaf layer - compute heuristics
+    if (layerNum == MAX_DEPTH)
+    {
+      entire_move_tree[i] = (thisBoard.raw() == UNUSED_BOARD) ? UNUSED_HEUR : heuristic(thisBoard);
+    }
+    // Move layer - average the next layer (outcomes)
+    else if (layerNum % 2 == 0)
+    {
+      if (thisBoard.raw() == UNUSED_BOARD) {continue;}
+      int thisLayerIndex = i - layerStart;
+      int outcomesStart = start_of_layer(layerNum + 1) + (30 * thisLayerIndex);
+      uint64_t outcomeHeurTotal = 0;
+      int outcomeCount = 0;
+      for (int j = outcomesStart; j < outcomesStart + 30; ++j)
+      {
+        uint64_t outcomeHeur = entire_move_tree[j];
+        if (outcomeHeur == UNUSED_HEUR)
+        {
+          break;
+        }
+        outcomeHeurTotal += outcomeHeur;
+        ++outcomeCount;
+      }
+      entire_move_tree[i] = outcomeHeurTotal / (10 * outcomeCount);
+    }
+    // Outcome layer - take max of next layer (moves)
+    else
+    {
+      if (thisBoard.raw() == UNUSED_BOARD) {continue;}
+
+      int thisLayerIndex = i - layerStart;
+      int movesStart = start_of_layer(layerNum + 1) + (4 * thisLayerIndex);
+
+      uint64_t bestMoveHeur = UNUSED_HEUR;
+      for (int j = movesStart; j < movesStart + 4; ++j)
+      {
+        uint64_t moveHeur = entire_move_tree[j];
+        if (moveHeur != UNUSED_HEUR)
+        {
+          if (bestMoveHeur == UNUSED_HEUR || moveHeur > bestMoveHeur)
+          {
+            bestMoveHeur = moveHeur;
+          }
+        }
+      }
+      entire_move_tree[i] = bestMoveHeur;
+    }
+  }
+
+}
+Direction decide_move_from_tree()
+{
+  for (int layerNum = MAX_DEPTH; layerNum > 0; --layerNum)
+  {
+    evaluate_layer(layerNum);
+  }
+  int best_move_index = -1;
+  uint64_t bestMoveHeur = UNUSED_HEUR;
+  for (int move_i = 0; move_i < 4; ++move_i)
+  {
+    uint64_t thisMoveHeur = entire_move_tree[move_i];
+    if (thisMoveHeur != UNUSED_HEUR)
+    {
+      if (bestMoveHeur == UNUSED_HEUR || thisMoveHeur > bestMoveHeur)
+      {
+        best_move_index = move_i;
+        bestMoveHeur = thisMoveHeur;
+      }
+    }
+  }
+
+  return  (best_move_index == -1) ? NONE : (Direction)best_move_index;
+}
 int main() {
 
   load_precompute_files();
@@ -270,54 +370,28 @@ int main() {
   cout<<"Max depth "<<MAX_DEPTH<<", tree size: "<<tree_size<<endl;
   entire_move_tree = (uint64_t *)malloc(tree_size * sizeof(uint64_t));
 
-  for (int i = 0; i < 4; ++i)
-  {
-    Direction move_dir = (Direction)i;
-    Move_Result move_res = move_in_direction(board, move_dir);
-    int move_index = start_of_layer(0) + i;
-    entire_move_tree[move_index] = move_res.board.raw();
-  }
+  int round_num = 0;
+  while(1) {
+    cout<<"###############Round "<<++round_num<<endl;
+    print_board(board);
+    compute_tree(board);
 
-  for (int depth = 1; depth <= MAX_DEPTH; ++ depth)
-  {
-    cout<<"computing layer "<<depth<<": "<<start_of_layer(depth)<<"-"<<start_of_layer(depth) + size_of_layer(depth)<<endl;
-    compute_layer(depth);
-  }
+    Direction move_decision = decide_move_from_tree();
 
-  const char* filename = "/Users/grantke/Desktop/Stuff/2048/entire_move_tree.bin";
-  ofstream out_file = ofstream(filename);
-  for (int i = 0; i < tree_size; ++i)
-  {
-    out_file<<entire_move_tree[i]<<endl;
+    board = apply_move(move_decision, board, score);
+
+    if(move_decision == NONE) {
+      cout<<"Game Over"<<endl;
+      return 0;
+    }
+
+    cout<<"\n********Move "<<direction_names[move_decision]<<"********"<<endl;
+
+    add_new_tile(board, false);
+    cout<<endl;
   }
-  out_file.close();
   free(entire_move_tree);
-//  int round_num = 0;
-//  while(1) {
-//    cout<<"###############Round "<<++round_num<<endl;
-//    print_board(board);
-//
-//    Direction move_decision = decide_move(board);
-//
-//    board = apply_move(move_decision, board, score);
-//
-//    if(move_decision == NONE) {
-//      cout<<"Game Over"<<endl;
-//      end_time=Clock::to_time_t(Clock::now());
-//      cerr<<"Score: "<<score<<endl;
-//      cerr<<"Time: "<<end_time - start_time<<endl;
-//      if(end_time - start_time != 0) {
-//        cerr<<"Points/sec: "<<score / (end_time - start_time)<<endl;
-//      }
-//      return 0;
-//    }
-//
-//    cout<<"\n********Move "<<direction_names[move_decision]<<"********"<<endl;
-//    cout<<"********Score: "<<score<<"********\n"<<endl;
-//
-//    add_new_tile(board, false);
-//    cout<<endl;
-//  }
+  return 0;
 }
 
 void load_precompute_files() {
@@ -396,15 +470,21 @@ board_t input_board() {
   return board;
 }
 
-//returns some evaluation of this board based on number of tiles,
-//    number of combos available, highest tile value
-int64_t heuristic(const board_t& board) {
+
+int64_t num_empty_in_board(const board_t& board)
+{
   int64_t num_empty = 0;
   for(int64_t c = 0; c < 4; ++c) {
     int64_t column = board.raw_col(c);
     num_empty += empty_vals[column];
   }
   return num_empty;
+}
+
+//returns some evaluation of this board based on number of tiles,
+//    number of combos available, highest tile value
+int64_t heuristic(const board_t& board) {
+  return 10000000 * num_empty_in_board(board);
 }
 
 const int INVALID_MOVE_WEIGHT = 0.0;
@@ -493,10 +573,10 @@ int64_t eval_board_moves(const board_t& board) {
     right_eval = right_valid ? eval_board_outcomes(right_result.board) : INVALID_MOVE_WEIGHT;
   }
   else {
-    up_eval = up_valid ? 10000000 * heuristic(up_result.board) : INVALID_MOVE_WEIGHT;
-    down_eval = down_valid ? 10000000 * heuristic(down_result.board) : INVALID_MOVE_WEIGHT;
-    left_eval = left_valid ? 10000000 * heuristic(left_result.board) : INVALID_MOVE_WEIGHT;
-    right_eval = right_valid ? 10000000 * heuristic(right_result.board) : INVALID_MOVE_WEIGHT;
+    up_eval = up_valid ? heuristic(up_result.board) : INVALID_MOVE_WEIGHT;
+    down_eval = down_valid ? heuristic(down_result.board) : INVALID_MOVE_WEIGHT;
+    left_eval = left_valid ? heuristic(left_result.board) : INVALID_MOVE_WEIGHT;
+    right_eval = right_valid ? heuristic(right_result.board) : INVALID_MOVE_WEIGHT;
   }
   if (verbose_logs) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
@@ -570,7 +650,7 @@ Direction advice(const board_t& board,
   int64_t left_val;
   int64_t right_val;
 
-  int num_empty = heuristic(board);
+  uint64_t num_empty = num_empty_in_board(board);
   if(num_empty < 2) {
     TOLERANCE = 50000;
     MAX_DEPTH = 10;
