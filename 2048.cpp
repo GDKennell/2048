@@ -76,9 +76,23 @@ int64_t heuristic(const board_t& board);
 int64_t min(int64_t x1, int64_t x2, int64_t x3, int64_t x4) {
   return min(x1, min(x2, min(x3, x4) ) );
 }
+const uint64_t UNUSED_BOARD = 0;
+const uint64_t UNUSED_HEUR = 0xFFFFFFFFFFFFFFF;
 
 int64_t max(int64_t x1, int64_t x2, int64_t x3, int64_t x4) {
-  return max(x1, max(x2, max(x3, x4) ) );
+  int64_t highest = UNUSED_HEUR;
+  int64_t allVals[] = {x1, x2, x3,x4};
+  for (int i = 0; i < 4; ++i)
+  {
+    if (allVals[i] != UNUSED_HEUR)
+    {
+      if (highest == UNUSED_HEUR || allVals[i] > highest)
+      {
+        highest = allVals[i];
+      }
+    }
+  }
+  return highest;
 }
 
 bool board_full(const board_t& board);
@@ -139,8 +153,6 @@ Direction decide_move(const board_t &board) {
 board_t apply_move(Direction move_direction, const board_t &board, int& score);
 
 int MAX_DEPTH = 10;
-const uint64_t UNUSED_BOARD = 0;
-const uint64_t UNUSED_HEUR = 0xFFFFFFFFFFFFFFF;
 
 int size_of_tree(int tree_depth)
 {
@@ -291,15 +303,21 @@ void evaluate_layer(int layerNum)
   for (int i = layerStart; i < layerStart + layerSize; ++i)
   {
     board_t thisBoard = entire_move_tree[i];
+    if (thisBoard.raw() == UNUSED_BOARD)
+    {
+      entire_move_tree[i] = UNUSED_HEUR;
+      continue;
+    }
+
     // Leaf layer - compute heuristics
     if (layerNum == MAX_DEPTH)
     {
-      entire_move_tree[i] = (thisBoard.raw() == UNUSED_BOARD) ? UNUSED_HEUR : heuristic(thisBoard);
+      uint64_t eval = heuristic(thisBoard);
+      entire_move_tree[i] = eval;
     }
     // Move layer - average the next layer (outcomes)
     else if (layerNum % 2 == 0)
     {
-      if (thisBoard.raw() == UNUSED_BOARD) {continue;}
       int thisLayerIndex = i - layerStart;
       int outcomesStart = start_of_layer(layerNum + 1) + (30 * thisLayerIndex);
       uint64_t outcomeHeurTotal = 0;
@@ -319,8 +337,6 @@ void evaluate_layer(int layerNum)
     // Outcome layer - take max of next layer (moves)
     else
     {
-      if (thisBoard.raw() == UNUSED_BOARD) {continue;}
-
       int thisLayerIndex = i - layerStart;
       int movesStart = start_of_layer(layerNum + 1) + (4 * thisLayerIndex);
 
@@ -345,6 +361,9 @@ int64_t num_empty_in_board(const board_t& board);
 
 void setDepthAndTolerance(const board_t &board)
 {
+//  TOLERANCE = 10;
+//  MAX_DEPTH = 3;
+//  return;
   int64_t num_empty = num_empty_in_board(board);
   if(num_empty < 2) {
     TOLERANCE = 50000;
@@ -365,14 +384,14 @@ void setDepthAndTolerance(const board_t &board)
 }
 Direction decide_move_from_tree()
 {
-  for (int layerNum = MAX_DEPTH; layerNum > 0; --layerNum)
+  for (int layerNum = MAX_DEPTH; layerNum >= 0; --layerNum)
   {
     evaluate_layer(layerNum);
   }
-  bool up_valid = (entire_move_tree[UP] != UNUSED_BOARD);
-  bool right_valid = (entire_move_tree[RIGHT] != UNUSED_BOARD);
-  bool down_valid = (entire_move_tree[DOWN] != UNUSED_BOARD);
-  bool left_valid = (entire_move_tree[LEFT] != UNUSED_BOARD);
+  bool up_valid = (entire_move_tree[UP] != UNUSED_HEUR);
+  bool right_valid = (entire_move_tree[RIGHT] != UNUSED_HEUR);
+  bool down_valid = (entire_move_tree[DOWN] != UNUSED_HEUR);
+  bool left_valid = (entire_move_tree[LEFT] != UNUSED_HEUR);
 
   int64_t up_val = entire_move_tree[UP];
   int64_t down_val = entire_move_tree[DOWN];
@@ -502,9 +521,16 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score) {
 board_t input_board() {
   board_t board;
 
+  board.set_val(0, 0, 4);
+  board.set_val(0, 1, 4);
+  board.set_val(0, 2, 4);
+  board.set_val(0, 3, 4);
+  board.set_val(1, 0, 2);
   board.set_val(1, 1, 2);
   board.set_val(1, 2, 2);
-//  const int num_tiles = 2;
+  board.set_val(1, 3, 2);
+
+  //  const int num_tiles = 2;
 //  cout<<"Input "<<num_tiles<<" tiles"<<endl;
 //  for(int i = 0; i < num_tiles; ++i){
 //    Block new_block = input_block();
