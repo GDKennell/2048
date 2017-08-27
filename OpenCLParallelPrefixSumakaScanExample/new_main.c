@@ -64,18 +64,15 @@ LoadProgramSourceFromFile(const char *filename)
     return source;
 }
 
-
-int main(int argc, char** argv)
+int run_opencl_function(const char *sourceFilename,
+                        uint64_t *inputArray,
+                        int inputCount,
+                        int *numEmptyArray,
+                        int numEmptyCount,
+                        uint64_t *outputArray,
+                        int outputCount)
 {
-    setup_empty_vals();
-//    setup_moves();
-
     int err;                            // error code returned from api calls
-
-    board_t input_data[DATA_SIZE];
-
-    uint64_t results[DATA_SIZE];           // results returned from device
-    unsigned int correct;               // number of correct results returned
 
     size_t global;                      // global domain size for our calculation
     size_t local;                       // local domain size for our calculation
@@ -89,21 +86,6 @@ int main(int argc, char** argv)
     cl_mem input;                       // device memory used for the input array
     cl_mem numEmptyInput;
     cl_mem output;                      // device memory used for the output array
-
-
-    board_t origBoard;
-    board_set_value(&origBoard, 1, 1, 2);
-    board_set_value(&origBoard, 1, 2, 2);
-
-    struct Move_Result up_result = up_move(origBoard);
-    struct Move_Result down_result = down_move(origBoard);
-    struct Move_Result left_result = left_move(origBoard);
-    struct Move_Result right_result = right_move(origBoard);
-
-    input_data[0] = up_result.board;
-    input_data[1] = down_result.board;
-    input_data[2] = left_result.board;
-    input_data[3] = right_result.board;
 
 
     const int count = DATA_SIZE;
@@ -136,10 +118,9 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    const char* filename = "./heuristic_opencl.cl";
-    printf("Loading program '%s'...\n", filename);
+    printf("Loading program '%s'...\n", sourceFilename);
 
-    char *source = LoadProgramSourceFromFile(filename);
+    char *source = LoadProgramSourceFromFile(sourceFilename);
     if(!source)
     {
         printf("Error: Failed to load compute program from file!\n");
@@ -180,9 +161,9 @@ int main(int argc, char** argv)
 
     // Create the input and output arrays in device memory for our calculation
     //
-    input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(uint64_t) * count, NULL, NULL);
-    numEmptyInput = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(empty_vals), NULL, NULL);
-    output = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(uint64_t) * count, NULL, NULL);
+    input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(uint64_t) * inputCount, NULL, NULL);
+    numEmptyInput = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(int) * numEmptyCount, NULL, NULL);
+    output = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(uint64_t) * outputCount, NULL, NULL);
     if (!input || !output)
     {
         printf("Error: Failed to allocate device memory!\n");
@@ -191,19 +172,19 @@ int main(int argc, char** argv)
 
     // Write our data set into the input array in device memory
     //
-    err = clEnqueueWriteBuffer(commands, input, CL_TRUE, 0, sizeof(uint64_t) * count, input_data, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(commands, input, CL_TRUE, 0, sizeof(uint64_t) * inputCount, inputArray, 0, NULL, NULL);
     if (err != CL_SUCCESS)
     {
-        printf("Error: Failed to write to source array!\n");
+        printf("Error: Failed to write to board source array!\n");
         exit(1);
     }
 
     // Write our data set into the input array in device memory
     //
-    err = clEnqueueWriteBuffer(commands, numEmptyInput, CL_TRUE, 0, sizeof(int) * NUM_TRANSFORMS, empty_vals, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(commands, numEmptyInput, CL_TRUE, 0, sizeof(int) * numEmptyCount, numEmptyArray, 0, NULL, NULL);
     if (err != CL_SUCCESS)
     {
-        printf("Error: Failed to write to source array!\n");
+        printf("Error: Failed to write to numempty source array!\n");
         exit(1);
     }
 
@@ -248,12 +229,55 @@ int main(int argc, char** argv)
 
     // Read back the results from the device to verify the output
     //
-    err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(uint64_t) * count, results, 0, NULL, NULL );
+    err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(uint64_t) * outputCount, outputArray, 0, NULL, NULL );
     if (err != CL_SUCCESS)
     {
         printf("Error: Failed to read output array! %d\n", err);
         exit(1);
     }
+
+    clReleaseMemObject(input);
+    clReleaseMemObject(output);
+    clReleaseProgram(program);
+    clReleaseKernel(kernel);
+    clReleaseCommandQueue(commands);
+    clReleaseContext(context);
+
+    return 0;
+}
+
+int main(int argc, char** argv)
+{
+    setup_empty_vals();
+//    setup_moves();
+
+    int err;                            // error code returned from api calls
+
+    board_t input_data[DATA_SIZE];
+
+    uint64_t results[DATA_SIZE];           // results returned from device
+    unsigned int correct;               // number of correct results returned
+
+    board_t origBoard;
+    board_set_value(&origBoard, 1, 1, 2);
+    board_set_value(&origBoard, 1, 2, 2);
+
+    struct Move_Result up_result = up_move(origBoard);
+    struct Move_Result down_result = down_move(origBoard);
+    struct Move_Result left_result = left_move(origBoard);
+    struct Move_Result right_result = right_move(origBoard);
+
+    input_data[0] = up_result.board;
+    input_data[1] = down_result.board;
+    input_data[2] = left_result.board;
+    input_data[3] = right_result.board;
+
+    const int count = DATA_SIZE;
+
+    run_opencl_function("heuristic_opencl.cl",
+                        input_data, DATA_SIZE,
+                        empty_vals, NUM_TRANSFORMS,
+                        results, DATA_SIZE);
 
     // Validate our results
     //
@@ -268,14 +292,6 @@ int main(int argc, char** argv)
     //
     printf("Computed '%d/%d' correct values!\n", correct, count);
 
-    // Shutdown and cleanup
-    //
-    clReleaseMemObject(input);
-    clReleaseMemObject(output);
-    clReleaseProgram(program);
-    clReleaseKernel(kernel);
-    clReleaseCommandQueue(commands);
-    clReleaseContext(context);
 
     return 0;
 }
