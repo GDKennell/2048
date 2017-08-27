@@ -24,6 +24,8 @@ enum Direction {LEFT, RIGHT, UP, DOWN, NONE};
 
 const char* direction_names[] = {"left", "right", "up", "down",  "none"};
 
+int TOLERANCE = 10;
+
 const bool verbose_logs = false;
 const int NUM_TILES = 16;
 
@@ -136,7 +138,7 @@ Direction decide_move(const board_t &board) {
 
 board_t apply_move(Direction move_direction, const board_t &board, int& score);
 
-int MAX_DEPTH = 5;
+int MAX_DEPTH = 10;
 const uint64_t UNUSED_BOARD = 0;
 const uint64_t UNUSED_HEUR = 0xFFFFFFFFFFFFFFF;
 
@@ -149,7 +151,7 @@ int size_of_tree(int tree_depth)
     multiplier *= tempMultiplier;
     multiplier += 1;
   }
-  return 4 * multiplier;
+  return 4 * multiplier + 1;
 }
 
 uint64_t *entire_move_tree;
@@ -265,7 +267,14 @@ void compute_tree(const board_t &startBoard)
     Direction move_dir = (Direction)i;
     Move_Result move_res = move_in_direction(startBoard, move_dir);
     int move_index = start_of_layer(0) + i;
-    entire_move_tree[move_index] = move_res.board.raw();
+    if (move_res.board == startBoard)
+    {
+      entire_move_tree[move_index] =  UNUSED_BOARD;
+    }
+    else
+    {
+      entire_move_tree[move_index] = move_res.board.raw();
+    }
   }
 
   for (int depth = 1; depth <= MAX_DEPTH; ++ depth)
@@ -332,28 +341,63 @@ void evaluate_layer(int layerNum)
   }
 
 }
+int64_t num_empty_in_board(const board_t& board);
+
+void setDepthAndTolerance(const board_t &board)
+{
+  int64_t num_empty = num_empty_in_board(board);
+  if(num_empty < 2) {
+    TOLERANCE = 50000;
+    MAX_DEPTH = 10;
+  }
+  else if(num_empty < 4) {
+    TOLERANCE = 100000;
+    MAX_DEPTH = 8;
+  }
+  else if(num_empty < 7) {
+    TOLERANCE = 200000;
+    MAX_DEPTH = 6;
+  }
+  else {
+    TOLERANCE = 500000;
+    MAX_DEPTH = 4;
+  }
+}
 Direction decide_move_from_tree()
 {
   for (int layerNum = MAX_DEPTH; layerNum > 0; --layerNum)
   {
     evaluate_layer(layerNum);
   }
-  int best_move_index = -1;
-  uint64_t bestMoveHeur = UNUSED_HEUR;
-  for (int move_i = 0; move_i < 4; ++move_i)
-  {
-    uint64_t thisMoveHeur = entire_move_tree[move_i];
-    if (thisMoveHeur != UNUSED_HEUR)
-    {
-      if (bestMoveHeur == UNUSED_HEUR || thisMoveHeur > bestMoveHeur)
-      {
-        best_move_index = move_i;
-        bestMoveHeur = thisMoveHeur;
-      }
-    }
-  }
+  bool up_valid = (entire_move_tree[UP] != UNUSED_BOARD);
+  bool right_valid = (entire_move_tree[RIGHT] != UNUSED_BOARD);
+  bool down_valid = (entire_move_tree[DOWN] != UNUSED_BOARD);
+  bool left_valid = (entire_move_tree[LEFT] != UNUSED_BOARD);
 
-  return  (best_move_index == -1) ? NONE : (Direction)best_move_index;
+  int64_t up_val = entire_move_tree[UP];
+  int64_t down_val = entire_move_tree[DOWN];
+  int64_t left_val = entire_move_tree[LEFT];
+  int64_t right_val = entire_move_tree[RIGHT];
+
+  int64_t max_val = max(up_val, down_val, left_val, right_val);
+  cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
+
+
+  if (!up_valid && !down_valid && !left_valid && !right_valid) {
+    return NONE;
+  }
+  else if(up_valid && max_val - up_val < TOLERANCE && max_val - up_val > -TOLERANCE) {
+    return UP;
+  }
+  else if(right_valid && max_val - right_val < TOLERANCE && max_val - right_val > -TOLERANCE) {
+    return RIGHT;
+  }
+  else if (down_valid && max_val - down_val < TOLERANCE && max_val - down_val > -TOLERANCE) {
+    return DOWN;
+  }
+  else {
+    return LEFT;
+  }
 }
 int main() {
 
@@ -374,6 +418,8 @@ int main() {
   while(1) {
     cout<<"###############Round "<<++round_num<<endl;
     print_board(board);
+
+    setDepthAndTolerance(board);
     compute_tree(board);
 
     Direction move_decision = decide_move_from_tree();
@@ -488,7 +534,6 @@ int64_t heuristic(const board_t& board) {
 }
 
 const int INVALID_MOVE_WEIGHT = 0.0;
-int TOLERANCE = 10;
 
 int depth = 0;
 
