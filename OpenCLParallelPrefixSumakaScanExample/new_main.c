@@ -65,12 +65,9 @@ LoadProgramSourceFromFile(const char *filename)
 }
 
 int run_opencl_function(const char *sourceFilename,
-                        uint64_t *inputArray,
-                        int inputCount,
-                        int *numEmptyArray,
-                        int numEmptyCount,
-                        uint64_t *outputArray,
-                        int outputCount)
+                        void **programInputs,
+                        size_t *programInputSizes,
+                        cl_mem_flags *programInputMemFlags)
 {
     int err;                            // error code returned from api calls
 
@@ -82,10 +79,6 @@ int run_opencl_function(const char *sourceFilename,
     cl_command_queue commands;          // compute command queue
     cl_program program;                 // compute program
     cl_kernel kernel;                   // compute kernel
-
-    cl_mem input;                       // device memory used for the input array
-    cl_mem numEmptyInput;
-    cl_mem output;                      // device memory used for the output array
 
 
     const int count = DATA_SIZE;
@@ -159,43 +152,49 @@ int run_opencl_function(const char *sourceFilename,
         exit(1);
     }
 
+    int inputIndex = 0;
+    const int max_buffers = 10;
+    cl_mem inputBuffers[max_buffers];
+    int bufferCount = 0;
+
     // Create the input and output arrays in device memory for our calculation
     //
-    input = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(uint64_t) * inputCount, NULL, NULL);
-    numEmptyInput = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(int) * numEmptyCount, NULL, NULL);
-    output = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(uint64_t) * outputCount, NULL, NULL);
-    if (!input || !output)
+    while (programInputs[inputIndex] != NULL)
     {
-        printf("Error: Failed to allocate device memory!\n");
-        exit(1);
+        size_t inputSize = programInputSizes[inputIndex];
+        cl_mem_flags inputMemFlags = programInputMemFlags[inputIndex];
+        inputBuffers[bufferCount] = clCreateBuffer(context, inputMemFlags, inputSize, NULL, NULL);
+        if (!inputBuffers[bufferCount])
+        {
+            printf("Error: Failed to allocate device memory!\n");
+            exit(1);
+        }
+        ++inputIndex;
+        ++bufferCount;
     }
 
-    // Write our data set into the input array in device memory
-    //
-    err = clEnqueueWriteBuffer(commands, input, CL_TRUE, 0, sizeof(uint64_t) * inputCount, inputArray, 0, NULL, NULL);
-    if (err != CL_SUCCESS)
+    for (int i = 0; i < bufferCount; ++i)
     {
-        printf("Error: Failed to write to board source array!\n");
-        exit(1);
+        if (programInputMemFlags[i] == CL_MEM_WRITE_ONLY)
+            continue;
+        // Write our data set into the input array in device memory
+        //
+        err = clEnqueueWriteBuffer(commands, inputBuffers[i], CL_TRUE, 0, programInputSizes[i], programInputs[i], 0, NULL, NULL);
+        if (err != CL_SUCCESS)
+        {
+            printf("Error: Failed to write to source array!\n");
+            exit(1);
+        }
     }
-
-    // Write our data set into the input array in device memory
-    //
-    err = clEnqueueWriteBuffer(commands, numEmptyInput, CL_TRUE, 0, sizeof(int) * numEmptyCount, numEmptyArray, 0, NULL, NULL);
-    if (err != CL_SUCCESS)
-    {
-        printf("Error: Failed to write to numempty source array!\n");
-        exit(1);
-    }
-
 
     // Set the arguments to our compute kernel
     //
     err = 0;
     int argNum = 0;
-    err  = clSetKernelArg(kernel, argNum++, sizeof(cl_mem), &input);
-    err  = clSetKernelArg(kernel, argNum++, sizeof(cl_mem), &numEmptyInput);
-    err |= clSetKernelArg(kernel, argNum++, sizeof(cl_mem), &output);
+    for (int i = 0; i < bufferCount; ++i)
+    {
+        err  |= clSetKernelArg(kernel, argNum++, sizeof(cl_mem), &inputBuffers[i]);
+    }
     err |= clSetKernelArg(kernel, argNum++, sizeof(unsigned int), &count);
     if (err != CL_SUCCESS)
     {
@@ -229,15 +228,25 @@ int run_opencl_function(const char *sourceFilename,
 
     // Read back the results from the device to verify the output
     //
-    err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(uint64_t) * outputCount, outputArray, 0, NULL, NULL );
-    if (err != CL_SUCCESS)
+
+    for (int i = 0; i < bufferCount; ++i)
     {
-        printf("Error: Failed to read output array! %d\n", err);
-        exit(1);
+        if (programInputMemFlags[i] == CL_MEM_WRITE_ONLY)
+        {
+            err = clEnqueueReadBuffer( commands, inputBuffers[i], CL_TRUE, 0, programInputSizes[i], programInputs[i], 0, NULL, NULL );
+            if (err != CL_SUCCESS)
+            {
+                printf("Error: Failed to read output array! %d\n", err);
+                exit(1);
+            }
+        }
     }
 
-    clReleaseMemObject(input);
-    clReleaseMemObject(output);
+    for (int i = 0; i < bufferCount; ++i)
+    {
+        clReleaseMemObject(inputBuffers[i]);
+    }
+
     clReleaseProgram(program);
     clReleaseKernel(kernel);
     clReleaseCommandQueue(commands);
@@ -274,11 +283,10 @@ int main(int argc, char** argv)
 
     const int count = DATA_SIZE;
 
-    run_opencl_function("heuristic_opencl.cl",
-                        input_data, DATA_SIZE,
-                        empty_vals, NUM_TRANSFORMS,
-                        results, DATA_SIZE);
-
+    void *program_inputs[]          =   {input_data,                  empty_vals,         results, NULL};
+    size_t program_input_sizes[]    =   {DATA_SIZE * sizeof(board_t), sizeof(empty_vals), DATA_SIZE * sizeof(uint64_t)};
+    cl_mem_flags program_input_flags[]= {CL_MEM_READ_ONLY,            CL_MEM_READ_ONLY,   CL_MEM_WRITE_ONLY};
+    run_opencl_function("heuristic_opencl.cl", program_inputs, program_input_sizes, program_input_flags);
     // Validate our results
     //
     correct = 0;
