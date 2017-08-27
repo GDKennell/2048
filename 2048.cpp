@@ -154,9 +154,9 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score);
 
 int MAX_DEPTH = 10;
 
-int size_of_tree(int tree_depth)
+uint64_t size_of_tree(int tree_depth)
 {
-  int multiplier = 1;
+  uint64_t multiplier = 1;
   for (int i = tree_depth + 1; i > 1; --i)
   {
     int tempMultiplier = (i % 2 == 0) ? 30 : 4;
@@ -168,34 +168,34 @@ int size_of_tree(int tree_depth)
 
 uint64_t *entire_move_tree;
 float *evaluation_tree;
-int tree_size;
+uint64_t tree_size;
 
-int start_of_layer(int layer_num)
+uint64_t start_of_layer(int layer_num)
 {
-  int layerStart = 0;
-  int layerSize = 4;
+  uint64_t layerStart = 0;
+  uint64_t layerSize = 4;
   for (int i = 1; i <= layer_num; ++i)
   {
     layerStart += layerSize;
-    int layerMultiplier = (i % 2 == 0) ? 4 : 30;
+    uint64_t layerMultiplier = (i % 2 == 0) ? 4 : 30;
     layerSize *= layerMultiplier;
   }
   return layerStart;
 }
 
 
-int size_of_layer(int layer_num)
+uint64_t size_of_layer(int layer_num)
 {
-  int layerSize = 4;
+  uint64_t layerSize = 4;
   for (int i = 1; i <= layer_num; ++i)
   {
-    int layerMultiplier = (i % 2 == 0) ? 4 : 30;
+    uint64_t layerMultiplier = (i % 2 == 0) ? 4 : 30;
     layerSize *= layerMultiplier;
   }
   return layerSize;
 }
 
-int layer_for_index(int index)
+int layer_for_index(uint64_t index)
 {
   int layerNum = 0;
   while (start_of_layer(layerNum + 1) <= index)
@@ -205,11 +205,11 @@ int layer_for_index(int index)
   return layerNum;
 }
 
-void compute_moves(int orig_index)
+void compute_moves(uint64_t orig_index)
 {
   int orig_layer = layer_for_index(orig_index);
-  int orig_layer_index = orig_index - start_of_layer(orig_layer);
-  int next_move_i = start_of_layer(orig_layer + 1) + 4 * orig_layer_index;
+  uint64_t orig_layer_index = orig_index - start_of_layer(orig_layer);
+  uint64_t next_move_i = start_of_layer(orig_layer + 1) + 4 * orig_layer_index;
   uint64_t orig_board = entire_move_tree[orig_index];
   if (orig_board == UNUSED_BOARD){ return; }
   for (int i = 0; i < 4; ++i)
@@ -223,11 +223,11 @@ void compute_moves(int orig_index)
   }
 }
 
-void compute_outcomes(int orig_index)
+void compute_outcomes(uint64_t orig_index)
 {
   int orig_layer = layer_for_index(orig_index);
-  int orig_layer_index = orig_index - start_of_layer(orig_layer);
-  int next_outcome_i = start_of_layer(orig_layer + 1) + 30 * orig_layer_index;
+  uint64_t orig_layer_index = orig_index - start_of_layer(orig_layer);
+  uint64_t next_outcome_i = start_of_layer(orig_layer + 1) + 30 * orig_layer_index;
   board_t orig_board = entire_move_tree[orig_index];
   if (orig_board.raw() == UNUSED_BOARD){ return; }
 
@@ -256,10 +256,9 @@ void compute_layer(int layerNum)
   // For odd layers, computing <= 30 outcomes per move at layer - 1
   bool calculate_moves = layerNum % 2 == 0;
   //iterate through layerNum - 1
-  int i_start_of_prev_layer = start_of_layer(layerNum - 1);
-  int i_start_of_layer = start_of_layer(layerNum);
-  int i_size_of_prev_layer = size_of_layer(layerNum - 1);
-  for (int prev_i = 0; prev_i < i_size_of_prev_layer; ++prev_i)
+  uint64_t i_start_of_prev_layer = start_of_layer(layerNum - 1);
+  uint64_t i_size_of_prev_layer = size_of_layer(layerNum - 1);
+  for (uint64_t prev_i = 0; prev_i < i_size_of_prev_layer; ++prev_i)
   {
     if (calculate_moves)
     {
@@ -278,7 +277,7 @@ void compute_tree(const board_t &startBoard)
   {
     Direction move_dir = (Direction)i;
     Move_Result move_res = move_in_direction(startBoard, move_dir);
-    int move_index = start_of_layer(0) + i;
+    uint64_t move_index = start_of_layer(0) + i;
     if (move_res.board == startBoard)
     {
       entire_move_tree[move_index] =  UNUSED_BOARD;
@@ -298,9 +297,9 @@ void compute_tree(const board_t &startBoard)
 
 void evaluate_layer(int layerNum)
 {
-  int layerStart = start_of_layer(layerNum);
-  int layerSize = size_of_layer(layerNum);
-  for (int i = layerStart; i < layerStart + layerSize; ++i)
+  uint64_t layerStart = start_of_layer(layerNum);
+  uint64_t layerSize = size_of_layer(layerNum);
+  for (uint64_t i = layerStart; i < layerStart + layerSize; ++i)
   {
     board_t thisBoard = entire_move_tree[i];
     if (thisBoard.raw() == UNUSED_BOARD)
@@ -318,8 +317,8 @@ void evaluate_layer(int layerNum)
     // Move layer - average the next layer (outcomes)
     else if (layerNum % 2 == 0)
     {
-      int thisLayerIndex = i - layerStart;
-      int outcomesStart = start_of_layer(layerNum + 1) + (30 * thisLayerIndex);
+      uint64_t thisLayerIndex = i - layerStart;
+      uint64_t outcomesStart = start_of_layer(layerNum + 1) + (30 * thisLayerIndex);
       uint64_t outcomeHeurTotal = 0;
       int outcomeCount = 0;
       for (int j = outcomesStart; j < outcomesStart + 30; ++j)
@@ -337,11 +336,11 @@ void evaluate_layer(int layerNum)
     // Outcome layer - take max of next layer (moves)
     else
     {
-      int thisLayerIndex = i - layerStart;
-      int movesStart = start_of_layer(layerNum + 1) + (4 * thisLayerIndex);
+      uint64_t thisLayerIndex = i - layerStart;
+      uint64_t movesStart = start_of_layer(layerNum + 1) + (4 * thisLayerIndex);
 
       uint64_t bestMoveHeur = UNUSED_HEUR;
-      for (int j = movesStart; j < movesStart + 4; ++j)
+      for (uint64_t j = movesStart; j < movesStart + 4; ++j)
       {
         uint64_t moveHeur = entire_move_tree[j];
         if (moveHeur != UNUSED_HEUR)
@@ -447,6 +446,7 @@ int main() {
 
     if(move_decision == NONE) {
       cout<<"Game Over"<<endl;
+      free(entire_move_tree);
       return 0;
     }
 
@@ -455,8 +455,6 @@ int main() {
     add_new_tile(board, false);
     cout<<endl;
   }
-  free(entire_move_tree);
-  return 0;
 }
 
 void load_precompute_files() {
