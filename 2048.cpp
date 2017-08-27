@@ -135,13 +135,13 @@ Direction decide_move(const board_t &board) {
 
 board_t apply_move(Direction move_direction, const board_t &board, int& score);
 
-int MAX_DEPTH = 4;
+int MAX_DEPTH = 5;
 const uint64_t UNUSED_BOARD = 0;
 
 int size_of_tree(int tree_depth)
 {
   int multiplier = 1;
-  for (int i = tree_depth; i > 1; --i)
+  for (int i = tree_depth + 1; i > 1; --i)
   {
     int tempMultiplier = (i % 2 == 0) ? 30 : 4;
     multiplier *= tempMultiplier;
@@ -250,7 +250,6 @@ void compute_layer(int layerNum)
     }
     else
     {
-      int outcome_start = i_start_of_layer + 30 * prev_i;
       compute_outcomes(i_start_of_prev_layer + prev_i);
     }
   }
@@ -268,6 +267,7 @@ int main() {
 
   // Max size of the tree stored in the array
   tree_size = size_of_tree(MAX_DEPTH);
+  cout<<"Max depth "<<MAX_DEPTH<<", tree size: "<<tree_size<<endl;
   entire_move_tree = (uint64_t *)malloc(tree_size * sizeof(uint64_t));
 
   for (int i = 0; i < 4; ++i)
@@ -280,7 +280,7 @@ int main() {
 
   for (int depth = 1; depth <= MAX_DEPTH; ++ depth)
   {
-    cout<<"computing layer "<<depth<<endl;
+    cout<<"computing layer "<<depth<<": "<<start_of_layer(depth)<<"-"<<start_of_layer(depth) + size_of_layer(depth)<<endl;
     compute_layer(depth);
   }
 
