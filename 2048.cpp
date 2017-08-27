@@ -178,8 +178,21 @@ int size_of_layer(int layer_num)
   return layerSize;
 }
 
-void compute_moves(int orig_index, int next_move_i)
+int layer_for_index(int index)
 {
+  int layerNum = 0;
+  while (start_of_layer(layerNum + 1) <= index)
+  {
+    ++layerNum;
+  }
+  return layerNum;
+}
+
+void compute_moves(int orig_index)
+{
+  int orig_layer = layer_for_index(orig_index);
+  int orig_layer_index = orig_index - start_of_layer(orig_layer);
+  int next_move_i = start_of_layer(orig_layer + 1) + 4 * orig_layer_index;
   uint64_t orig_board = entire_move_tree[orig_index];
   if (orig_board == UNUSED_BOARD){ return; }
   for (int i = 0; i < 4; ++i)
@@ -193,8 +206,11 @@ void compute_moves(int orig_index, int next_move_i)
   }
 }
 
-void compute_outcomes(int orig_index, int next_outcome_i)
+void compute_outcomes(int orig_index)
 {
+  int orig_layer = layer_for_index(orig_index);
+  int orig_layer_index = orig_index - start_of_layer(orig_layer);
+  int next_outcome_i = start_of_layer(orig_layer + 1) + 30 * orig_layer_index;
   board_t orig_board = entire_move_tree[orig_index];
   if (orig_board.raw() == UNUSED_BOARD){ return; }
 
@@ -230,13 +246,12 @@ void compute_layer(int layerNum)
   {
     if (calculate_moves)
     {
-      int move_start = i_start_of_layer + 4 * prev_i;
-      compute_moves(i_start_of_prev_layer + prev_i, move_start);
+      compute_moves(i_start_of_prev_layer + prev_i);
     }
     else
     {
       int outcome_start = i_start_of_layer + 30 * prev_i;
-      compute_outcomes(i_start_of_prev_layer + prev_i, outcome_start);
+      compute_outcomes(i_start_of_prev_layer + prev_i);
     }
   }
 }
