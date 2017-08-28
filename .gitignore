@@ -13,3 +13,8 @@ To read
 *.webarchive
 runscript
 *xcuserstate*
+*.rtf
+*.swp
+*xcuserd*gs
+*xcuserd*
+*.bin
