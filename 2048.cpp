@@ -331,7 +331,7 @@ void evaluate_layer(int layerNum)
         outcomeHeurTotal += outcomeHeur;
         ++outcomeCount;
       }
-      entire_move_tree[i] = outcomeHeurTotal / (10 * outcomeCount);
+      entire_move_tree[i] = outcomeCount == 0 ? 0 : outcomeHeurTotal / (10 * outcomeCount);
     }
     // Outcome layer - take max of next layer (moves)
     else
