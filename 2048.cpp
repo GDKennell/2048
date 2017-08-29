@@ -152,7 +152,7 @@ Direction decide_move(const board_t &board) {
 
 board_t apply_move(Direction move_direction, const board_t &board, int& score);
 
-int MAX_DEPTH = 2;
+int MAX_DEPTH = 4;
 
 uint64_t size_of_tree(int tree_depth)
 {
@@ -347,6 +347,7 @@ void evaluate_layer(int layerNum)
           break;
         }
         tot_prob += outcomeHeur * ((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num);
+        cout<<"\t\t\ttot_prob += outcomeHeur (entire_move_tree["<<j<<"] == "<<outcomeHeur<<") * "<<((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num)<<endl;
         ++outcomeCount;
       }
       entire_move_tree[i] = outcomeCount == 0 ? 0 : tot_prob / (10 * outcomeCount);
