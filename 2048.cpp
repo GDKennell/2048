@@ -215,11 +215,10 @@ void compute_moves(uint64_t orig_index)
   for (int i = 0; i < 4; ++i)
   {
     Move_Result moveResult = move_in_direction(orig_board, (Direction)i);
-    if (moveResult.board.raw() != orig_board)
-    {
-      entire_move_tree[next_move_i] = moveResult.board.raw();
-      cout<<"\tentire_move_tree["<<next_move_i<<"] = "<<moveResult.board.raw()<<endl;
-    }
+    bool move_valid = moveResult.board.raw() != orig_board;
+    uint64_t result = move_valid ? moveResult.board.raw() : UNUSED_BOARD;
+    entire_move_tree[next_move_i] = result;
+//    cout<<"\tentire_move_tree["<<next_move_i<<"] = "<<result<<endl;
     ++next_move_i;
   }
 }
