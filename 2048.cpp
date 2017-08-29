@@ -347,7 +347,7 @@ void evaluate_layer(int layerNum)
           break;
         }
         tot_prob += outcomeHeur * ((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num);
-        cout<<"\t\t\ttot_prob += outcomeHeur (entire_move_tree["<<j<<"] == "<<outcomeHeur<<") * "<<((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num)<<endl;
+        cout<<"\t\t\ttot_prob += outcomeHeur (entire_move_tree["<<j<<"] == "<<outcomeHeur<<") * "<<((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num)<<" == "<<outcomeHeur * ((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num)<<endl;
         ++outcomeCount;
       }
       entire_move_tree[i] = outcomeCount == 0 ? 0 : tot_prob / (10 * outcomeCount);
