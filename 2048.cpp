@@ -24,6 +24,17 @@ enum Direction {UP, DOWN, LEFT, RIGHT, NONE};
 
 const char* direction_names[] = {"up", "down", "left", "right", "none"};
 
+string depth_print(int depth)
+{
+  string res = "";
+  for (int i = 0; i < depth; ++i)
+  {
+    res += "\t";
+  }
+  res += to_string(depth);
+  return res;
+}
+
 const bool verbose_logs = false;
 const int NUM_TILES = 16;
 
@@ -256,7 +267,7 @@ int64_t heuristic(const board_t& board) {
   return num_empty;
 }
 
-int MAX_DEPTH = 6;
+int MAX_DEPTH = 2;
 const int INVALID_MOVE_WEIGHT = 0.0;
 int TOLERANCE = 10;
 
@@ -365,6 +376,7 @@ int64_t eval_board_outcomes(const board_t& board) {
   board_t possible_outcomes[30];
   int num_outcomes = 0;
 
+  cout<<depth_print(depth)<<" computing outcomes from board: "<<board.raw()<<endl;
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
       if (board.val_at( x, y) == 0) {
@@ -420,33 +432,39 @@ Direction advice(const board_t& board,
   int64_t left_val;
   int64_t right_val;
 
-  int num_empty = heuristic(board);
-  if(num_empty < 2) {
-    TOLERANCE = 50000;
-    MAX_DEPTH = 10;
-  }
-  else if(num_empty < 4) {
-    TOLERANCE = 100000;
-    MAX_DEPTH = 8;
-  }
-  else if(num_empty < 7) {
-    TOLERANCE = 200000;
-    MAX_DEPTH = 6;
-  }
-  else {
-    TOLERANCE = 500000;
-    MAX_DEPTH = 4; 
-  }
+//  int num_empty = heuristic(board);
+  MAX_DEPTH = 2;
+
+//  if(num_empty < 2) {
+//    TOLERANCE = 50000;
+//    MAX_DEPTH = 10;
+//  }
+//  else if(num_empty < 4) {
+//    TOLERANCE = 100000;
+//    MAX_DEPTH = 8;
+//  }
+//  else if(num_empty < 7) {
+//    TOLERANCE = 200000;
+//    MAX_DEPTH = 6;
+//  }
+//  else {
+//    TOLERANCE = 500000;
+//    MAX_DEPTH = 4;
+//  }
 
   bool up_valid = (board != up_result);
   bool right_valid = (board != right_result);
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
 
-  up_val = up_valid ? eval_board_outcomes(up_result) : -1;
-  down_val = down_valid ? eval_board_outcomes(down_result) : -1;
+  cout<<"evaluating left move"<<endl;
   left_val = left_valid ? eval_board_outcomes(left_result) : -1;
+  cout<<"evaluating right move"<<endl;
   right_val = right_valid ? eval_board_outcomes(right_result) : -1;
+  cout<<"evaluating up move"<<endl;
+  up_val = up_valid ? eval_board_outcomes(up_result) : -1;
+  cout<<"evaluating down move"<<endl;
+  down_val = down_valid ? eval_board_outcomes(down_result) : -1;
 
   int64_t max_val = max(up_val, down_val, left_val, right_val);
   cout<<"\tup_val: "<<up_val<<"\n\tdown_val: "<<down_val<<"\n\tleft_val:"<<left_val<<"\n\tright_val:"<<right_val<<endl;
