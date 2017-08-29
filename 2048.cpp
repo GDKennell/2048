@@ -268,7 +268,7 @@ int64_t heuristic(const board_t& board) {
   return num_empty;
 }
 
-int MAX_DEPTH = 2;
+int MAX_DEPTH = 4;
 const int INVALID_MOVE_WEIGHT = 0.0;
 int TOLERANCE = 10;
 
@@ -377,7 +377,8 @@ int64_t eval_board_outcomes(const board_t& board) {
   board_t possible_outcomes[30];
   int num_outcomes = 0;
 
-  cout<<depth_print(depth)<<" computing outcomes from board: "<<board.raw()<<endl;
+  if (depth == 1)
+    cout<<depth_print(depth)<<" computing outcomes from board: "<<board.raw()<<endl;
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
       if (board.val_at( x, y) == 0) {
@@ -408,7 +409,8 @@ int64_t eval_board_outcomes(const board_t& board) {
     }
 
     uint64_t prob_factor = (i % 2 == 0) ? prob2_num : prob4_num;
-    cout<<depth_print(depth)<<"tot_prob += prob_factor("<<prob_factor<<" * outcome_val("<<outcome_val<<") =="<<prob_factor * outcome_val<<endl;
+    if (depth == 1)
+      cout<<depth_print(depth)<<"tot_prob += prob_factor("<<prob_factor<<" * outcome_val("<<outcome_val<<") =="<<prob_factor * outcome_val<<endl;
     tot_prob += prob_factor * outcome_val;
   }
   if (verbose_logs) {
@@ -416,10 +418,10 @@ int64_t eval_board_outcomes(const board_t& board) {
     cout<<"Eval outcomes (d="<<depth<<"): returning tot_prob("<<tot_prob<<")/num_outcomes("<<num_outcomes<<") = "<<tot_prob/num_outcomes<<endl;
   }
 
-  --depth;
-  for (int x = 0; x < depth; ++x){cout<<'\t';}
-  cout<<"tot_prob = tot_prob("<<tot_prob<<" / (10 * num_outcomes("<<num_outcomes<<")) = "<<tot_prob / (10 * num_outcomes)<<endl;
+  if (depth == 1)
+    cout<<depth_print(depth)<<"tot_prob = tot_prob("<<tot_prob<<" / (10 * num_outcomes("<<num_outcomes<<")) = "<<tot_prob / (10 * num_outcomes)<<endl;
   tot_prob = tot_prob / (10 * num_outcomes);
+  --depth;
 
   return tot_prob;
 }
@@ -436,7 +438,7 @@ Direction advice(const board_t& board,
   int64_t right_val;
 
 //  int num_empty = heuristic(board);
-  MAX_DEPTH = 2;
+  MAX_DEPTH = 4;
 
 //  if(num_empty < 2) {
 //    TOLERANCE = 50000;
@@ -462,6 +464,7 @@ Direction advice(const board_t& board,
 
   cout<<"evaluating left move"<<endl;
   left_val = left_valid ? eval_board_outcomes(left_result) : -1;
+  exit(0);
   cout<<"evaluating right move"<<endl;
   right_val = right_valid ? eval_board_outcomes(right_result) : -1;
   cout<<"evaluating up move"<<endl;
