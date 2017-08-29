@@ -31,7 +31,7 @@ string depth_print(int depth)
   {
     res += "\t";
   }
-  res += to_string(depth);
+  res += to_string(depth) + ": ";
   return res;
 }
 
@@ -178,6 +178,7 @@ int main() {
     cout<<"\n********Move "<<direction_names[move_decision]<<"********"<<endl;
     cout<<"********Score: "<<score<<"********\n"<<endl;
 
+    return 0;
     add_new_tile(board, false);
     cout<<endl;
   }
@@ -244,7 +245,7 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score) {
 
 board_t input_board() {
   board_t board;
-  const int num_tiles = 2;
+  const int num_tiles = 5;
   cout<<"Input "<<num_tiles<<" tiles"<<endl;
   for(int i = 0; i < num_tiles; ++i){
     Block new_block = input_block();
@@ -406,10 +407,9 @@ int64_t eval_board_outcomes(const board_t& board) {
       cout<<"Eval outcomes (d="<<depth<<") got outcome_val "<<outcome_val<<endl;
     }
 
-    if(i % 2 == 0)
-      tot_prob += prob2_num * outcome_val;
-    else
-      tot_prob += prob4_num * outcome_val;
+    uint64_t prob_factor = (i % 2 == 0) ? prob2_num : prob4_num;
+    cout<<depth_print(depth)<<"tot_prob += prob_factor("<<prob_factor<<" * outcome_val("<<outcome_val<<") =="<<prob_factor * outcome_val<<endl;
+    tot_prob += prob_factor * outcome_val;
   }
   if (verbose_logs) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
@@ -417,7 +417,10 @@ int64_t eval_board_outcomes(const board_t& board) {
   }
 
   --depth;
+  for (int x = 0; x < depth; ++x){cout<<'\t';}
+  cout<<"tot_prob = tot_prob("<<tot_prob<<" / (10 * num_outcomes("<<num_outcomes<<")) = "<<tot_prob / (10 * num_outcomes)<<endl;
   tot_prob = tot_prob / (10 * num_outcomes);
+
   return tot_prob;
 }
 
