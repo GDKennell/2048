@@ -247,11 +247,10 @@ void compute_outcomes(uint64_t orig_index)
         cout<<"\tentire_move_tree["<<next_outcome_i - 1<<"] = "<<outcome4.raw()<<endl;
       }
     }
-
-    while (next_outcome_i < end_of_outcomes)
-    {
-      entire_move_tree[next_outcome_i++] = UNUSED_BOARD;
-    }
+  }
+  while (next_outcome_i < end_of_outcomes)
+  {
+    entire_move_tree[next_outcome_i++] = UNUSED_BOARD;
   }
 }
 // Layer 0: first four Moves
@@ -341,7 +340,7 @@ void evaluate_layer(int layerNum)
       // 2's are weighted as 1.8 while 4's are weighted as 0.2
       int64_t prob2_num = 9;
       int64_t prob4_num = 1;
-      for (int j = outcomesStart; j < outcomesStart + 30; ++j)
+      for (uint64_t j = outcomesStart; j < outcomesStart + 30; ++j)
       {
         uint64_t outcomeHeur = entire_move_tree[j];
         if (outcomeHeur == UNUSED_HEUR)
@@ -352,7 +351,7 @@ void evaluate_layer(int layerNum)
         ++outcomeCount;
       }
       entire_move_tree[i] = outcomeCount == 0 ? 0 : tot_prob / (10 * outcomeCount);
-      cout<<"\t\teval["<<i<<"] = outcomeHeurTotal("<<outcomeHeurTotal<<" / (10 * outcomeCount("<<outcomeCount<<")) = "<<entire_move_tree[i]<<endl;
+      cout<<"\t\teval["<<i<<"] = outcomeHeurTotal("<<tot_prob<<" / (10 * outcomeCount("<<outcomeCount<<")) = "<<entire_move_tree[i]<<endl;
 
     }
     // Outcome layer - take max of next layer (moves)
