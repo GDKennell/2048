@@ -152,7 +152,7 @@ Direction decide_move(const board_t &board) {
 
 board_t apply_move(Direction move_direction, const board_t &board, int& score);
 
-int MAX_DEPTH = 4;
+int MAX_DEPTH = 10;
 
 uint64_t size_of_tree(int tree_depth)
 {
@@ -238,12 +238,12 @@ void compute_outcomes(uint64_t orig_index)
         board_t outcome2 = orig_board;
         outcome2.set_val(x, y, 2);
         entire_move_tree[next_outcome_i++] = outcome2.raw();
-        cout<<"\tentire_move_tree["<<next_outcome_i - 1<<"] = "<<outcome2.raw()<<endl;
+//        cout<<"\tentire_move_tree["<<next_outcome_i - 1<<"] = "<<outcome2.raw()<<endl;
 
         board_t outcome4 = orig_board;
         outcome4.set_val(x, y, 4);
         entire_move_tree[next_outcome_i++] = outcome4.raw();
-        cout<<"\tentire_move_tree["<<next_outcome_i - 1<<"] = "<<outcome4.raw()<<endl;
+//        cout<<"\tentire_move_tree["<<next_outcome_i - 1<<"] = "<<outcome4.raw()<<endl;
       }
     }
   }
@@ -266,7 +266,7 @@ void compute_layer(int layerNum)
   uint64_t i_start_of_prev_layer = start_of_layer(layerNum - 1);
   uint64_t i_size_of_prev_layer = size_of_layer(layerNum - 1);
 
-  cout<<"computing "<<(calculate_moves ? "moves" : "outcomes" )<<" layer "<<layerNum<< endl;
+//  cout<<"computing "<<(calculate_moves ? "moves" : "outcomes" )<<" layer "<<layerNum<< endl;
 
   for (uint64_t prev_i = 0; prev_i < i_size_of_prev_layer; ++prev_i)
   {
@@ -300,14 +300,14 @@ void compute_tree(const board_t &startBoard)
 
   for (int depth = 1; depth <= MAX_DEPTH; ++ depth)
   {
-    cout<<"computing layer "<<depth<<": "<<start_of_layer(depth)<<"-"<<start_of_layer(depth) + size_of_layer(depth)<<endl;
+//    cout<<"computing layer "<<depth<<": "<<start_of_layer(depth)<<"-"<<start_of_layer(depth) + size_of_layer(depth)<<endl;
     compute_layer(depth);
   }
 }
 
 void evaluate_layer(int layerNum)
 {
-  cout<<"evaluating layer "<<layerNum<<endl;
+//  cout<<"evaluating layer "<<layerNum<<endl;
   uint64_t layerStart = start_of_layer(layerNum);
   uint64_t layerSize = size_of_layer(layerNum);
   for (uint64_t i = layerStart; i < layerStart + layerSize; ++i)
@@ -318,13 +318,13 @@ void evaluate_layer(int layerNum)
       entire_move_tree[i] = UNUSED_HEUR;
       continue;
     }
-    cout<<"\tevaluating "<<i<<endl;
+//    cout<<"\tevaluating "<<i<<endl;
     // Leaf layer - compute heuristics
     if (layerNum == MAX_DEPTH)
     {
       uint64_t eval = heuristic(thisBoard);
       entire_move_tree[i] = eval;
-      cout<<"\t\teval["<<i<<"] = heuristic = "<<eval<<endl;
+//      cout<<"\t\teval["<<i<<"] = heuristic = "<<eval<<endl;
     }
     // Move layer - average the next layer (outcomes)
     else if (layerNum % 2 == 0)
@@ -347,11 +347,11 @@ void evaluate_layer(int layerNum)
           break;
         }
         tot_prob += outcomeHeur * ((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num);
-        cout<<"\t\t\ttot_prob += outcomeHeur (entire_move_tree["<<j<<"] == "<<outcomeHeur<<") * "<<((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num)<<" == "<<outcomeHeur * ((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num)<<endl;
+//        cout<<"\t\t\ttot_prob += outcomeHeur (entire_move_tree["<<j<<"] == "<<outcomeHeur<<") * "<<((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num)<<" == "<<outcomeHeur * ((j - outcomesStart) % 2 == 0 ? prob2_num : prob4_num)<<endl;
         ++outcomeCount;
       }
       entire_move_tree[i] = outcomeCount == 0 ? 0 : tot_prob / (10 * outcomeCount);
-      cout<<"\t\teval["<<i<<"] = outcomeHeurTotal("<<tot_prob<<" / (10 * outcomeCount("<<outcomeCount<<")) = "<<entire_move_tree[i]<<endl;
+//      cout<<"\t\teval["<<i<<"] = outcomeHeurTotal("<<tot_prob<<" / (10 * outcomeCount("<<outcomeCount<<")) = "<<entire_move_tree[i]<<endl;
 
     }
     // Outcome layer - take max of next layer (moves)
@@ -373,7 +373,7 @@ void evaluate_layer(int layerNum)
         }
       }
       entire_move_tree[i] = bestMoveHeur;
-      cout<<"\t\teval["<<i<<"] = bestMoveHeur("<<bestMoveHeur<<")"<<endl;
+//      cout<<"\t\teval["<<i<<"] = bestMoveHeur("<<bestMoveHeur<<")"<<endl;
     }
   }
 
@@ -382,26 +382,24 @@ int64_t num_empty_in_board(const board_t& board);
 
 void setDepthAndTolerance(const board_t &board)
 {
-//  TOLERANCE = 10;
-//  MAX_DEPTH = 3;
-//  return;
-//  int64_t num_empty = num_empty_in_board(board);
-//  if(num_empty < 2) {
-//    TOLERANCE = 50000;
-//    MAX_DEPTH = 10;
-//  }
-//  else if(num_empty < 4) {
-//    TOLERANCE = 100000;
-//    MAX_DEPTH = 8;
-//  }
-//  else if(num_empty < 7) {
-//    TOLERANCE = 200000;
-//    MAX_DEPTH = 6;
-//  }
-//  else {
-//    TOLERANCE = 500000;
-//    MAX_DEPTH = 4;
-//  }
+  int64_t num_empty = num_empty_in_board(board);
+  if(num_empty < 2) {
+    TOLERANCE = 50000;
+    MAX_DEPTH = 10;
+  }
+  else if(num_empty < 4) {
+    TOLERANCE = 100000;
+    MAX_DEPTH = 8;
+  }
+  else if(num_empty < 7) {
+    TOLERANCE = 200000;
+    MAX_DEPTH = 6;
+  }
+  else {
+    TOLERANCE = 500000;
+    MAX_DEPTH = 4;
+  }
+  cout<<"Evaluating to depth "<<MAX_DEPTH<<endl;
 }
 Direction decide_move_from_tree()
 {
@@ -445,7 +443,7 @@ int main() {
 
 //  time_t start_time, end_time;
 //  start_time=Clock::to_time_t(Clock::now());
-//  srand(time(NULL));
+  srand(time(NULL));
 
   board_t board = input_board();
 
@@ -473,7 +471,6 @@ int main() {
     }
 
     cout<<"\n********Move "<<direction_names[move_decision]<<"********"<<endl;
-    return 0;
     add_new_tile(board, false);
     cout<<endl;
   }
@@ -541,8 +538,8 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score) {
 board_t input_board() {
   board_t board;
 
-//  board.set_val(0, 0, 4);
-//  board.set_val(0, 1, 4);
+  board.set_val(0, 0, 2);
+  board.set_val(1, 1, 2);
 //  board.set_val(0, 2, 4);
 //  board.set_val(0, 3, 4);
 //  board.set_val(1, 0, 2);
@@ -550,15 +547,15 @@ board_t input_board() {
 //  board.set_val(1, 2, 2);
 //  board.set_val(1, 3, 2);
 
-    const int num_tiles = 5;
-  cout<<"Input "<<num_tiles<<" tiles"<<endl;
-  for(int i = 0; i < num_tiles; ++i){
-    Block new_block = input_block();
-    assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
-    assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
-    board.set_val(new_block.x-1, new_block.y-1, new_block.val);
-    cout<<endl;
-  }
+//    const int num_tiles = 5;
+//  cout<<"Input "<<num_tiles<<" tiles"<<endl;
+//  for(int i = 0; i < num_tiles; ++i){
+//    Block new_block = input_block();
+//    assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
+//    assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
+//    board.set_val(new_block.x-1, new_block.y-1, new_block.val);
+//    cout<<endl;
+//  }
   return board;
 }
 
@@ -820,10 +817,10 @@ void add_new_tile(board_t& board, bool user_in) {
     block_to_fill.y--;
   }
   else {
-    block_to_fill = empty_blocks[0];
-    block_to_fill.val = 2;
-//    block_to_fill = empty_blocks[rand() % empty_blocks.size()];
-//    block_to_fill.val = (rand() % 100 <= 10) ? 4 : 2;
+//    block_to_fill = empty_blocks[0];
+//    block_to_fill.val = 2;
+    block_to_fill = empty_blocks[rand() % empty_blocks.size()];
+    block_to_fill.val = (rand() % 100 <= 10) ? 4 : 2;
   }
   cout<<"New block at ("<<block_to_fill.x+1<<',';
   cout<<block_to_fill.y+1<<") with value "<<block_to_fill.val<<endl;
