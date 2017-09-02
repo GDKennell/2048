@@ -113,7 +113,39 @@ static void create_program_from_bitcode(char* bitcode_path,
                                         float * host_b,
                                         float * host_c,
                                         int count) {
+  // Perform typical OpenCL setup in order to obtain a context and command
+  // queue.
   cl_int err;
+  cl_uint num_devices;
+
+  // How many devices of the type requested are in the system?
+  clGetDeviceIDs(NULL, device_type, 0, NULL, &num_devices);
+
+  // Make sure the requested index is within bounds.  Otherwise, correct it.
+  if (device_index < 0 || device_index > num_devices - 1) {
+    fprintf(stdout, "Requsted index (%d) is out of range.  Using 0.\n",
+            device_index);
+    device_index = 0;
+  }
+
+  // Grab the requested device.
+  cl_device_id all_devices[num_devices];
+  clGetDeviceIDs(NULL, device_type, num_devices, all_devices, NULL);
+  device = all_devices[device_index];
+
+  // Dump the device.
+  char name[128];
+  clGetDeviceInfo(device, CL_DEVICE_NAME, 128*sizeof(char), name, NULL);
+  fprintf(stdout, "Using OpenCL device: %s\n", name);
+
+  // Create an OpenCL context using this compute device.
+  context = clCreateContext(NULL, 1, &device, NULL, NULL, &err);
+  check_status("clCreateContext", err);
+
+  // Create a command queue on this device, since we want to use if for
+  // running our CL program.
+  queue = clCreateCommandQueue(context, device, 0, &err);
+  check_status("clCreateCommandQueue", err);
 
   // Instead of passing actual executable bits, we pass a path to the
   // already-compiled bitcode to clCreateProgramWithBinary.  Note that
@@ -193,39 +225,6 @@ static void create_program_from_bitcode(char* bitcode_path,
 #pragma mark -
 #pragma mark Typical OpenCL setup and teardown
 
-static void init_opencl() {
-  cl_int err;
-  cl_uint num_devices;
-
-  // How many devices of the type requested are in the system?
-  clGetDeviceIDs(NULL, device_type, 0, NULL, &num_devices);
-
-  // Make sure the requested index is within bounds.  Otherwise, correct it.
-  if (device_index < 0 || device_index > num_devices - 1) {
-    fprintf(stdout, "Requsted index (%d) is out of range.  Using 0.\n",
-            device_index);
-    device_index = 0;
-  }
-
-  // Grab the requested device.
-  cl_device_id all_devices[num_devices];
-  clGetDeviceIDs(NULL, device_type, num_devices, all_devices, NULL);
-  device = all_devices[device_index];
-
-  // Dump the device.
-  char name[128];
-  clGetDeviceInfo(device, CL_DEVICE_NAME, 128*sizeof(char), name, NULL);
-  fprintf(stdout, "Using OpenCL device: %s\n", name);
-
-  // Create an OpenCL context using this compute device.
-  context = clCreateContext(NULL, 1, &device, NULL, NULL, &err);
-  check_status("clCreateContext", err);
-
-  // Create a command queue on this device, since we want to use if for
-  // running our CL program.
-  queue = clCreateCommandQueue(context, device, 0, &err);
-  check_status("clCreateCommandQueue", err);
-}
 
 static void shutdown_opencl() {
 
@@ -248,11 +247,6 @@ int main (int argc, char* const *argv)
   char *filepath = "./kernel.gpu64.bc";
   device_type = CL_DEVICE_TYPE_GPU;
   is32bit = false;
-
-  // Perform typical OpenCL setup in order to obtain a context and command
-  // queue.
-  init_opencl();
-
 
   float *host_a = (float*)malloc(sizeof(float)*4*NELEMENTS);
   float *host_b = (float*)malloc(sizeof(float)*4*NELEMENTS);
