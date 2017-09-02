@@ -112,9 +112,8 @@ static void create_program_from_bitcode(char* bitcode_path,
                                         void **programInputs,
                                         size_t *programInputSizes,
                                         void *programOutput,
-                                        size_t programOutputSize,
-                                        int count) {
-
+                                        size_t programOutputSize)
+{
   // Perform typical OpenCL setup in order to obtain a context and command
   // queue.
   cl_int err;
@@ -278,7 +277,7 @@ int main (int argc, char* const *argv)
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, host_c,sizeof(cl_float4)*NELEMENTS, 4);
+  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, host_c,sizeof(cl_float4)*NELEMENTS);
 
 
   int success = 1;
