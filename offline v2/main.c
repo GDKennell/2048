@@ -87,14 +87,14 @@
 // The various OpenCL objects needed to execute our CL program against a
 // given compute device in our system.
 int              device_index;
-cl_device_type   device_type;
+cl_device_type   device_type = CL_DEVICE_TYPE_GPU;
 cl_device_id     device;
 cl_context       context;
 cl_command_queue queue;
 cl_program       program;
 cl_kernel        kernel;
 cl_mem           a, b, c;
-bool             is32bit;
+bool             is32bit = false;
 
 // A utility function to simplify error checking within this test code.
 static void check_status(char* msg, cl_int err) {
@@ -109,10 +109,12 @@ static void shutdown_opencl();
 #pragma mark Bitcode loading and use
 
 static void create_program_from_bitcode(char* bitcode_path,
+                                        char* function_name,
                                         float * host_a,
                                         float * host_b,
                                         float * host_c,
                                         int count) {
+
   // Perform typical OpenCL setup in order to obtain a context and command
   // queue.
   cl_int err;
@@ -171,7 +173,7 @@ static void create_program_from_bitcode(char* bitcode_path,
   // And that's it -- we have a fully-compiled program created from the
   // bitcode.  Let's ask OpenCL for the test kernel.
 
-  kernel = clCreateKernel(program, "vecadd", &err);
+  kernel = clCreateKernel(program, function_name, &err);
   check_status("clCreateKernel", err);
 
   // And now, let's test the kernel with some dummy data.
@@ -245,8 +247,6 @@ static void shutdown_opencl() {
 int main (int argc, char* const *argv)
 {
   char *filepath = "./kernel.gpu64.bc";
-  device_type = CL_DEVICE_TYPE_GPU;
-  is32bit = false;
 
   float *host_a = (float*)malloc(sizeof(float)*4*NELEMENTS);
   float *host_b = (float*)malloc(sizeof(float)*4*NELEMENTS);
@@ -264,7 +264,7 @@ int main (int argc, char* const *argv)
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, host_a, host_b, host_c, 4);
+  create_program_from_bitcode(filepath, "vecadd", host_a, host_b, host_c, 4);
 
 
   int success = 1;
