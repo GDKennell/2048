@@ -93,7 +93,6 @@ cl_context       context;
 cl_command_queue queue;
 cl_program       program;
 cl_kernel        kernel;
-cl_mem           a, b, c;
 bool             is32bit = false;
 
 // A utility function to simplify error checking within this test code.
@@ -110,9 +109,10 @@ static void shutdown_opencl();
 
 static void create_program_from_bitcode(char* bitcode_path,
                                         char* function_name,
-                                        float * host_a,
-                                        float * host_b,
-                                        float * host_c,
+                                        void **programInputs,
+                                        size_t *programInputSizes,
+                                        void *programOutput,
+                                        size_t programOutputSize,
                                         int count) {
 
   // Perform typical OpenCL setup in order to obtain a context and command
@@ -180,19 +180,29 @@ static void create_program_from_bitcode(char* bitcode_path,
 
 
   // And create and load some CL memory buffers with that host data.
+  const int MAX_BUFFERS = 10;
+  cl_mem input_buffers[MAX_BUFFERS];
 
-  cl_mem a = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                            sizeof(cl_float4)*NELEMENTS, host_a, &err);
+  int num_buffers = 0;
+  while(programInputs[num_buffers] != NULL)
+  {
+    input_buffers[num_buffers] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                programInputSizes[num_buffers], programInputs[num_buffers], &err);
+    if (input_buffers[num_buffers] == NULL)
+    {
+      fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects %d.\n", num_buffers);
+      exit(1);
+    }
+    ++num_buffers;
 
-  cl_mem b = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                            sizeof(cl_float4)*NELEMENTS, host_b, &err);
+  }
 
   // CL buffer 'c' is for output, so we don't prepopulate it with data.
 
-  cl_mem c = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
-                            sizeof(cl_float4)*NELEMENTS, NULL, &err);
+  cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
+                                       programOutputSize, NULL, &err);
 
-  if (a == NULL || b == NULL || c == NULL) {
+  if (outputBuffer == NULL) {
     fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects.\n");
     exit(1);
   }
@@ -200,9 +210,10 @@ static void create_program_from_bitcode(char* bitcode_path,
   // We set the CL buffers as arguments for the 'vecadd' kernel.
 
   int argc = 0;
-  err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &a);
-  err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &b);
-  err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &c);
+  for (int i = 0; i < num_buffers; ++i){
+    err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &input_buffers[i]);
+  }
+  err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &outputBuffer);
   check_status("clSetKernelArg", err);
 
   // Launch the kernel over a single dimension, which is the same size
@@ -217,7 +228,7 @@ static void create_program_from_bitcode(char* bitcode_path,
   // Read back the results (blocking, so everything finishes), and then
   // validate the results.
 
-  clEnqueueReadBuffer(queue, c, CL_TRUE, 0, NELEMENTS*sizeof(cl_float4), host_c,
+  clEnqueueReadBuffer(queue, outputBuffer, CL_TRUE, 0, programOutputSize, programOutput,
                       0, NULL, NULL);
 
   // Close everything down.
@@ -232,13 +243,13 @@ static void shutdown_opencl() {
 
   // Free up all the CL objects we've allocated.
 
-  clReleaseMemObject(a);
-  clReleaseMemObject(b);
-  clReleaseMemObject(c);
-  clReleaseKernel(kernel);
-  clReleaseProgram(program);
-  clReleaseCommandQueue(queue);
-  clReleaseContext(context);
+//  clReleaseMemObject(a);
+//  clReleaseMemObject(b);
+//  clReleaseMemObject(c);
+//  clReleaseKernel(kernel);
+//  clReleaseProgram(program);
+//  clReleaseCommandQueue(queue);
+//  clReleaseContext(context);
 }
 
 #pragma mark -
@@ -262,9 +273,12 @@ int main (int argc, char* const *argv)
     host_a[i*4+3] = host_b[i*4+3] = i;
   }
 
+  void *input_buffers[] = {host_a,                      host_b, NULL};
+  size_t input_sizes[] =  {sizeof(cl_float4)*NELEMENTS, sizeof(cl_float4)*NELEMENTS};
+
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, "vecadd", host_a, host_b, host_c, 4);
+  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, host_c,sizeof(cl_float4)*NELEMENTS, 4);
 
 
   int success = 1;
