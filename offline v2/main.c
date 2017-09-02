@@ -243,79 +243,11 @@ static void shutdown_opencl() {
 #pragma mark -
 #pragma mark Supporting code
 
-static void usage(char* name) {
-  fprintf(stdout, "\nUsage:   %s -t gpu32|gpu64|cpu32|cpu64 [-i index] -f filename\n", name);
-  fprintf(stdout, "Example: %s -t gpu32 -i 0 -f kernel.gpu32.bc\n\n", name);
-  exit(0);
-}
-
-static void process_arguments(int argc, char* const *argv, char* filepath) {
-  int c;
-
-  static struct option longopts[] = {
-    {"type", required_argument, NULL, 't'},
-    {"filename", required_argument, NULL, 'f'},
-    {"index", required_argument, NULL, 'i'},
-    {"help", no_argument, NULL, 'h'},
-    {0, 0, 0, 0}
-  };
-
-  while ((c = getopt_long(argc, argv, "t:f:i:h", longopts, NULL)) != -1) {
-    switch (c) {
-      case 'f':
-      filepath[0] = '\0';
-      strlcat(filepath, optarg, MAXPATHLEN);
-      break;
-
-      case 't':
-      if (0 == strncmp(optarg, "gpu", 3)) {
-        device_type = CL_DEVICE_TYPE_GPU;
-      } else if (0 == strncmp(optarg, "cpu", 3)) {
-        device_type = CL_DEVICE_TYPE_CPU;
-      } else {
-        fprintf(stderr, "Unsupported test device type '%s'; using 'gpu'.\n", optarg);
-      }
-
-      if (0 == strncmp(optarg+3, "32", 2)) {
-        is32bit = true;
-      } else if (0 == strncmp(optarg+3, "64", 2)) {
-        is32bit = false;
-      } else {
-        is32bit = true;
-        fprintf(stderr, "Unsupported test device type '%s'; using 'gpu32'.\n", optarg);
-      }
-      break;
-
-      case 'i':
-      device_index = atoi(optarg);
-      break;
-
-      case 'h':
-      default:
-      usage(argv[0]);
-    }
-  }
-
-  // Ensure the device type is set.
-  if ((device_type != CL_DEVICE_TYPE_GPU) && (device_type != CL_DEVICE_TYPE_CPU)) {
-    fprintf(stderr, "Error: device type not specified.\n");
-    exit(1);
-  }
-
-  // Ensure a valid bitcode filepath.
-  struct stat stat_buf;
-  if (0 != stat(filepath, &stat_buf)) {
-    fprintf(stderr, "Error: file '%s' does not exist.\n", filepath);
-    exit(1);
-  }
-}
-
 int main (int argc, char* const *argv)
 {
-  char filepath[MAXPATHLEN];
-  filepath[0] = '\0';
-
-  process_arguments(argc, argv, filepath);
+  char *filepath = "./kernel.gpu64.bc";
+  device_type = CL_DEVICE_TYPE_GPU;
+  is32bit = false;
 
   // Perform typical OpenCL setup in order to obtain a context and command
   // queue.
