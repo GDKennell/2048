@@ -1,6 +1,9 @@
 #include "SmallBoard.h"
 #include "precompute.h"
-
+extern "C" {
+  #include "opencl.h"
+  #include "clink.h"
+}
 #include <algorithm>
 #include <cassert>
 #include <deque>
@@ -438,7 +441,7 @@ Direction decide_move_from_tree()
   }
 }
 int main() {
-
+//    print_hello(); // Example call into clink (example of linking in C file to C++)
   load_precompute_files();
 
 //  time_t start_time, end_time;

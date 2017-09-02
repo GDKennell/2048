@@ -1,5 +1,5 @@
-all: 2048.cpp SmallBoard.h move_precompute.cpp heur_precompute.cpp precompute.h
-	g++ -g -std=c++11 2048.cpp heur_precompute.cpp move_precompute.cpp -o Play2048
+all: 2048.cpp SmallBoard.h move_precompute.cpp heur_precompute.cpp precompute.h clink.o
+	g++ -g -std=c++11 2048.cpp heur_precompute.cpp move_precompute.cpp clink.o -o Play2048
 
 clean:
 	rm -f ./*.cl.c
@@ -16,8 +16,7 @@ test: test.c compute_moves.cl
 	clang -c -Os -Wall -arch x86_64 -o compute_moves.cl.o compute_moves.cl.c
 	clang -c -Os -Wall -arch x86_64 -o test.o test.c
 	clang -framework OpenCL -o test compute_moves.cl.o test.o
-	rm -f ./*.cl.c
-	rm -f ./*.cl.h
-	rm -f ./*.o
-	rm -f ./*.bc
+
+clink.o: clink.c clink.h
+	clang -c -Os -Wall -arch x86_64 -o clink.o clink.c
 
