@@ -253,30 +253,6 @@ int main (int argc, char* const *argv)
   // queue.
   init_opencl();
 
-  // Check if the current architecture is compatible with the specified test options
-  if (device_type == CL_DEVICE_TYPE_CPU)
-  {
-#if __LP64__
-    if (is32bit)
-    fprintf(stderr, "Warning: user specified the 'cpu32' option on the 64bit architecture.\n");
-#else
-    if (!is32bit)
-    fprintf(stderr, "Warning: user specified the 'cpu64' option on the 32bit architecture.\n");
-#endif
-  }
-  else if (device_type == CL_DEVICE_TYPE_GPU)
-  {
-    cl_int err;
-    cl_uint address_bits = 0;
-    err = clGetDeviceInfo(device, CL_DEVICE_ADDRESS_BITS, sizeof(address_bits),
-                          &address_bits, NULL);
-
-    if (!is32bit && (address_bits == 32))
-    fprintf(stderr, "Warning: user specified the 'gpu64' option on the 32bit architecture.\n");
-    else if (is32bit && (address_bits == 64))
-    fprintf(stderr, "Warning: user specified the 'gpu32' option on the 64bit architecture.\n");
-  }
-
 
   float *host_a = (float*)malloc(sizeof(float)*4*NELEMENTS);
   float *host_b = (float*)malloc(sizeof(float)*4*NELEMENTS);
