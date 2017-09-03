@@ -19,25 +19,28 @@ cl_command_queue queue;
 cl_program       program;
 cl_kernel        kernel;
 bool             is32bit = false;
+bool             kernel_initialied = false;
 
 // A utility function to simplify error checking within this test code.
 static void check_status(char* msg, cl_int err) {
     if (err != CL_SUCCESS) {
         fprintf(stderr, "%s failed. Error: %d\n", msg, err);
+        exit(1);
     }
 }
 
 #pragma mark -
 #pragma mark Bitcode loading and use
 
-static void create_program_from_bitcode(char* bitcode_path,
-                                        char* function_name,
-                                        void **programInputs,
-                                        size_t *programInputSizes,
-                                        void *programOutput,
-                                        size_t programOutputSize,
-                                        size_t count)
+//static size_t device_max_buffer_size
+
+static void init_kernel(char* bitcode_path,char* function_name)
 {
+    if (kernel_initialied)
+    {
+        return;
+    }
+
     // Perform typical OpenCL setup in order to obtain a context and command
     // queue.
     cl_int err;
@@ -61,6 +64,12 @@ static void create_program_from_bitcode(char* bitcode_path,
     // Dump the device.
     char name[128];
     clGetDeviceInfo(device, CL_DEVICE_NAME, 128*sizeof(char), name, NULL);
+
+    cl_ulong max_buffer_size;
+    clGetDeviceInfo(device, CL_DEVICE_MAX_PARAMETER_SIZE, sizeof(cl_ulong), &max_buffer_size, NULL);
+
+    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
+
     fprintf(stdout, "Using OpenCL device: %s\n", name);
 
     // Create an OpenCL context using this compute device.
@@ -99,9 +108,22 @@ static void create_program_from_bitcode(char* bitcode_path,
     kernel = clCreateKernel(program, function_name, &err);
     check_status("clCreateKernel", err);
 
+    kernel_initialied = true;
+}
+
+static void create_program_from_bitcode(char* bitcode_path,
+                                        char* function_name,
+                                        void **programInputs,
+                                        size_t *programInputSizes,
+                                        void *programOutput,
+                                        size_t programOutputSize,
+                                        size_t count)
+{
+    cl_int err;
+
+    init_kernel(bitcode_path,function_name);
     // And now, let's test the kernel with some dummy data.
 
-    exit(0);
     // And create and load some CL memory buffers with that host data.
     const int MAX_BUFFERS = 10;
     cl_mem input_buffers[MAX_BUFFERS];
@@ -114,6 +136,7 @@ static void create_program_from_bitcode(char* bitcode_path,
         if (input_buffers[num_buffers] == NULL)
         {
             fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects %d.\n", num_buffers);
+            fprintf(stderr, "Using input %p of size %ld \n", programInputs[num_buffers], programInputSizes[num_buffers]);
             exit(1);
         }
         ++num_buffers;
@@ -129,8 +152,6 @@ static void create_program_from_bitcode(char* bitcode_path,
         fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects.\n");
         exit(1);
     }
-
-    // We set the CL buffers as arguments for the 'vecadd' kernel.
 
     int argc = 0;
     for (int i = 0; i < num_buffers; ++i){
@@ -155,7 +176,7 @@ static void create_program_from_bitcode(char* bitcode_path,
                         0, NULL, NULL);
 }
 
-static uint64_t *outputBuffer = NULL;
+uint64_t *outputBuffer = NULL;
 static void init_output_buffer(size_t size)
 {
     if(outputBuffer == NULL)
@@ -194,13 +215,18 @@ void compute_moves(uint64_t *allBoards, size_t tree_size ,uint64_t layer_num, tr
 
     char *filepath = "./compute_moves.gpu64.bc";
     char *function_name = "compute_moves";
-    void *input_buffers[] =         {allBoards,                    &layer_num,        left_move_transforms,                 right_move_transforms, NULL};
-    size_t input_buffer_sizes[] =   {tree_size * sizeof(uint64_t), sizeof(layer_num), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
-
-    create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, tree_size * sizeof(uint64_t), size_of_layer(layer_num));
 
     uint64_t layer_start = start_of_layer(layer_num);
     uint64_t layer_end = layer_start + size_of_layer(layer_num);
+
+
+
+    void *input_buffers[] =         {allBoards,                    &layer_num,        left_move_transforms,                 right_move_transforms, NULL};
+    size_t input_buffer_sizes[] =   {tree_size * sizeof(uint64_t), sizeof(layer_num), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
+
+
+    create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, tree_size * sizeof(uint64_t), size_of_layer(layer_num));
+
     for (uint64_t i = layer_start; i < layer_end; ++i)
     {
         allBoards[i] = outputBuffer[i];
