@@ -84,10 +84,6 @@ board_t right_move(board_t in_board, __global transform_t* right_transforms);
 
 board_t move_in_direction(board_t in_board, enum Direction direction, __global transform_t* left_transforms, __global transform_t* right_transforms)
 {
-    if (in_board == UNUSED_BOARD)
-    {
-        return UNUSED_BOARD;
-    }
     switch (direction) {
         case UP:
             return up_move(in_board, right_transforms);
