@@ -56,7 +56,7 @@ typedef int transform_t;
 
 constant int NUM_TRANSFORMS = 65536;
 
-kernel void vecadd(global board_t* a, global transform_t *b, global uint64_t* c) {
+kernel void vecadd(global board_t* input_boards, global transform_t *left_transforms, global board_t* output_boards) {
     size_t i = get_global_id(0);
-    c[i] = a[i] + b[i % NUM_TRANSFORMS];
+    output_boards[i] = input_boards[i] + left_transforms[i % NUM_TRANSFORMS];
 }

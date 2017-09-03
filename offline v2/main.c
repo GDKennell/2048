@@ -320,34 +320,34 @@ int main (int argc, char* const *argv)
 
   fprintf(stdout,"NELEMENTS = %zu\n",NELEMENTS);
 
-  uint64_t *host_a = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
-  transform_t host_b[NUM_TRANSFORMS];
-  uint64_t *host_c = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
+  uint64_t *input_boards = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
+  transform_t left_transforms[NUM_TRANSFORMS];
+  uint64_t *output_buffer = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
 
   // We pack some host buffers with our data.
   uint64_t i;
 
   for (i = 0; i < NELEMENTS; i++) {
-    host_a[i] = 0x300000000 + i;
-    host_c[i] = 0;
+    input_boards[i] = 0x300000000 + i;
+    output_buffer[i] = 0;
   }
 
   for (i = 0; i < NUM_TRANSFORMS; ++i)
   {
-    host_b[i] = i;
+    left_transforms[i] = i;
   }
 
-  void *input_buffers[] = {host_a,                      host_b, NULL};
+  void *input_buffers[] = {input_boards,                      left_transforms, NULL};
   size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NUM_TRANSFORMS};
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, host_c,sizeof(uint64_t)*NELEMENTS, NELEMENTS);
+  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, output_buffer,sizeof(uint64_t)*NELEMENTS, NELEMENTS);
 
 
   int success = 1;
   for (i = 0; i < NELEMENTS; i++) {
-    if (host_c[i] != host_a[i] + host_b[i % NUM_TRANSFORMS])
+    if (output_buffer[i] != input_boards[i] + left_transforms[i % NUM_TRANSFORMS])
     {
       success = 0;
       fprintf(stderr, "Validation failed at index %llu\n", i);
