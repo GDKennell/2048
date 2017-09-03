@@ -54,7 +54,9 @@ typedef unsigned long uint64_t;
 typedef uint64_t board_t;
 typedef int transform_t;
 
+constant int NUM_TRANSFORMS = 65536;
+
 kernel void vecadd(global board_t* a, global transform_t *b, global uint64_t* c) {
     size_t i = get_global_id(0);
-    c[i] = a[i] + b[i];
+    c[i] = a[i] + b[i % NUM_TRANSFORMS];
 }

@@ -96,6 +96,8 @@ cl_kernel        kernel;
 bool             is32bit = false;
 bool             kernel_initialied = false;
 
+const int NUM_TRANSFORMS = 65536;
+
 // A utility function to simplify error checking within this test code.
 static void check_status(char* msg, cl_int err) {
   if (err != CL_SUCCESS) {
@@ -319,7 +321,7 @@ int main (int argc, char* const *argv)
   fprintf(stdout,"NELEMENTS = %zu\n",NELEMENTS);
 
   uint64_t *host_a = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
-  transform_t *host_b = (transform_t*)malloc(sizeof(transform_t)*NELEMENTS);
+  transform_t host_b[NUM_TRANSFORMS];
   uint64_t *host_c = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
 
   // We pack some host buffers with our data.
@@ -327,12 +329,16 @@ int main (int argc, char* const *argv)
 
   for (i = 0; i < NELEMENTS; i++) {
     host_a[i] = 0x300000000 + i;
-    host_b[i] = i;
     host_c[i] = 0;
   }
 
+  for (i = 0; i < NUM_TRANSFORMS; ++i)
+  {
+    host_b[i] = i;
+  }
+
   void *input_buffers[] = {host_a,                      host_b, NULL};
-  size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NELEMENTS};
+  size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NUM_TRANSFORMS};
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
@@ -341,7 +347,7 @@ int main (int argc, char* const *argv)
 
   int success = 1;
   for (i = 0; i < NELEMENTS; i++) {
-    if (host_c[i] != host_a[i] + host_b[i])
+    if (host_c[i] != host_a[i] + host_b[i % NUM_TRANSFORMS])
     {
       success = 0;
       fprintf(stderr, "Validation failed at index %llu\n", i);
