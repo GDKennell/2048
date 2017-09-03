@@ -81,7 +81,7 @@
 
 #define MAXPATHLEN  512
 
-// The number of float4s we will pass to our test kernel execution.
+// The number of uint64_t4s we will pass to our test kernel execution.
 #define NELEMENTS   1024
 
 // The various OpenCL objects needed to execute our CL program against a
@@ -217,13 +217,15 @@ static void create_program_from_bitcode(char* bitcode_path,
   check_status("clSetKernelArg", err);
 
   // Launch the kernel over a single dimension, which is the same size
-  // as the number of float4s.  We let OpenCL select the local dimensions
+  // as the number of uint64_t4s.  We let OpenCL select the local dimensions
   // by passing 'NULL' as the 6th parameter.
 
   size_t global = count;
   err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global, NULL, 0, NULL,
                                NULL);
   check_status("clEnqueueNDRangeKernel", err);
+
+  clFinish(queue);
 
   // Read back the results (blocking, so everything finishes), and then
   // validate the results.
@@ -259,32 +261,30 @@ int main (int argc, char* const *argv)
 {
   char *filepath = "./kernel.gpu64.bc";
 
-  float *host_a = (float*)malloc(sizeof(float)*4*NELEMENTS);
-  float *host_b = (float*)malloc(sizeof(float)*4*NELEMENTS);
-  float *host_c = (float*)malloc(sizeof(float)*4*NELEMENTS);
+  uint64_t *host_a = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
+  uint64_t *host_b = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
+  uint64_t *host_c = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
 
   // We pack some host buffers with our data.
   unsigned int i;
 
   for (i = 0; i < NELEMENTS; i++) {
-    host_a[i*4+0] = host_b[i*4+0] = i;
-    host_a[i*4+1] = host_b[i*4+1] = i;
-    host_a[i*4+2] = host_b[i*4+2] = i;
-    host_a[i*4+3] = host_b[i*4+3] = i;
+    host_a[i] = i;
+    host_b[i] = i;
+    host_c[i] = 0;
   }
 
   void *input_buffers[] = {host_a,                      host_b, NULL};
-  size_t input_sizes[] =  {sizeof(cl_float4)*NELEMENTS, sizeof(cl_float4)*NELEMENTS};
+  size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(uint64_t)*NELEMENTS};
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, host_c,sizeof(cl_float4)*NELEMENTS, NELEMENTS);
+  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, host_c,sizeof(uint64_t)*NELEMENTS, NELEMENTS);
 
 
   int success = 1;
   for (i = 0; i < NELEMENTS; i++) {
-    if ( host_c[i*4+0] != i*2.0 || host_c[i*4+1] != i * 2.0 ||
-        host_c[i*4+2] != i*2.0 || host_c[i*4+3] != i * 2.0 )
+    if (host_c[i] != host_a[i] + host_b[i])
     {
       success = 0;
       fprintf(stderr, "Validation failed at index %d\n", i);

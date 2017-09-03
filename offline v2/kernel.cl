@@ -50,7 +50,9 @@ Copyright (C) 2011 Apple Inc. All Rights Reserved.
 
 */
 
-kernel void vecadd(global float4* a, global float4 *b, global float4* c) {
+typedef unsigned long uint64_t;
+
+kernel void vecadd(global uint64_t* a, global uint64_t *b, global uint64_t* c) {
     size_t i = get_global_id(0);
     c[i] = a[i] + b[i];
 }
