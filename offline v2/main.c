@@ -308,6 +308,8 @@ static size_t get_max_buffer_size()
 #pragma mark -
 #pragma mark Supporting code
 
+typedef int transform_t;
+
 int main (int argc, char* const *argv)
 {
   char *filepath = "./kernel.gpu64.bc";
@@ -316,21 +318,21 @@ int main (int argc, char* const *argv)
 
   fprintf(stdout,"NELEMENTS = %zu\n",NELEMENTS);
 
-  uint64_t *host_a = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
-  uint64_t *host_b = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
-  uint64_t *host_c = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
+  uint64_t *host_a = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
+  transform_t *host_b = (transform_t*)malloc(sizeof(transform_t)*NELEMENTS);
+  uint64_t *host_c = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
 
   // We pack some host buffers with our data.
   uint64_t i;
 
   for (i = 0; i < NELEMENTS; i++) {
     host_a[i] = 0x300000000 + i;
-    host_b[i] = 0x300000000 + i;
+    host_b[i] = i;
     host_c[i] = 0;
   }
 
   void *input_buffers[] = {host_a,                      host_b, NULL};
-  size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(uint64_t)*NELEMENTS};
+  size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NELEMENTS};
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.

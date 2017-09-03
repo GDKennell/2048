@@ -51,8 +51,10 @@ Copyright (C) 2011 Apple Inc. All Rights Reserved.
 */
 
 typedef unsigned long uint64_t;
+typedef uint64_t board_t;
+typedef int transform_t;
 
-kernel void vecadd(global uint64_t* a, global uint64_t *b, global uint64_t* c) {
+kernel void vecadd(global board_t* a, global transform_t *b, global uint64_t* c) {
     size_t i = get_global_id(0);
     c[i] = a[i] + b[i];
 }
