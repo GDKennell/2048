@@ -82,7 +82,7 @@
 #define MAXPATHLEN  512
 
 // The number of uint64_t4s we will pass to our test kernel execution.
-#define NELEMENTS   1024
+static size_t NELEMENTS =   1024;
 
 // The various OpenCL objects needed to execute our CL program against a
 // given compute device in our system.
@@ -254,6 +254,35 @@ static void shutdown_opencl() {
 //  clReleaseContext(context);
 }
 
+static size_t get_max_buffer_size()
+{
+  // Perform typical OpenCL setup in order to obtain a context and command
+  // queue.
+  cl_uint num_devices;
+
+  // How many devices of the type requested are in the system?
+  clGetDeviceIDs(NULL, CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
+
+  // Make sure the requested index is within bounds.  Otherwise, correct it.
+  if (device_index < 0 || device_index > num_devices - 1) {
+    fprintf(stdout, "Requsted index (%d) is out of range.  Using 0.\n",
+            device_index);
+    device_index = 0;
+  }
+
+  // Grab the requested device.
+  cl_device_id all_devices[num_devices];
+  clGetDeviceIDs(NULL, CL_DEVICE_TYPE_GPU, num_devices, all_devices, NULL);
+  device = all_devices[device_index];
+
+  cl_ulong max_buffer_size;
+  clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_buffer_size, NULL);
+  fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
+
+  return max_buffer_size;
+}
+
+
 #pragma mark -
 #pragma mark Supporting code
 
@@ -261,16 +290,20 @@ int main (int argc, char* const *argv)
 {
   char *filepath = "./kernel.gpu64.bc";
 
+  NELEMENTS = get_max_buffer_size() / sizeof(uint64_t);
+
+  fprintf(stdout,"NELEMENTS = %zu\n",NELEMENTS);
+
   uint64_t *host_a = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
   uint64_t *host_b = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
   uint64_t *host_c = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
 
   // We pack some host buffers with our data.
-  unsigned int i;
+  uint64_t i;
 
   for (i = 0; i < NELEMENTS; i++) {
-    host_a[i] = i;
-    host_b[i] = i;
+    host_a[i] = 0x300000000 + i;
+    host_b[i] = 0x300000000 + i;
     host_c[i] = 0;
   }
 
@@ -287,7 +320,7 @@ int main (int argc, char* const *argv)
     if (host_c[i] != host_a[i] + host_b[i])
     {
       success = 0;
-      fprintf(stderr, "Validation failed at index %d\n", i);
+      fprintf(stderr, "Validation failed at index %llu\n", i);
       fprintf(stderr, "Kernel FAILED!\n");
       break;
     }
