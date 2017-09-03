@@ -84,6 +84,10 @@ board_t right_move(board_t in_board, __global transform_t* right_transforms);
 
 board_t move_in_direction(board_t in_board, enum Direction direction, __global transform_t* left_transforms, __global transform_t* right_transforms)
 {
+    if (in_board == UNUSED_BOARD)
+    {
+        return UNUSED_BOARD;
+    }
     switch (direction) {
         case UP:
             return up_move(in_board, right_transforms);
@@ -187,21 +191,17 @@ int layer_for_index(uint64_t index)
 //********************************************************************************
 
 __kernel void compute_moves(__global board_t* input_boards,
-                            __global size_t* layer_num,
                             __global transform_t* left_transforms,
                             __global transform_t* right_transforms,
                             __global board_t* output_boards,
                             __global size_t* count)
 {
-    unsigned int i = get_global_id(0);
-    if (i >= *count) { return; }
-    size_t orig_index = start_of_layer(*layer_num) + i;
+    size_t orig_index = get_global_id(0);
+    if (orig_index >= *count) { return; }
 
-    int orig_layer = layer_for_index(orig_index);
-    uint64_t orig_layer_index = orig_index - start_of_layer(orig_layer);
-    uint64_t next_move_i = start_of_layer(orig_layer + 1) + 4 * orig_layer_index;
     board_t orig_board = input_boards[orig_index];
-    if (orig_board == UNUSED_BOARD){ return; }
+    uint64_t next_move_i = 4 * orig_index;
+
     for (int i = 0; i < 4; ++i)
     {
         board_t moveResult = move_in_direction(orig_board, (enum Direction)i, left_transforms, right_transforms);
