@@ -1,8 +1,7 @@
 #include "SmallBoard.h"
 #include "precompute.h"
 extern "C" {
-  #include "opencl.h"
-  #include "clink.h"
+  #include "compute_moves.h"
 }
 #include <algorithm>
 #include <cassert>
@@ -111,8 +110,6 @@ void add_new_tile(board_t& board, bool user_in);
 int score = 0;
 int up_combo_val, down_combo_val, left_combo_val, right_combo_val;
 
-const int NUM_TRANSFORMS = 65536;
-typedef int transform_t;
 transform_t left_move_transforms[NUM_TRANSFORMS];
 transform_t right_move_transforms[NUM_TRANSFORMS];
 
@@ -208,23 +205,6 @@ int layer_for_index(uint64_t index)
   return layerNum;
 }
 
-void compute_moves(uint64_t orig_index)
-{
-  int orig_layer = layer_for_index(orig_index);
-  uint64_t orig_layer_index = orig_index - start_of_layer(orig_layer);
-  uint64_t next_move_i = start_of_layer(orig_layer + 1) + 4 * orig_layer_index;
-  uint64_t orig_board = entire_move_tree[orig_index];
-  if (orig_board == UNUSED_BOARD){ return; }
-  for (int i = 0; i < 4; ++i)
-  {
-    Move_Result moveResult = move_in_direction(orig_board, (Direction)i);
-    bool move_valid = moveResult.board.raw() != orig_board;
-    uint64_t result = move_valid ? moveResult.board.raw() : UNUSED_BOARD;
-    entire_move_tree[next_move_i] = result;
-//    cout<<"\tentire_move_tree["<<next_move_i<<"] = "<<result<<endl;
-    ++next_move_i;
-  }
-}
 
 void compute_outcomes(uint64_t orig_index)
 {
@@ -275,7 +255,7 @@ void compute_layer(int layerNum)
   {
     if (calculate_moves)
     {
-      compute_moves(i_start_of_prev_layer + prev_i);
+      compute_moves(entire_move_tree, tree_size, layerNum, left_move_transforms, right_move_transforms);
     }
     else
     {
