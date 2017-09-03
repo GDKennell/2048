@@ -112,7 +112,8 @@ static void create_program_from_bitcode(char* bitcode_path,
                                         void **programInputs,
                                         size_t *programInputSizes,
                                         void *programOutput,
-                                        size_t programOutputSize)
+                                        size_t programOutputSize,
+                                        size_t count)
 {
   // Perform typical OpenCL setup in order to obtain a context and command
   // queue.
@@ -219,7 +220,7 @@ static void create_program_from_bitcode(char* bitcode_path,
   // as the number of float4s.  We let OpenCL select the local dimensions
   // by passing 'NULL' as the 6th parameter.
 
-  size_t global = NELEMENTS;
+  size_t global = count;
   err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global, NULL, 0, NULL,
                                NULL);
   check_status("clEnqueueNDRangeKernel", err);
@@ -277,7 +278,7 @@ int main (int argc, char* const *argv)
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, host_c,sizeof(cl_float4)*NELEMENTS);
+  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, host_c,sizeof(cl_float4)*NELEMENTS, NELEMENTS);
 
 
   int success = 1;
