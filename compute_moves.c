@@ -8,6 +8,9 @@
 
 #include "compute_moves.h"
 
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
 
 // The various OpenCL objects needed to execute our CL program against a
 // given compute device in our system.
@@ -168,7 +171,8 @@ static void create_program_from_bitcode(char* bitcode_path,
     err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global, NULL, 0, NULL,
                                  NULL);
     check_status("clEnqueueNDRangeKernel", err);
-    
+
+    clFinish(queue);
     // Read back the results (blocking, so everything finishes), and then
     // validate the results.
     
@@ -209,9 +213,45 @@ static uint64_t size_of_layer(int layer_num)
     return layerSize;
 }
 
+
+static size_t get_max_buffer_size()
+{
+    static cl_ulong max_buffer_size = 0;
+    if (max_buffer_size != 0)
+    {
+        return max_buffer_size;
+    }
+    // Perform typical OpenCL setup in order to obtain a context and command
+    // queue.
+    cl_uint num_devices;
+
+    // How many devices of the type requested are in the system?
+    clGetDeviceIDs(NULL, CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
+
+    // Make sure the requested index is within bounds.  Otherwise, correct it.
+    if (device_index < 0 || device_index > num_devices - 1) {
+        fprintf(stdout, "Requsted index (%d) is out of range.  Using 0.\n",
+                device_index);
+        device_index = 0;
+    }
+
+    // Grab the requested device.
+    cl_device_id all_devices[num_devices];
+    clGetDeviceIDs(NULL, CL_DEVICE_TYPE_GPU, num_devices, all_devices, NULL);
+    device = all_devices[device_index];
+
+    clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_buffer_size, NULL);
+    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
+    
+    return max_buffer_size;
+}
+
 void compute_moves(uint64_t *allBoards, size_t tree_size ,uint64_t layer_num, transform_t left_move_transforms[NUM_TRANSFORMS], transform_t right_move_transforms[NUM_TRANSFORMS])
 {
-    init_output_buffer(tree_size);
+    size_t max_buffer_size = get_max_buffer_size() / sizeof(uint64_t);
+    init_output_buffer(max_buffer_size);
+
+    size_t orig_layer_block_size = max_buffer_size / 4;
 
     char *filepath = "./compute_moves.gpu64.bc";
     char *function_name = "compute_moves";
@@ -219,17 +259,23 @@ void compute_moves(uint64_t *allBoards, size_t tree_size ,uint64_t layer_num, tr
     uint64_t layer_start = start_of_layer(layer_num);
     uint64_t layer_end = layer_start + size_of_layer(layer_num);
 
+    uint64_t next_layer_start = start_of_layer(layer_num + 1);
 
-
-    void *input_buffers[] =         {allBoards,                    &layer_num,        left_move_transforms,                 right_move_transforms, NULL};
-    size_t input_buffer_sizes[] =   {tree_size * sizeof(uint64_t), sizeof(layer_num), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
-
-
-    create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, tree_size * sizeof(uint64_t), size_of_layer(layer_num));
-
-    for (uint64_t i = layer_start; i < layer_end; ++i)
+    for (uint64_t orig_start_index = layer_start;
+         orig_start_index < layer_end;
+         orig_start_index += orig_layer_block_size)
     {
-        allBoards[i] = outputBuffer[i];
+        size_t this_block_size = min(layer_end - orig_start_index, orig_layer_block_size);
+        void *input_buffers[] =         {allBoards + orig_start_index,       left_move_transforms,                 right_move_transforms, NULL};
+        size_t input_buffer_sizes[] =   {this_block_size * sizeof(uint64_t), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
+
+        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, max_buffer_size * sizeof(uint64_t), this_block_size);
+
+        uint64_t result_layer_offset = next_layer_start + 4 * (orig_start_index - layer_start);
+        for (uint64_t i = 0; i < max_buffer_size; ++i)
+        {
+            allBoards[result_layer_offset + i] = outputBuffer[i];
+        }
     }
 }
 
