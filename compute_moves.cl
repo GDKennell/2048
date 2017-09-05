@@ -186,14 +186,14 @@ int layer_for_index(uint64_t index)
 //********************************* Kernel ***************************************
 //********************************************************************************
 
-__kernel void compute_moves(__global board_t* input_boards,
-                            __global transform_t* left_transforms,
-                            __global transform_t* right_transforms,
-                            __global board_t* output_boards,
-                            __global size_t* count)
+kernel void compute_moves(global board_t* input_boards,
+                          global transform_t* left_transforms,
+                          global transform_t* right_transforms,
+                          global board_t* output_boards,
+                          const size_t count)
 {
     size_t orig_index = get_global_id(0);
-    if (orig_index >= *count) { return; }
+    if (orig_index >= count) { return; }
 
     board_t orig_board = input_boards[orig_index];
     uint64_t next_move_i = 4 * orig_index;

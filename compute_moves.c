@@ -161,6 +161,7 @@ static void create_program_from_bitcode(char* bitcode_path,
         err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &input_buffers[i]);
     }
     err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &outputBuffer);
+    err |= clSetKernelArg(kernel, argc++, sizeof(size_t), &count);
     check_status("clSetKernelArg", err);
 
     // Launch the kernel over a single dimension, which is the same size
@@ -248,10 +249,12 @@ static size_t get_max_buffer_size()
 
 void compute_moves(uint64_t *allBoards, size_t tree_size ,uint64_t layer_num, transform_t left_move_transforms[NUM_TRANSFORMS], transform_t right_move_transforms[NUM_TRANSFORMS])
 {
-    size_t max_buffer_size = get_max_buffer_size() / sizeof(uint64_t);
+    size_t max_buffer_size = get_max_buffer_size() / (2 * sizeof(uint64_t));
     init_output_buffer(max_buffer_size);
 
     size_t orig_layer_block_size = max_buffer_size / 4;
+
+    printf("\nmax_buffer_size: %ld \norig_layer_block_size: %ld\n\n",max_buffer_size,orig_layer_block_size);
 
     char *filepath = "./compute_moves.gpu64.bc";
     char *function_name = "compute_moves";
