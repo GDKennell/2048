@@ -242,6 +242,7 @@ static void create_program_from_bitcode(char* bitcode_path,
         err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &input_buffers[i]);
     }
     err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &outputBuffer);
+    err |= clSetKernelArg(kernel, argc++, sizeof(size_t), &count);
     check_status("clSetKernelArg", err);
 
     // Launch the kernel over a single dimension, which is the same size
@@ -322,6 +323,7 @@ int main (int argc, char* const *argv)
 
   uint64_t *input_boards = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
   transform_t left_transforms[NUM_TRANSFORMS];
+  transform_t right_transforms[NUM_TRANSFORMS];
   uint64_t *output_buffer = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
 
   // We pack some host buffers with our data.
@@ -335,10 +337,11 @@ int main (int argc, char* const *argv)
   for (i = 0; i < NUM_TRANSFORMS; ++i)
   {
     left_transforms[i] = i;
+    right_transforms[i] = i;
   }
 
-  void *input_buffers[] = {input_boards,                      left_transforms, NULL};
-  size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NUM_TRANSFORMS};
+  void *input_buffers[] = {input_boards,               left_transforms,                    right_transforms,       NULL};
+  size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NUM_TRANSFORMS, sizeof(transform_t)*NUM_TRANSFORMS};
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
@@ -347,7 +350,7 @@ int main (int argc, char* const *argv)
 
   int success = 1;
   for (i = 0; i < NELEMENTS; i++) {
-    if (output_buffer[i] != input_boards[i] + left_transforms[i % NUM_TRANSFORMS])
+    if (output_buffer[i] != input_boards[i] + left_transforms[i % NUM_TRANSFORMS] + right_transforms[i % NUM_TRANSFORMS])
     {
       success = 0;
       fprintf(stderr, "Validation failed at index %llu\n", i);
