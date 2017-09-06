@@ -225,7 +225,7 @@ static void create_program_from_bitcode(char* bitcode_path,
     {
         total_sizes += programInputSizes[i];
     }
-    printf("total input_sizes: %ld\n", total_sizes);
+    printf("total input_buffer_sizes: %ld\n", total_sizes);
 
     // CL buffer 'c' is for output, so we don't prepopulate it with data.
 
@@ -317,7 +317,8 @@ int main (int argc, char* const *argv)
 {
   char *filepath = "./kernel.gpu64.bc";
 
-  NELEMENTS = get_max_buffer_size() / sizeof(uint64_t);
+//  NELEMENTS = get_max_buffer_size() / sizeof(uint64_t);
+  NELEMENTS = 480;
 
   fprintf(stdout,"NELEMENTS = %zu\n",NELEMENTS);
 
@@ -341,11 +342,17 @@ int main (int argc, char* const *argv)
   }
 
   void *input_buffers[] = {input_boards,               left_transforms,                    right_transforms,       NULL};
-  size_t input_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NUM_TRANSFORMS, sizeof(transform_t)*NUM_TRANSFORMS};
+  size_t input_buffer_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NUM_TRANSFORMS, sizeof(transform_t)*NUM_TRANSFORMS};
+
+    for (int i = 0; i < sizeof(input_buffer_sizes) / sizeof(size_t); ++i)
+    {
+        printf("size of input[%d] = %ld\n",i, input_buffer_sizes[i]);
+    }
+    printf("calling create_program_from_bitcode\n");
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_sizes, output_buffer,sizeof(uint64_t)*NELEMENTS, NELEMENTS);
+  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_buffer_sizes, output_buffer,sizeof(uint64_t)*NELEMENTS, NELEMENTS);
 
 
   int success = 1;
