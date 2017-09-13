@@ -262,7 +262,7 @@ void compute_moves(uint64_t *allBoards, size_t tree_size ,uint64_t layer_num, tr
     size_t max_buffer_size = get_max_buffer_size() / (2 * sizeof(uint64_t));
     init_output_buffer(max_buffer_size);
 
-    size_t orig_layer_block_size = max_buffer_size / 4;
+    size_t orig_layer_block_size = 500000;
 
     char *filepath = "./compute_moves.gpu64.bc";
     char *function_name = "compute_moves";
