@@ -249,7 +249,7 @@ void compute_layer(int layerNum)
   uint64_t i_start_of_prev_layer = start_of_layer(layerNum - 1);
   uint64_t i_size_of_prev_layer = size_of_layer(layerNum - 1);
 
-  cout<<"computing "<<(calculate_moves ? "moves" : "outcomes" )<<" layer "<<layerNum<< endl;
+//  cout<<"computing "<<(calculate_moves ? "moves" : "outcomes" )<<" layer "<<layerNum<< endl;
 
   if (calculate_moves)
   {
@@ -368,11 +368,11 @@ void setDepthAndTolerance(const board_t &board)
   int64_t num_empty = num_empty_in_board(board);
   if(num_empty < 2) {
     TOLERANCE = 50000;
-    MAX_DEPTH = 10;
+    MAX_DEPTH = 6;
   }
   else if(num_empty < 4) {
     TOLERANCE = 100000;
-    MAX_DEPTH = 8;
+    MAX_DEPTH = 6;
   }
   else if(num_empty < 7) {
     TOLERANCE = 200000;
