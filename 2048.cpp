@@ -110,8 +110,8 @@ void add_new_tile(board_t& board, bool user_in);
 int score = 0;
 int up_combo_val, down_combo_val, left_combo_val, right_combo_val;
 
-transform_t left_move_transforms[NUM_TRANSFORMS];
-transform_t right_move_transforms[NUM_TRANSFORMS];
+transform_t *left_move_transforms = NULL;
+transform_t *right_move_transforms = NULL;
 
 int empty_vals[NUM_TRANSFORMS];
 
@@ -460,6 +460,9 @@ int main() {
 }
 
 void load_precompute_files() {
+  left_move_transforms = (transform_t*)malloc(NUM_TRANSFORMS * sizeof(transform_t));
+  right_move_transforms = (transform_t*)malloc(NUM_TRANSFORMS * sizeof(transform_t));
+
   fstream leftFile ("left.bin", ios::in | ios::binary);
   fstream rightFile ("right.bin", ios::in | ios::binary);
   if (!leftFile.good() || !rightFile.good()) {

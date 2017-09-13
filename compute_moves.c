@@ -146,6 +146,13 @@ static void create_program_from_bitcode(char* bitcode_path,
 
     }
 
+    size_t total_sizes = 0;
+    for (int i = 0; i < num_buffers; ++i)
+    {
+        total_sizes += programInputSizes[i];
+    }
+    printf("total input_sizes: %ld\n", total_sizes);
+
     // CL buffer 'c' is for output, so we don't prepopulate it with data.
 
     cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
@@ -169,6 +176,8 @@ static void create_program_from_bitcode(char* bitcode_path,
     // by passing 'NULL' as the 6th parameter.
 
     size_t global = count;
+
+    fprintf(stderr, "About to clEnqueueNDRangeKernel.\n");
     err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global, NULL, 0, NULL,
                                  NULL);
     check_status("clEnqueueNDRangeKernel", err);
@@ -249,12 +258,11 @@ static size_t get_max_buffer_size()
 
 void compute_moves(uint64_t *allBoards, size_t tree_size ,uint64_t layer_num, transform_t left_move_transforms[NUM_TRANSFORMS], transform_t right_move_transforms[NUM_TRANSFORMS])
 {
+    printf("computing moves for layer %llu\n", layer_num);
     size_t max_buffer_size = get_max_buffer_size() / (2 * sizeof(uint64_t));
     init_output_buffer(max_buffer_size);
 
     size_t orig_layer_block_size = max_buffer_size / 4;
-
-    printf("\nmax_buffer_size: %ld \norig_layer_block_size: %ld\n\n",max_buffer_size,orig_layer_block_size);
 
     char *filepath = "./compute_moves.gpu64.bc";
     char *function_name = "compute_moves";
@@ -264,22 +272,34 @@ void compute_moves(uint64_t *allBoards, size_t tree_size ,uint64_t layer_num, tr
 
     uint64_t next_layer_start = start_of_layer(layer_num + 1);
 
+
     for (uint64_t orig_start_index = layer_start;
          orig_start_index < layer_end;
          orig_start_index += orig_layer_block_size)
     {
         size_t this_block_size = min(layer_end - orig_start_index, orig_layer_block_size);
+        printf("computing block %llu:%llu\n\n",orig_start_index,orig_start_index + this_block_size);
         void *input_buffers[] =         {allBoards + orig_start_index,       left_move_transforms,                 right_move_transforms, NULL};
         size_t input_buffer_sizes[] =   {this_block_size * sizeof(uint64_t), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
 
-        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, max_buffer_size * sizeof(uint64_t), this_block_size);
+        for (int i = 0; i < sizeof(input_buffer_sizes) / sizeof(size_t); ++i)
+        {
+            printf("size of input[%d] = %ld\n",i, input_buffer_sizes[i]);
+        }
+        printf("calling create_program_from_bitcode\n");
+        size_t outputBufferSize = 4 * this_block_size * sizeof(uint64_t);
+
+        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, outputBufferSize, this_block_size);
+        printf("create_program_from_bitcode returned \n");
 
         uint64_t result_layer_offset = next_layer_start + 4 * (orig_start_index - layer_start);
-        for (uint64_t i = 0; i < max_buffer_size; ++i)
+        for (uint64_t i = 0; i < outputBufferSize; ++i)
         {
             allBoards[result_layer_offset + i] = outputBuffer[i];
         }
+        printf("finished writing allboards output \n");
     }
+    printf("Finished computing moves for layer %llu\n\n", layer_num);
 }
 
 
