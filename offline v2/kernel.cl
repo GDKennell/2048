@@ -68,10 +68,61 @@ kernel void vecadd(global board_t* input_boards,
                    global transform_t* right_transforms,
                    global board_t* output_boards,
                    const uint64_t count) {
-    size_t i = get_global_id(0);
-    size_t out_index_start = 4 * i;
-    for (int j = out_index_start; j < out_index_start + 4; ++j)
+    size_t orig_index = get_global_id(0);
+    if (orig_index >= count) { return; }
+
+    board_t orig_board = input_boards[orig_index];
+
+    size_t next_move_i = 4 * orig_index;
+    
+    for (int j = next_move_i; j < next_move_i + 4; ++j)
     {
-        output_boards[j] = input_boards[i] + left_transforms[i % NUM_TRANSFORMS] + right_transforms[i % NUM_TRANSFORMS];
+        output_boards[j] = orig_board + left_transforms[orig_index % NUM_TRANSFORMS] + right_transforms[orig_index % NUM_TRANSFORMS];
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
