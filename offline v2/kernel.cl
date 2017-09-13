@@ -51,8 +51,15 @@ Copyright (C) 2011 Apple Inc. All Rights Reserved.
 */
 
 typedef unsigned long uint64_t;
+
 typedef uint64_t board_t;
+
+typedef uint64_t board_col_t;
+typedef uint64_t board_row_t;
+
 typedef int transform_t;
+
+__constant board_t UNUSED_BOARD = 0;
 
 constant int NUM_TRANSFORMS = 65536;
 
@@ -62,5 +69,9 @@ kernel void vecadd(global board_t* input_boards,
                    global board_t* output_boards,
                    const uint64_t count) {
     size_t i = get_global_id(0);
-    output_boards[i] = input_boards[i] + left_transforms[i % NUM_TRANSFORMS] + right_transforms[i % NUM_TRANSFORMS];
+    size_t out_index_start = 4 * i;
+    for (int j = out_index_start; j < out_index_start + 4; ++j)
+    {
+        output_boards[j] = input_boards[i] + left_transforms[i % NUM_TRANSFORMS] + right_transforms[i % NUM_TRANSFORMS];
+    }
 }

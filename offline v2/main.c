@@ -325,7 +325,7 @@ int main (int argc, char* const *argv)
   uint64_t *input_boards = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
   transform_t left_transforms[NUM_TRANSFORMS];
   transform_t right_transforms[NUM_TRANSFORMS];
-  uint64_t *output_buffer = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
+  uint64_t *output_buffer = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
 
   // We pack some host buffers with our data.
   uint64_t i;
@@ -350,19 +350,22 @@ int main (int argc, char* const *argv)
     }
     printf("calling create_program_from_bitcode\n");
 
+
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_buffer_sizes, output_buffer,sizeof(uint64_t)*NELEMENTS, NELEMENTS);
+  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_buffer_sizes, output_buffer,sizeof(uint64_t)*4*NELEMENTS, NELEMENTS);
 
 
   int success = 1;
   for (i = 0; i < NELEMENTS; i++) {
-    if (output_buffer[i] != input_boards[i] + left_transforms[i % NUM_TRANSFORMS] + right_transforms[i % NUM_TRANSFORMS])
-    {
-      success = 0;
-      fprintf(stderr, "Validation failed at index %llu\n", i);
-      fprintf(stderr, "Kernel FAILED!\n");
-      break;
+    for (int j = 4 * i; j < 4 * i + 4; ++j){
+      if (output_buffer[j] != input_boards[i] + left_transforms[i % NUM_TRANSFORMS] + right_transforms[i % NUM_TRANSFORMS])
+      {
+        success = 0;
+        fprintf(stderr, "Validation failed at index %llu\n", i);
+        fprintf(stderr, "Kernel FAILED!\n");
+        break;
+      }
     }
   }
 
