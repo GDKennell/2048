@@ -18,3 +18,8 @@ runscript
 *xcuserd*gs
 *xcuserd*
 *.bin
+*.bc
+*.o
+memory-layout-2048
+*.zip
+OpenCLOfflineCompilation
