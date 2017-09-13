@@ -314,27 +314,45 @@ static size_t get_max_buffer_size()
 #pragma mark Supporting code
 
 typedef int transform_t;
+typedef unsigned int uint;
+
+uint64_t *outputBuffer = NULL;
+static void init_output_buffer(size_t size)
+{
+  if(outputBuffer == NULL)
+  {
+    outputBuffer = malloc(size * sizeof(uint64_t));
+  }
+}
 
 int main (int argc, char* const *argv)
 {
   char *filepath = "./kernel.gpu64.bc";
 
-//  NELEMENTS = get_max_buffer_size() / sizeof(uint64_t);
   NELEMENTS = 480;
+  uint64_t orig_start_index = 124;
+
+  size_t this_block_size = NELEMENTS - orig_start_index;
 
   fprintf(stdout,"NELEMENTS = %zu\n",NELEMENTS);
 
   uint64_t *input_boards = (uint64_t*)malloc(sizeof(uint64_t)*NELEMENTS);
   transform_t left_transforms[NUM_TRANSFORMS];
   transform_t right_transforms[NUM_TRANSFORMS];
-  uint64_t *output_buffer = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
+
+
+
+  size_t max_buffer_size = get_max_buffer_size() / (2 * sizeof(uint64_t));
+  init_output_buffer(max_buffer_size);
+
+  //  uint64_t *outputBuffer = (uint64_t*)malloc(sizeof(uint64_t)*4*NELEMENTS);
 
   // We pack some host buffers with our data.
   uint64_t i;
 
   for (i = 0; i < NELEMENTS; i++) {
     input_boards[i] = 0x300000000 + i;
-    output_buffer[i] = 0;
+    outputBuffer[i] = 0;
   }
 
   for (i = 0; i < NUM_TRANSFORMS; ++i)
@@ -343,7 +361,7 @@ int main (int argc, char* const *argv)
     right_transforms[i] = i;
   }
 
-  void *input_buffers[] = {input_boards,               left_transforms,                    right_transforms,       NULL};
+  void *input_buffers[] = {input_boards + orig_start_index,               left_transforms,                    right_transforms,       NULL};
   size_t input_buffer_sizes[] =  {sizeof(uint64_t)*NELEMENTS, sizeof(transform_t)*NUM_TRANSFORMS, sizeof(transform_t)*NUM_TRANSFORMS};
 
     for (int i = 0; i < sizeof(input_buffer_sizes) / sizeof(size_t); ++i)
@@ -355,17 +373,18 @@ int main (int argc, char* const *argv)
 
   // Obtain a CL program and kernel from our pre-compiled bitcode file and
   // test it by running the kernel on some test data.
-  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_buffer_sizes, output_buffer,sizeof(uint64_t)*4*NELEMENTS, NELEMENTS);
+  create_program_from_bitcode(filepath, "vecadd", input_buffers, input_buffer_sizes, outputBuffer,sizeof(uint64_t)*4*NELEMENTS, NELEMENTS);
 
 
   int success = 1;
   for (i = 0; i < NELEMENTS; i++) {
     for (int j = 4 * i; j < 4 * i + 4; ++j){
-      if (output_buffer[j] != input_boards[i] + left_transforms[i % NUM_TRANSFORMS] + right_transforms[i % NUM_TRANSFORMS])
+      if (outputBuffer[j] != input_boards[i] + left_transforms[i % NUM_TRANSFORMS] + right_transforms[i % NUM_TRANSFORMS])
       {
         success = 0;
         fprintf(stderr, "Validation failed at index %llu\n", i);
         fprintf(stderr, "Kernel FAILED!\n");
+        exit(1);
         break;
       }
     }

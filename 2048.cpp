@@ -249,15 +249,15 @@ void compute_layer(int layerNum)
   uint64_t i_start_of_prev_layer = start_of_layer(layerNum - 1);
   uint64_t i_size_of_prev_layer = size_of_layer(layerNum - 1);
 
-//  cout<<"computing "<<(calculate_moves ? "moves" : "outcomes" )<<" layer "<<layerNum<< endl;
+  cout<<"computing "<<(calculate_moves ? "moves" : "outcomes" )<<" layer "<<layerNum<< endl;
 
-  for (uint64_t prev_i = 0; prev_i < i_size_of_prev_layer; ++prev_i)
+  if (calculate_moves)
   {
-    if (calculate_moves)
-    {
-      compute_moves(entire_move_tree, tree_size, layerNum, left_move_transforms, right_move_transforms);
-    }
-    else
+    compute_moves(entire_move_tree, tree_size, layerNum, left_move_transforms, right_move_transforms);
+  }
+  else
+  {
+    for (uint64_t prev_i = 0; prev_i < i_size_of_prev_layer; ++prev_i)
     {
       compute_outcomes(i_start_of_prev_layer + prev_i);
     }

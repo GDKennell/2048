@@ -71,9 +71,9 @@ static void init_kernel(char* bitcode_path,char* function_name)
     cl_ulong max_buffer_size;
     clGetDeviceInfo(device, CL_DEVICE_MAX_PARAMETER_SIZE, sizeof(cl_ulong), &max_buffer_size, NULL);
 
-    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
+//    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
 
-    fprintf(stdout, "Using OpenCL device: %s\n", name);
+//    fprintf(stdout, "Using OpenCL device: %s\n", name);
 
     // Create an OpenCL context using this compute device.
     context = clCreateContext(NULL, 1, &device, NULL, NULL, &err);
@@ -151,7 +151,7 @@ static void create_program_from_bitcode(char* bitcode_path,
     {
         total_sizes += programInputSizes[i];
     }
-    printf("total input_sizes: %ld\n", total_sizes);
+//    printf("total input_sizes: %ld\n", total_sizes);
 
     // CL buffer 'c' is for output, so we don't prepopulate it with data.
 
@@ -177,7 +177,7 @@ static void create_program_from_bitcode(char* bitcode_path,
 
     size_t global = count;
 
-    fprintf(stderr, "About to clEnqueueNDRangeKernel.\n");
+//    fprintf(stderr, "About to clEnqueueNDRangeKernel.\n");
     err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global, NULL, 0, NULL,
                                  NULL);
     check_status("clEnqueueNDRangeKernel", err);
@@ -251,8 +251,8 @@ static size_t get_max_buffer_size()
     device = all_devices[device_index];
 
     clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_buffer_size, NULL);
-    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
-    
+//    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
+
     return max_buffer_size;
 }
 
@@ -278,28 +278,28 @@ void compute_moves(uint64_t *allBoards, size_t tree_size ,uint64_t layer_num, tr
          orig_start_index += orig_layer_block_size)
     {
         size_t this_block_size = min(layer_end - orig_start_index, orig_layer_block_size);
-        printf("computing block %llu:%llu\n\n",orig_start_index,orig_start_index + this_block_size);
+        printf("\tcomputing block %llu:%llu\n\n",orig_start_index,orig_start_index + this_block_size);
         void *input_buffers[] =         {allBoards + orig_start_index,       left_move_transforms,                 right_move_transforms, NULL};
         size_t input_buffer_sizes[] =   {this_block_size * sizeof(uint64_t), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
 
         for (int i = 0; i < sizeof(input_buffer_sizes) / sizeof(size_t); ++i)
         {
-            printf("size of input[%d] = %ld\n",i, input_buffer_sizes[i]);
+            printf("\t\tsize of input[%d] = %ld\n",i, input_buffer_sizes[i]);
         }
-        printf("calling create_program_from_bitcode\n");
+//        printf("calling create_program_from_bitcode\n");
         size_t outputBufferSize = 4 * this_block_size * sizeof(uint64_t);
 
         create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, outputBufferSize, this_block_size);
-        printf("create_program_from_bitcode returned \n");
+//        printf("create_program_from_bitcode returned \n");
 
         uint64_t result_layer_offset = next_layer_start + 4 * (orig_start_index - layer_start);
         for (uint64_t i = 0; i < outputBufferSize; ++i)
         {
             allBoards[result_layer_offset + i] = outputBuffer[i];
         }
-        printf("finished writing allboards output \n");
+//        printf("finished writing allboards output \n");
     }
-    printf("Finished computing moves for layer %llu\n\n", layer_num);
+    printf("\tFinished computing moves for layer %llu\n\n", layer_num);
 }
 
 
