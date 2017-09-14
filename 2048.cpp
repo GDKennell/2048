@@ -23,6 +23,8 @@ struct Block;
 typedef SmallBoard board_t;
 typedef chrono::system_clock Clock;
 
+const int NUM_TRANSFORMS = 65536;
+
 enum Direction {LEFT, RIGHT, UP, DOWN, NONE};
 
 const char* direction_names[] = {"left", "right", "up", "down",  "none"};
@@ -308,7 +310,7 @@ void evaluate_layer(int layerNum)
       continue;
     }
 //    cout<<"\tevaluating "<<i<<endl;
-    // Leaf layer - compute heuristics
+    // Move layer - average the next layer (outcomes)
     if (layerNum % 2 == 0)
     {
       uint64_t thisLayerIndex = i - layerStart;
