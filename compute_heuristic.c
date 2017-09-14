@@ -6,7 +6,7 @@
 
 #include <OpenCL/opencl.h>
 
-#include "compute_moves.h"
+#include "compute_heuristic.h"
 
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
@@ -31,6 +31,7 @@ static void check_status(char* msg, cl_int err) {
         exit(1);
     }
 }
+
 
 #pragma mark -
 #pragma mark Bitcode loading and use
@@ -71,9 +72,9 @@ static void init_kernel(char* bitcode_path,char* function_name)
     cl_ulong max_buffer_size;
     clGetDeviceInfo(device, CL_DEVICE_MAX_PARAMETER_SIZE, sizeof(cl_ulong), &max_buffer_size, NULL);
 
-//    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
+    //    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
 
-//    fprintf(stdout, "Using OpenCL device: %s\n", name);
+    //    fprintf(stdout, "Using OpenCL device: %s\n", name);
 
     // Create an OpenCL context using this compute device.
     context = clCreateContext(NULL, 1, &device, NULL, NULL, &err);
@@ -103,6 +104,11 @@ static void init_kernel(char* bitcode_path,char* function_name)
     // bits for an AMD or Intel compute device (for example).
 
     err = clBuildProgram(program, 1, &device, NULL, NULL, NULL);
+
+    char buildlogbuffer[1000];
+    size_t outputSize;
+    clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, sizeof(buildlogbuffer), buildlogbuffer, &outputSize);
+    printf("build output: %s\n",buildlogbuffer);
     check_status("clBuildProgram", err);
 
     // And that's it -- we have a fully-compiled program created from the
@@ -151,7 +157,7 @@ static void create_program_from_bitcode(char* bitcode_path,
     {
         total_sizes += programInputSizes[i];
     }
-//    printf("total input_sizes: %ld\n", total_sizes);
+    //    printf("total input_sizes: %ld\n", total_sizes);
 
     // CL buffer 'c' is for output, so we don't prepopulate it with data.
 
@@ -177,7 +183,7 @@ static void create_program_from_bitcode(char* bitcode_path,
 
     size_t global = count;
 
-//    fprintf(stderr, "About to clEnqueueNDRangeKernel.\n");
+    //    fprintf(stderr, "About to clEnqueueNDRangeKernel.\n");
     err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global, NULL, 0, NULL,
                                  NULL);
     check_status("clEnqueueNDRangeKernel", err);
@@ -185,7 +191,7 @@ static void create_program_from_bitcode(char* bitcode_path,
     clFinish(queue);
     // Read back the results (blocking, so everything finishes), and then
     // validate the results.
-    
+
     clEnqueueReadBuffer(queue, outputBuffer, CL_TRUE, 0, programOutputSize, programOutput,
                         0, NULL, NULL);
 }
@@ -224,85 +230,70 @@ static uint64_t size_of_layer(int layer_num)
 }
 
 
-static size_t get_max_buffer_size()
+void compute_heuristics(uint64_t *allBoards,unsigned int layer_num, int empty_vals[NUM_TRANSFORMS])
 {
-    static cl_ulong max_buffer_size = 0;
-    if (max_buffer_size != 0)
-    {
-        return max_buffer_size;
-    }
-    // Perform typical OpenCL setup in order to obtain a context and command
-    // queue.
-    cl_uint num_devices;
-
-    // How many devices of the type requested are in the system?
-    clGetDeviceIDs(NULL, CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
-
-    // Make sure the requested index is within bounds.  Otherwise, correct it.
-    if (device_index < 0 || device_index > num_devices - 1) {
-        fprintf(stdout, "Requsted index (%d) is out of range.  Using 0.\n",
-                device_index);
-        device_index = 0;
-    }
-
-    // Grab the requested device.
-    cl_device_id all_devices[num_devices];
-    clGetDeviceIDs(NULL, CL_DEVICE_TYPE_GPU, num_devices, all_devices, NULL);
-    device = all_devices[device_index];
-
-    clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &max_buffer_size, NULL);
-//    fprintf(stdout,"CL_DEVICE_MAX_PARAMETER_SIZE: %lld\n",max_buffer_size);
-
-    return max_buffer_size;
-}
-
-void compute_moves(uint64_t *allBoards , unsigned int layer_num, transform_t left_move_transforms[NUM_TRANSFORMS], transform_t right_move_transforms[NUM_TRANSFORMS])
-{
-//    printf("computing moves for layer %u\n", layer_num);
-    size_t max_buffer_size = get_max_buffer_size() / (2 * sizeof(uint64_t));
-    init_output_buffer(max_buffer_size);
-
     size_t MAX_BLOCK_SIZE = 500000;
+    init_output_buffer(2 * MAX_BLOCK_SIZE);
 
-    char *filepath = "/Users/grantke/Desktop/Stuff/2048/compute_moves.gpu64.bc";
-    char *function_name = "compute_moves";
+    char *filepath = "./compute_heuristic.gpu64.bc";
+    char *function_name = "compute_heuristic";
 
-
-    uint64_t prev_layer_start = start_of_layer(layer_num - 1);
-    uint64_t prev_layer_end = prev_layer_start + size_of_layer(layer_num - 1);
     uint64_t layer_start = start_of_layer(layer_num);
     uint64_t layer_end = layer_start + size_of_layer(layer_num);
 
-
-
-    for (uint64_t orig_start_index = prev_layer_start;
-         orig_start_index < prev_layer_end;
+    for (uint64_t orig_start_index = layer_start;
+         orig_start_index < layer_end;
          orig_start_index += MAX_BLOCK_SIZE)
     {
-        size_t this_block_size = min(prev_layer_end - orig_start_index, MAX_BLOCK_SIZE);
-//        printf("\tcomputing block %llu:%llu\n\n",orig_start_index,orig_start_index + this_block_size);
-        void *input_buffers[] =         {allBoards + orig_start_index,       left_move_transforms,                 right_move_transforms, NULL};
-        size_t input_buffer_sizes[] =   {this_block_size * sizeof(uint64_t), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
+        size_t this_block_size = min(layer_end - orig_start_index, MAX_BLOCK_SIZE);
 
-        for (int i = 0; i < sizeof(input_buffer_sizes) / sizeof(size_t); ++i)
+        void *input_buffers[] =         {allBoards + orig_start_index,      empty_vals, NULL};
+        size_t input_buffer_sizes[] =   {this_block_size * sizeof(uint64_t),NUM_TRANSFORMS * sizeof(int)};
+
+        size_t outputBufferSize = 2 * this_block_size * sizeof(uint64_t);
+
+        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, outputBufferSize, this_block_size*2);
+
+        for (uint64_t i = 0; i < this_block_size; ++i)
         {
-//            printf("\t\tsize of input[%d] = %ld\n",i, input_buffer_sizes[i]);
+            allBoards[orig_start_index + i] = outputBuffer[2*i] + outputBuffer[2*i + 1];
         }
-//        printf("calling create_program_from_bitcode\n");
-        size_t outputBufferSize = 4 * this_block_size * sizeof(uint64_t);
-
-        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, outputBufferSize, this_block_size);
-//        printf("create_program_from_bitcode returned \n");
-
-        uint64_t result_layer_offset = layer_start + 4 * (orig_start_index - prev_layer_start);
-        for (uint64_t i = 0; i < 4 * this_block_size; ++i)
-        {
-            allBoards[result_layer_offset + i] = outputBuffer[i];
-        }
-//        printf("finished writing allboards output \n");
     }
-//    printf("\tFinished computing moves for layer %llu\n\n", layer_num);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -2,6 +2,7 @@
 #include "precompute.h"
 extern "C" {
   #include "compute_moves.h"
+  #include "compute_heuristic.h"
 }
 #include <algorithm>
 #include <cassert>
@@ -253,7 +254,7 @@ void compute_layer(int layerNum)
 
   if (calculate_moves)
   {
-    compute_moves(entire_move_tree, tree_size, layerNum, left_move_transforms, right_move_transforms);
+    compute_moves(entire_move_tree, layerNum, left_move_transforms, right_move_transforms);
   }
   else
   {
@@ -293,6 +294,11 @@ void evaluate_layer(int layerNum)
 //  cout<<"evaluating layer "<<layerNum<<endl;
   uint64_t layerStart = start_of_layer(layerNum);
   uint64_t layerSize = size_of_layer(layerNum);
+  if (layerNum == MAX_DEPTH)
+  {
+    compute_heuristics(entire_move_tree, layerNum, empty_vals);
+    return;
+  }
   for (uint64_t i = layerStart; i < layerStart + layerSize; ++i)
   {
     board_t thisBoard = entire_move_tree[i];
@@ -303,14 +309,7 @@ void evaluate_layer(int layerNum)
     }
 //    cout<<"\tevaluating "<<i<<endl;
     // Leaf layer - compute heuristics
-    if (layerNum == MAX_DEPTH)
-    {
-      uint64_t eval = heuristic(thisBoard);
-      entire_move_tree[i] = eval;
-//      cout<<"\t\teval["<<i<<"] = heuristic = "<<eval<<endl;
-    }
-    // Move layer - average the next layer (outcomes)
-    else if (layerNum % 2 == 0)
+    if (layerNum % 2 == 0)
     {
       uint64_t thisLayerIndex = i - layerStart;
       uint64_t outcomesStart = start_of_layer(layerNum + 1) + (30 * thisLayerIndex);
