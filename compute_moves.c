@@ -188,6 +188,12 @@ static void create_program_from_bitcode(char* bitcode_path,
     
     clEnqueueReadBuffer(queue, outputBuffer, CL_TRUE, 0, programOutputSize, programOutput,
                         0, NULL, NULL);
+    for (int i = 0; i < num_buffers; ++i)
+    {
+        clReleaseMemObject(input_buffers[i]);
+    }
+    clReleaseMemObject(outputBuffer);
+
 }
 
 static uint64_t *outputBuffer = NULL;
