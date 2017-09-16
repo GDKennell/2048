@@ -7,6 +7,7 @@
 #include <OpenCL/opencl.h>
 
 #include "compute_heuristic.h"
+#include "constants.h"
 
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
@@ -256,7 +257,14 @@ void compute_heuristics(uint64_t *allBoards,unsigned int layer_num, int empty_va
 
         for (uint64_t i = 0; i < this_block_size; ++i)
         {
-            allBoards[orig_start_index + i] = outputBuffer[2*i] + outputBuffer[2*i + 1];
+            if (outputBuffer[2*i] == UNUSED_HEUR)
+            {
+                allBoards[orig_start_index + i] = UNUSED_HEUR;
+            }
+            else
+            {
+                allBoards[orig_start_index + i] = outputBuffer[2*i] + outputBuffer[2*i + 1];
+            }
         }
     }
 }

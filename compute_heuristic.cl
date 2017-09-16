@@ -4,6 +4,9 @@ typedef uint64_t board_col_t;
 
 constant int NUM_TRANSFORMS = 65536;
 
+constant uint64_t UNUSED_BOARD = 0;
+constant uint64_t UNUSED_HEUR = 0xFFFFFFFFFFFFFFF;
+
 //********************************************************************************
 //*********************************** Board **************************************
 //********************************************************************************
@@ -42,6 +45,11 @@ kernel void compute_heuristic(global board_t* input_boards,
   size_t index = get_global_id(0);
   size_t orig_index = index / 2;
   board_t board = input_boards[orig_index];
+  if (board == UNUSED_BOARD)
+  {
+    output_boards[index] = UNUSED_HEUR;
+    return;
+  }
   bool first_half = (index % 2 == 0);
   if (first_half)
   {
