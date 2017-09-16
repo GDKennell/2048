@@ -175,6 +175,13 @@ uint64_t tree_size;
 
 uint64_t start_of_layer(int layer_num)
 {
+  const int max_layers = 20;
+  static uint64_t layer_starts[max_layers];
+
+  if (layer_starts[layer_num] > 0)
+  {
+    return layer_starts[layer_num];
+  }
   uint64_t layerStart = 0;
   uint64_t layerSize = 4;
   for (int i = 1; i <= layer_num; ++i)
@@ -183,6 +190,7 @@ uint64_t start_of_layer(int layer_num)
     uint64_t layerMultiplier = (i % 2 == 0) ? 4 : 30;
     layerSize *= layerMultiplier;
   }
+  layer_starts[layer_num] = layerStart;
   return layerStart;
 }
 
