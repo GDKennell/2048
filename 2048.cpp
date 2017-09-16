@@ -178,7 +178,6 @@ int main() {
     cout<<"\n********Move "<<direction_names[move_decision]<<"********"<<endl;
     cout<<"********Score: "<<score<<"********\n"<<endl;
 
-    return 0;
     add_new_tile(board, false);
     cout<<endl;
   }
@@ -245,15 +244,17 @@ board_t apply_move(Direction move_direction, const board_t &board, int& score) {
 
 board_t input_board() {
   board_t board;
-  const int num_tiles = 5;
-  cout<<"Input "<<num_tiles<<" tiles"<<endl;
-  for(int i = 0; i < num_tiles; ++i){
-    Block new_block = input_block();
-    assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
-    assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
-    board.set_val(new_block.x-1, new_block.y-1, new_block.val);
-    cout<<endl;
-  }
+  board.set_val(1,1,2);
+  board.set_val(2,2,2);
+//  const int num_tiles = 5;
+//  cout<<"Input "<<num_tiles<<" tiles"<<endl;
+//  for(int i = 0; i < num_tiles; ++i){
+//    Block new_block = input_block();
+//    assert(new_block.x-1 >= 0 && new_block.x-1 <= 3);
+//    assert(new_block.y-1 >= 0 && new_block.y-1 <= 3);
+//    board.set_val(new_block.x-1, new_block.y-1, new_block.val);
+//    cout<<endl;
+//  }
   return board;
 }
 
@@ -370,15 +371,13 @@ int64_t eval_board_moves(const board_t& board) {
 
 int64_t eval_board_outcomes(const board_t& board) {
   ++depth;
-  if (verbose_logs) {
-    for (int i = 0; i < depth; ++i) {cout<<"  ";}
-    cout<<"Eval outcomes (d="<<depth<<") start"<<endl;
-  }
+//  if (verbose_logs) {
+//    for (int i = 0; i < depth; ++i) {cout<<"  ";}
+//    cout<<"Eval outcomes (d="<<depth<<") start"<<endl;
+//  }
   board_t possible_outcomes[30];
   int num_outcomes = 0;
 
-  if (depth == 1)
-    cout<<depth_print(depth)<<" computing outcomes from board: "<<board.raw()<<endl;
   for(int x = 0; x < 4; ++x) {
     for(int y = 0; y < 4; ++y) {
       if (board.val_at( x, y) == 0) {
@@ -409,17 +408,17 @@ int64_t eval_board_outcomes(const board_t& board) {
     }
 
     uint64_t prob_factor = (i % 2 == 0) ? prob2_num : prob4_num;
-    if (depth == 1)
-      cout<<depth_print(depth)<<"tot_prob += prob_factor("<<prob_factor<<" * outcome_val("<<outcome_val<<") =="<<prob_factor * outcome_val<<endl;
+//    if (depth == 1)
+//      cout<<depth_print(depth)<<"tot_prob += prob_factor("<<prob_factor<<" * outcome_val("<<outcome_val<<") =="<<prob_factor * outcome_val<<endl;
     tot_prob += prob_factor * outcome_val;
   }
   if (verbose_logs) {
     for (int i = 0; i < depth; ++i) {cout<<"  ";}
-    cout<<"Eval outcomes (d="<<depth<<"): returning tot_prob("<<tot_prob<<")/num_outcomes("<<num_outcomes<<") = "<<tot_prob/num_outcomes<<endl;
+//    cout<<"Eval outcomes (d="<<depth<<"): returning tot_prob("<<tot_prob<<")/num_outcomes("<<num_outcomes<<") = "<<tot_prob/num_outcomes<<endl;
   }
 
-  if (depth == 1)
-    cout<<depth_print(depth)<<"tot_prob = tot_prob("<<tot_prob<<" / (10 * num_outcomes("<<num_outcomes<<")) = "<<tot_prob / (10 * num_outcomes)<<endl;
+//  if (depth == 1)
+//    cout<<depth_print(depth)<<"tot_prob = tot_prob("<<tot_prob<<" / (10 * num_outcomes("<<num_outcomes<<")) = "<<tot_prob / (10 * num_outcomes)<<endl;
   tot_prob = tot_prob / (10 * num_outcomes);
   --depth;
 
@@ -437,39 +436,38 @@ Direction advice(const board_t& board,
   int64_t left_val;
   int64_t right_val;
 
-//  int num_empty = heuristic(board);
-  MAX_DEPTH = 4;
+  int num_empty = heuristic(board);
+//  MAX_DEPTH = 4;
 
-//  if(num_empty < 2) {
-//    TOLERANCE = 50000;
-//    MAX_DEPTH = 10;
-//  }
-//  else if(num_empty < 4) {
-//    TOLERANCE = 100000;
-//    MAX_DEPTH = 8;
-//  }
-//  else if(num_empty < 7) {
-//    TOLERANCE = 200000;
-//    MAX_DEPTH = 6;
-//  }
-//  else {
-//    TOLERANCE = 500000;
-//    MAX_DEPTH = 4;
-//  }
+  if(num_empty < 2) {
+    TOLERANCE = 50000;
+    MAX_DEPTH = 10;
+  }
+  else if(num_empty < 4) {
+    TOLERANCE = 100000;
+    MAX_DEPTH = 8;
+  }
+  else if(num_empty < 7) {
+    TOLERANCE = 200000;
+    MAX_DEPTH = 6;
+  }
+  else {
+    TOLERANCE = 500000;
+    MAX_DEPTH = 4;
+  }
 
   bool up_valid = (board != up_result);
   bool right_valid = (board != right_result);
   bool down_valid = (board != down_result);
   bool left_valid = (board != left_result);
 
-  cout<<"evaluating left move"<<endl;
+//  cout<<"evaluating left move"<<endl;
   left_val = left_valid ? eval_board_outcomes(left_result) : -1;
-  exit(0);
-  cout<<"evaluating right move"<<endl;
+//  cout<<"evaluating right move"<<endl;
   right_val = right_valid ? eval_board_outcomes(right_result) : -1;
-  cout<<"evaluating up move"<<endl;
+//  cout<<"evaluating up move"<<endl;
   up_val = up_valid ? eval_board_outcomes(up_result) : -1;
-  cout<<"evaluating down move"<<endl;
+//  cout<<"evaluating down move"<<endl;
   down_val = down_valid ? eval_board_outcomes(down_result) : -1;
 
   int64_t max_val = max(up_val, down_val, left_val, right_val);
