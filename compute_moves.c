@@ -118,6 +118,7 @@ static void create_program_from_bitcode(char* bitcode_path,
                                         char* function_name,
                                         void **programInputs,
                                         size_t *programInputSizes,
+                                        size_t *programInputMaxSizes,
                                         void *programOutput,
                                         size_t programOutputSize,
                                         size_t count)
@@ -129,21 +130,30 @@ static void create_program_from_bitcode(char* bitcode_path,
 
     // And create and load some CL memory buffers with that host data.
     const int MAX_BUFFERS = 10;
-    cl_mem input_buffers[MAX_BUFFERS];
-
-    int num_buffers = 0;
-    while(programInputs[num_buffers] != NULL)
+    static cl_mem input_buffers[MAX_BUFFERS];
+    static int num_buffers = 0;
+    static bool input_buffers_initialized = false;
+    if (!input_buffers_initialized)
     {
-        input_buffers[num_buffers] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                                    programInputSizes[num_buffers], programInputs[num_buffers], &err);
-        if (input_buffers[num_buffers] == NULL)
+        input_buffers_initialized = true;
+        while(programInputs[num_buffers] != NULL)
         {
-            fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects %d.\n", num_buffers);
-            fprintf(stderr, "Using input %p of size %ld \n", programInputs[num_buffers], programInputSizes[num_buffers]);
-            exit(1);
+            void *blankSpace = malloc(programInputMaxSizes[num_buffers]);
+            input_buffers[num_buffers] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                        programInputMaxSizes[num_buffers], blankSpace, &err);
+            free(blankSpace);
+            if (input_buffers[num_buffers] == NULL)
+            {
+                fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects %d.\n", num_buffers);
+                fprintf(stderr, "Using input %p of size %ld \n", programInputs[num_buffers], programInputSizes[num_buffers]);
+                exit(1);
+            }
+            ++num_buffers;
         }
-        ++num_buffers;
-
+    }
+    for (int i = 0; i < num_buffers; ++i)
+    {
+        clEnqueueWriteBuffer(queue, input_buffers[i],CL_TRUE, 0, programInputSizes[i], programInputs[i], 0,NULL, NULL);
     }
 
     size_t total_sizes = 0;
@@ -185,15 +195,10 @@ static void create_program_from_bitcode(char* bitcode_path,
     clFinish(queue);
     // Read back the results (blocking, so everything finishes), and then
     // validate the results.
-    
+
     clEnqueueReadBuffer(queue, outputBuffer, CL_TRUE, 0, programOutputSize, programOutput,
                         0, NULL, NULL);
-    for (int i = 0; i < num_buffers; ++i)
-    {
-        clReleaseMemObject(input_buffers[i]);
-    }
     clReleaseMemObject(outputBuffer);
-
 }
 
 static uint64_t *outputBuffer = NULL;
@@ -287,8 +292,9 @@ void compute_moves(uint64_t *allBoards , unsigned int layer_num, transform_t lef
     {
         size_t this_block_size = min(prev_layer_end - orig_start_index, MAX_BLOCK_SIZE);
 //        printf("\tcomputing block %llu:%llu\n\n",orig_start_index,orig_start_index + this_block_size);
-        void *input_buffers[] =         {allBoards + orig_start_index,       left_move_transforms,                 right_move_transforms, NULL};
-        size_t input_buffer_sizes[] =   {this_block_size * sizeof(uint64_t), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
+        void *input_buffers[] =             {allBoards + orig_start_index,       left_move_transforms,                 right_move_transforms, NULL};
+        size_t input_buffer_sizes[] =       {this_block_size * sizeof(uint64_t), NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
+        size_t input_buffer_max_sizes[] =   {MAX_BLOCK_SIZE * sizeof(uint64_t),  NUM_TRANSFORMS * sizeof(transform_t), NUM_TRANSFORMS * sizeof(transform_t)};
 
         for (int i = 0; i < sizeof(input_buffer_sizes) / sizeof(size_t); ++i)
         {
@@ -297,7 +303,7 @@ void compute_moves(uint64_t *allBoards , unsigned int layer_num, transform_t lef
 //        printf("calling create_program_from_bitcode\n");
         size_t outputBufferSize = 4 * this_block_size * sizeof(uint64_t);
 
-        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, outputBuffer, outputBufferSize, this_block_size);
+        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, input_buffer_max_sizes, outputBuffer, outputBufferSize, this_block_size);
 //        printf("create_program_from_bitcode returned \n");
 
         uint64_t result_layer_offset = layer_start + 4 * (orig_start_index - prev_layer_start);
