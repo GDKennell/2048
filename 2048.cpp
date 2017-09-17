@@ -2,6 +2,7 @@
 #include "precompute.h"
 extern "C" {
   #include "compute_moves.h"
+  #include "compute_outcomes.h"
   #include "compute_heuristic.h"
   #include "evaluate_outcomes.h"
 }
@@ -217,36 +218,6 @@ int layer_for_index(uint64_t index)
   return layerNum;
 }
 
-
-void compute_outcomes(uint64_t orig_index)
-{
-  int orig_layer = layer_for_index(orig_index);
-  uint64_t orig_layer_index = orig_index - start_of_layer(orig_layer);
-  uint64_t next_outcome_i = start_of_layer(orig_layer + 1) + 30 * orig_layer_index;
-  uint64_t end_of_outcomes = next_outcome_i + 30;
-  board_t orig_board = entire_move_tree[orig_index];
-  if (orig_board.raw() == UNUSED_BOARD){ return; }
-
-  for(int x = 0; x < 4; ++x) {
-    for(int y = 0; y < 4; ++y) {
-      if (orig_board.val_at( x, y) == 0) {
-        board_t outcome2 = orig_board;
-        outcome2.set_val(x, y, 2);
-        entire_move_tree[next_outcome_i++] = outcome2.raw();
-//        cout<<"\tentire_move_tree["<<next_outcome_i - 1<<"] = "<<outcome2.raw()<<endl;
-
-        board_t outcome4 = orig_board;
-        outcome4.set_val(x, y, 4);
-        entire_move_tree[next_outcome_i++] = outcome4.raw();
-//        cout<<"\tentire_move_tree["<<next_outcome_i - 1<<"] = "<<outcome4.raw()<<endl;
-      }
-    }
-  }
-  while (next_outcome_i < end_of_outcomes)
-  {
-    entire_move_tree[next_outcome_i++] = UNUSED_BOARD;
-  }
-}
 // Layer 0: first four Moves
 // Layer 1: outcomes of first four moves
 // Layer 2: move options from layer 1 outcomes
@@ -269,10 +240,7 @@ void compute_layer(int layerNum)
   }
   else
   {
-    for (uint64_t prev_i = 0; prev_i < i_size_of_prev_layer; ++prev_i)
-    {
-      compute_outcomes(i_start_of_prev_layer + prev_i);
-    }
+    compute_outcomes(entire_move_tree, layerNum);
   }
 }
 
