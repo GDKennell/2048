@@ -3,6 +3,7 @@
 extern "C" {
   #include "compute_moves.h"
   #include "compute_heuristic.h"
+  #include "evaluate_outcomes.h"
 }
 #include <algorithm>
 #include <cassert>
@@ -342,39 +343,7 @@ void evaluate_moves_layer(int layerNum)
 
 void evaluate_outcomes_layer(int layerNum)
 {
-  uint64_t layerStart = start_of_layer(layerNum);
-  uint64_t layerSize = size_of_layer(layerNum);
-  uint64_t layerEnd = layerStart + layerSize;
-
-  uint64_t nextLayerStart = start_of_layer(layerNum + 1);
-  for (uint64_t i = layerStart; i < layerEnd; ++i)
-  {
-    board_t thisBoard = entire_move_tree[i];
-    if (thisBoard.raw() == UNUSED_BOARD)
-    {
-      entire_move_tree[i] = UNUSED_HEUR;
-      continue;
-    }
-
-    uint64_t thisLayerIndex = i - layerStart;
-    uint64_t movesStart = nextLayerStart + (4 * thisLayerIndex);
-    uint64_t movesEnd = movesStart + 4;
-    uint64_t bestMoveHeur = UNUSED_HEUR;
-    for (uint64_t j = movesStart; j < movesEnd; ++j)
-    {
-      uint64_t moveHeur = entire_move_tree[j];
-      if (moveHeur != UNUSED_HEUR)
-      {
-        if (bestMoveHeur == UNUSED_HEUR || moveHeur > bestMoveHeur)
-        {
-          bestMoveHeur = moveHeur;
-        }
-      }
-    }
-    entire_move_tree[i] = bestMoveHeur;
-    //      cout<<"\t\teval["<<i<<"] = bestMoveHeur("<<bestMoveHeur<<")"<<endl;
-  }
-
+  evaluate_outcomes(entire_move_tree,layerNum);
 }
 
 void evaluate_layer(int layerNum)

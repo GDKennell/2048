@@ -1,5 +1,5 @@
-all: 2048.cpp SmallBoard.h move_precompute.cpp heur_precompute.cpp precompute.h compute_moves.o compute_heuristic.o
-	g++ -g -std=c++11 -framework OpenCL 2048.cpp heur_precompute.cpp move_precompute.cpp compute_moves.o compute_heuristic.o -o Play2048
+all: 2048.cpp SmallBoard.h move_precompute.cpp heur_precompute.cpp precompute.h compute_moves.o compute_heuristic.o evaluate_outcomes.o
+	g++ -g -std=c++11 -framework OpenCL 2048.cpp heur_precompute.cpp move_precompute.cpp compute_moves.o compute_heuristic.o evaluate_outcomes.o -o Play2048
 
 clean:
 	rm -f ./*.cl.c
@@ -32,6 +32,12 @@ compute_heuristic.o: compute_heuristic.c compute_heuristic.gpu64.bc
 	clang -c -Os -Wall -arch x86_64  -o compute_heuristic.o compute_heuristic.c
 
 compute_heuristic.gpu64.bc: compute_heuristic.cl
+	$(CLC) -emit-llvm -c -arch gpu_64 $< -o $@
+
+evaluate_outcomes.o: evaluate_outcomes.c evaluate_outcomes.gpu64.bc
+	clang -c -Os -Wall -arch x86_64  -o evaluate_outcomes.o evaluate_outcomes.c
+
+evaluate_outcomes.gpu64.bc: evaluate_outcomes.cl
 	$(CLC) -emit-llvm -c -arch gpu_64 $< -o $@
 
 
