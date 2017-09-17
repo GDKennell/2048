@@ -121,9 +121,10 @@ static void create_program_from_bitcode(char* bitcode_path,
                                         size_t *programInputMaxSizes,
                                         void *programOutput,
                                         size_t programOutputSize,
+                                        size_t programOutputMaxSize,
                                         size_t count)
 {
-    cl_int err;
+    cl_int err = CL_SUCCESS;
 
     init_kernel(bitcode_path,function_name);
     // And now, let's test the kernel with some dummy data.
@@ -131,11 +132,20 @@ static void create_program_from_bitcode(char* bitcode_path,
     // And create and load some CL memory buffers with that host data.
     const int MAX_BUFFERS = 10;
     static cl_mem input_buffers[MAX_BUFFERS];
+    static cl_mem outputBuffer;
     static int num_buffers = 0;
-    static bool input_buffers_initialized = false;
-    if (!input_buffers_initialized)
+    static bool buffers_initialized = false;
+
+    if (!buffers_initialized)
     {
-        input_buffers_initialized = true;
+        outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
+                                      programOutputMaxSize, NULL, &err);
+
+        if (outputBuffer == NULL) {
+            fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects.\n");
+            exit(1);
+        }
+
         while(programInputs[num_buffers] != NULL)
         {
             void *blankSpace = malloc(programInputMaxSizes[num_buffers]);
@@ -150,6 +160,7 @@ static void create_program_from_bitcode(char* bitcode_path,
             }
             ++num_buffers;
         }
+        buffers_initialized = true;
     }
     for (int i = 0; i < num_buffers; ++i)
     {
@@ -161,25 +172,20 @@ static void create_program_from_bitcode(char* bitcode_path,
     {
         total_sizes += programInputSizes[i];
     }
-//    printf("total input_sizes: %ld\n", total_sizes);
+    //    printf("total input_sizes: %ld\n", total_sizes);
 
     // CL buffer 'c' is for output, so we don't prepopulate it with data.
 
-    cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
-                                         programOutputSize, NULL, &err);
-
-    if (outputBuffer == NULL) {
-        fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects.\n");
-        exit(1);
-    }
 
     int argc = 0;
     for (int i = 0; i < num_buffers; ++i){
         err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &input_buffers[i]);
+        check_status("clSetKernelArg input", err);
     }
     err |= clSetKernelArg(kernel, argc++, sizeof(cl_mem), &outputBuffer);
+    check_status("clSetKernelArg ouptut", err);
     err |= clSetKernelArg(kernel, argc++, sizeof(size_t), &count);
-    check_status("clSetKernelArg", err);
+    check_status("clSetKernelArg count", err);
 
     // Launch the kernel over a single dimension, which is the same size
     // as the number of float4s.  We let OpenCL select the local dimensions
@@ -187,7 +193,7 @@ static void create_program_from_bitcode(char* bitcode_path,
 
     size_t global = count;
 
-//    fprintf(stderr, "About to clEnqueueNDRangeKernel.\n");
+    //    fprintf(stderr, "About to clEnqueueNDRangeKernel.\n");
     err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global, NULL, 0, NULL,
                                  NULL);
     check_status("clEnqueueNDRangeKernel", err);
@@ -198,7 +204,6 @@ static void create_program_from_bitcode(char* bitcode_path,
 
     clEnqueueReadBuffer(queue, outputBuffer, CL_TRUE, 0, programOutputSize, programOutput,
                         0, NULL, NULL);
-    clReleaseMemObject(outputBuffer);
 }
 
 static uint64_t *outputBuffer = NULL;
@@ -302,8 +307,9 @@ void compute_moves(uint64_t *allBoards , unsigned int layer_num, transform_t lef
         }
 //        printf("calling create_program_from_bitcode\n");
         size_t outputBufferSize = 4 * this_block_size * sizeof(uint64_t);
+        size_t outputBufferMaxSize =  4 *  MAX_BLOCK_SIZE * sizeof(uint64_t);
 
-        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, input_buffer_max_sizes, outputBuffer, outputBufferSize, this_block_size);
+        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, input_buffer_max_sizes, outputBuffer, outputBufferSize, outputBufferMaxSize, this_block_size);
 //        printf("create_program_from_bitcode returned \n");
 
         uint64_t result_layer_offset = layer_start + 4 * (orig_start_index - prev_layer_start);

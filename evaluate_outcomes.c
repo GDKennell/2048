@@ -128,6 +128,7 @@ static void create_program_from_bitcode(char* bitcode_path,
                                         size_t *programInputMaxSizes,
                                         void *programOutput,
                                         size_t programOutputSize,
+                                        size_t programOutputMaxSize,
                                         size_t count)
 {
     cl_int err;
@@ -138,11 +139,20 @@ static void create_program_from_bitcode(char* bitcode_path,
     // And create and load some CL memory buffers with that host data.
     const int MAX_BUFFERS = 10;
     static cl_mem input_buffers[MAX_BUFFERS];
+    static cl_mem outputBuffer;
     static int num_buffers = 0;
-    static bool input_buffers_initialized = false;
-    if (!input_buffers_initialized)
+    static bool buffers_initialized = false;
+
+    if (!buffers_initialized)
     {
-        input_buffers_initialized = true;
+        outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
+                                      programOutputMaxSize, NULL, &err);
+
+        if (outputBuffer == NULL) {
+            fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects.\n");
+            exit(1);
+        }
+
         while(programInputs[num_buffers] != NULL)
         {
             void *blankSpace = malloc(programInputMaxSizes[num_buffers]);
@@ -157,6 +167,7 @@ static void create_program_from_bitcode(char* bitcode_path,
             }
             ++num_buffers;
         }
+        buffers_initialized = true;
     }
     for (int i = 0; i < num_buffers; ++i)
     {
@@ -172,13 +183,6 @@ static void create_program_from_bitcode(char* bitcode_path,
 
     // CL buffer 'c' is for output, so we don't prepopulate it with data.
 
-    cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
-                                         programOutputSize, NULL, &err);
-
-    if (outputBuffer == NULL) {
-        fprintf(stderr, "Error: Unable to create OpenCL buffer memory objects of size %llu. Err: %d\n",programOutputSize,err);
-        exit(1);
-    }
 
     int argc = 0;
     for (int i = 0; i < num_buffers; ++i){
@@ -205,7 +209,6 @@ static void create_program_from_bitcode(char* bitcode_path,
 
     clEnqueueReadBuffer(queue, outputBuffer, CL_TRUE, 0, programOutputSize, programOutput,
                         0, NULL, NULL);
-    clReleaseMemObject(outputBuffer);
 }
 
 static uint64_t *outputBuffer = NULL;
@@ -263,8 +266,8 @@ void evaluate_outcomes(uint64_t *allBoards,unsigned int layer_num)
         size_t input_buffer_sizes[] =       {4 * this_block_size * sizeof(uint64_t)};
         size_t input_buffer_max_sizes[] =   {4 * MAX_BLOCK_SIZE * sizeof(uint64_t)};
         size_t outputBufferSize = this_block_size * sizeof(uint64_t);
-
-        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, input_buffer_max_sizes, outputBuffer, outputBufferSize, this_block_size);
+        size_t outputBufferMaxSize = MAX_BLOCK_SIZE * sizeof(uint64_t);
+        create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, input_buffer_max_sizes, outputBuffer, outputBufferSize, outputBufferMaxSize, this_block_size);
 
         for (int i = 0; i < this_block_size; ++i)
         {
