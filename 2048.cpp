@@ -344,8 +344,10 @@ void evaluate_outcomes_layer(int layerNum)
 {
   uint64_t layerStart = start_of_layer(layerNum);
   uint64_t layerSize = size_of_layer(layerNum);
+  uint64_t layerEnd = layerStart + layerSize;
 
-  for (uint64_t i = layerStart; i < layerStart + layerSize; ++i)
+  uint64_t nextLayerStart = start_of_layer(layerNum + 1);
+  for (uint64_t i = layerStart; i < layerEnd; ++i)
   {
     board_t thisBoard = entire_move_tree[i];
     if (thisBoard.raw() == UNUSED_BOARD)
@@ -355,10 +357,10 @@ void evaluate_outcomes_layer(int layerNum)
     }
 
     uint64_t thisLayerIndex = i - layerStart;
-    uint64_t movesStart = start_of_layer(layerNum + 1) + (4 * thisLayerIndex);
-
+    uint64_t movesStart = nextLayerStart + (4 * thisLayerIndex);
+    uint64_t movesEnd = movesStart + 4;
     uint64_t bestMoveHeur = UNUSED_HEUR;
-    for (uint64_t j = movesStart; j < movesStart + 4; ++j)
+    for (uint64_t j = movesStart; j < movesEnd; ++j)
     {
       uint64_t moveHeur = entire_move_tree[j];
       if (moveHeur != UNUSED_HEUR)
