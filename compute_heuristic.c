@@ -244,6 +244,20 @@ static uint64_t size_of_layer(int layer_num)
     return layerSize;
 }
 
+void copy_from_output_buffer(uint64_t *allBoards, size_t this_block_size,uint64_t orig_start_index)
+{
+    for (uint64_t i = 0; i < this_block_size; ++i)
+    {
+        if (outputBuffer[2*i] == UNUSED_HEUR)
+        {
+            allBoards[orig_start_index + i] = UNUSED_HEUR;
+        }
+        else
+        {
+            allBoards[orig_start_index + i] = outputBuffer[2*i] + outputBuffer[2*i + 1];
+        }
+    }
+}
 
 void compute_heuristics(uint64_t *allBoards,unsigned int layer_num, int empty_vals[NUM_TRANSFORMS])
 {
@@ -270,17 +284,7 @@ void compute_heuristics(uint64_t *allBoards,unsigned int layer_num, int empty_va
         size_t outputBufferMaxSize = 2 * MAX_BLOCK_SIZE * sizeof(uint64_t);
         create_program_from_bitcode(filepath, function_name, input_buffers, input_buffer_sizes, input_buffer_max_sizes, outputBuffer, outputBufferSize,outputBufferMaxSize, this_block_size*2);
 
-        for (uint64_t i = 0; i < this_block_size; ++i)
-        {
-            if (outputBuffer[2*i] == UNUSED_HEUR)
-            {
-                allBoards[orig_start_index + i] = UNUSED_HEUR;
-            }
-            else
-            {
-                allBoards[orig_start_index + i] = outputBuffer[2*i] + outputBuffer[2*i + 1];
-            }
-        }
+        copy_from_output_buffer(allBoards, this_block_size,orig_start_index);
     }
 }
 
